@@ -5,7 +5,7 @@ import json
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import AwareDatetime, Field
 
@@ -26,6 +26,10 @@ from agentic_delivery.policy.changes import check_candidate
 from agentic_delivery.policy.engine import POLICY_VERSION, evaluate_intake
 from agentic_delivery.storage.artifacts import ArtifactStore
 from agentic_delivery.storage.store import digest_json
+
+if TYPE_CHECKING:
+    from agentic_delivery.evaluation.historical_derivation import ReferenceDerivation
+    from agentic_delivery.evaluation.historical_linkage import HistoricalLinkageEvidence
 
 MAX_PATCH_BYTES = 1024 * 1024
 MAX_JSON_BYTES = 4 * 1024 * 1024
@@ -95,6 +99,90 @@ class ReferenceProvenance(Contract):
     oracle_artifact: Digest
     reference_snapshot_artifact: Digest
     reference_patch_artifact: Digest
+
+
+class ReferenceProvenanceV2(Contract):
+    """Explicit derived execution identity; never labels it the accepted Git tree."""
+
+    schema_version: Literal[2]
+    kind: Literal["historical-derived-reference"]
+    task_manifest_digest: Digest
+    repository: NonEmpty
+    base_sha: CommitSHA
+    accepted_commit: CommitSHA
+    accepted_commit_url: NonEmpty
+    issue_url: NonEmpty
+    source_snapshot_artifact: Digest
+    oracle_artifact: Digest
+    reference_snapshot_artifact: Digest
+    reference_patch_artifact: Digest
+    derivation_artifact: Digest
+    linkage_artifact: Digest
+    derivation_authorization_artifact: Digest
+
+
+def parse_reference_provenance(document: Any) -> ReferenceProvenance | ReferenceProvenanceV2:
+    if isinstance(document, dict) and document.get("schema_version") == 2:
+        return ReferenceProvenanceV2.model_validate(document)
+    return ReferenceProvenance.model_validate(document)
+
+
+def validate_derived_reference_provenance(
+    reference: ReferenceProvenanceV2,
+    *,
+    protected_artifacts: ArtifactStore,
+    worker_roots: tuple[Path, ...] | None = None,
+    protected_paths: tuple[str, ...] | None = None,
+    now: datetime | None = None,
+) -> tuple["ReferenceDerivation", "HistoricalLinkageEvidence"]:
+    """Reconstruct identity/content; scope/current policy require trusted caller inputs.
+
+    Protected semantic readers have no worker scope or live policy and use content-only
+    validation. Preparation and current authority must supply/revalidate both separately.
+    """
+    from agentic_delivery.evaluation.historical_derivation import (
+        validate_reference_derivation,
+        validate_reference_derivation_content,
+    )
+    from agentic_delivery.evaluation.historical_linkage import validate_historical_linkage
+
+    reference = ReferenceProvenanceV2.model_validate(reference.model_dump(mode="json"))
+    derivation = (
+        validate_reference_derivation_content(
+            reference.derivation_artifact, protected_artifacts=protected_artifacts
+        )
+        if worker_roots is None
+        else validate_reference_derivation(
+            reference.derivation_artifact,
+            protected_artifacts=protected_artifacts,
+            worker_roots=worker_roots,
+        )
+    )
+    linkage = validate_historical_linkage(
+        reference.linkage_artifact,
+        protected_artifacts=protected_artifacts,
+        derivation=derivation,
+        now=now,
+    )
+    _require(
+        reference.repository == derivation.repository
+        and reference.base_sha == derivation.base_sha
+        and reference.accepted_commit == derivation.accepted_commit
+        and reference.accepted_commit_url
+        == f"https://github.com/{derivation.repository}/commit/{derivation.accepted_commit}"
+        and reference.issue_url == linkage.issue_url
+        and reference.source_snapshot_artifact == derivation.source_snapshot_artifact
+        and reference.oracle_artifact == derivation.oracle_artifact
+        and reference.reference_patch_artifact == derivation.production_patch_artifact
+        and reference.reference_snapshot_artifact == derivation.executable_reference_artifact,
+        "Derived reference provenance bindings are inconsistent",
+    )
+    if protected_paths is not None:
+        _require(
+            all(not protected(change.path, protected_paths) for change in derivation.changes),
+            "Derived reference changes currently protected paths",
+        )
+    return derivation, linkage
 
 
 class PreparedQualification(Contract):
@@ -419,9 +507,36 @@ def prepare_qualification(
         )
     else:
         assert isinstance(provenance, Provenance)
-        reference = ReferenceProvenance.model_validate(
+        reference = parse_reference_provenance(
             _read(protected_artifacts, request.reference_provenance_artifact)
         )
+        if isinstance(reference, ReferenceProvenanceV2):
+            _require(
+                task.qualification_mode == "independent-agents-v2",
+                "Derived references require current qualification protocol",
+            )
+            derivation, _ = validate_derived_reference_provenance(
+                reference,
+                protected_artifacts=protected_artifacts,
+                worker_roots=(
+                    worker_root,
+                    *(r.local_repository for r in settings.repositories if r.local_repository),
+                ),
+                protected_paths=repository.protected_paths,
+                now=now,
+            )
+            _require(
+                pytest_selectors(task.acceptance_commands[0].argv)
+                == derivation.acceptance_selectors,
+                "Acceptance selectors differ from immutable derivation",
+            )
+            _require(
+                all(
+                    selector.split("::", 1)[0] in source and _test_path(selector.split("::", 1)[0])
+                    for selector in pytest_selectors(task.regression_commands[0].argv)
+                ),
+                "Derived regression commands must select original source test files",
+            )
         license_record = LicenseEvidence.model_validate(
             _read(protected_artifacts, provenance.license_evidence_artifact)
         )
@@ -459,6 +574,21 @@ def prepare_qualification(
             and authorization.issued_at <= now < authorization.expires_at,
             "Usage authorization is stale, unsupported or bound to different inputs",
         )
+        if isinstance(reference, ReferenceProvenanceV2):
+            from agentic_delivery.evaluation.historical_authorization import (
+                validate_derived_authorization,
+            )
+
+            validate_derived_authorization(
+                reference.derivation_authorization_artifact,
+                protected_artifacts=protected_artifacts,
+                derivation=derivation,
+                parent_authorization_artifact=provenance.usage_authorization_artifact,
+                task_manifest_digest=digest,
+                linkage_artifact=reference.linkage_artifact,
+                now=now,
+                policy=policy,
+            )
         _require(
             reference.task_manifest_digest == digest
             and reference.repository == repo

@@ -9,16 +9,24 @@ from agentic_delivery.evaluation.execution_store import EvaluationExecutionStore
 from agentic_delivery.evaluation.qualification import (
     Checks,
     EvidenceSummary,
+    Provenance,
     QualificationInput,
     RepeatedExecution,
     qualification_task_digest,
 )
+from agentic_delivery.evaluation.qualification_input_resolution import (
+    DerivedQualificationInput,
+    resolve_qualification_input,
+)
 from agentic_delivery.evaluation.qualification_preparation import (
     PreparationPolicy,
+    ReferenceProvenanceV2,
     _files,
     _read,
     parse_provenance,
+    parse_reference_provenance,
     parse_task,
+    validate_derived_reference_provenance,
 )
 from agentic_delivery.evaluation.qualification_runtime import (
     DeterministicRequest,
@@ -98,7 +106,22 @@ def materialize_qualification_input(
             **_files(protected_artifacts, task.snapshot_artifact),
             **_files(protected_artifacts, task.oracle_artifact),
         }
-        baseline_artifact = protected_artifacts.put(json.dumps(baseline, sort_keys=True).encode())
+        derived_reference = None
+        if isinstance(provenance, Provenance):
+            record = parse_reference_provenance(
+                _read(protected_artifacts, request.preparation.reference_provenance_artifact)
+            )
+            if isinstance(record, ReferenceProvenanceV2):
+                derived_reference, _ = validate_derived_reference_provenance(
+                    record, protected_artifacts=protected_artifacts
+                )
+        baseline_artifact = (
+            derived_reference.executable_baseline_artifact
+            if derived_reference is not None
+            else protected_artifacts.put(json.dumps(baseline, sort_keys=True).encode())
+        )
+        if _files(protected_artifacts, baseline_artifact) != baseline:
+            raise ValueError("Derived baseline differs from source plus oracle")
         if task.reference_snapshot_artifact is None or task.item.risk_tier is None:
             raise ValueError("Missing bounded reference or risk")
         spec = QualificationInput(
@@ -132,8 +155,25 @@ def materialize_qualification_input(
                 for e in completed.executions
             ),
         )
+        outer = (
+            DerivedQualificationInput(
+                schema_version=2,
+                kind="historical-derived-qualification-input",
+                qualification_input=spec,
+                task_artifact=request.preparation.task_artifact,
+                provenance_artifact=request.preparation.provenance_artifact,
+                reference_provenance_artifact=request.preparation.reference_provenance_artifact,
+            )
+            if derived_reference is not None
+            else spec
+        )
         reference = protected_artifacts.put(
-            json.dumps(spec.model_dump(mode="json"), sort_keys=True, allow_nan=False).encode()
+            json.dumps(outer.model_dump(mode="json"), sort_keys=True, allow_nan=False).encode()
+        )
+        resolve_qualification_input(
+            protected_artifacts,
+            reference,
+            expected_preparation=request.preparation,
         )
         ledger.checkpoint(authorization.account_id, "runtime-review-input-v1", reference)
         return reference

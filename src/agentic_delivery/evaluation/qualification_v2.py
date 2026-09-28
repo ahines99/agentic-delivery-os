@@ -22,6 +22,7 @@ from agentic_delivery.evaluation.qualification import (
     _files,
     _read,
 )
+from agentic_delivery.evaluation.qualification_input_resolution import resolve_qualification_input
 from agentic_delivery.evaluation.synthetic_types import SyntheticProvenance
 from agentic_delivery.execution.files import validate_files
 from agentic_delivery.integrations.model_receipts import (
@@ -262,6 +263,27 @@ def _text(artifacts: ArtifactStore, digest: str) -> str:
     return text
 
 
+def _supporting_text(artifacts: ArtifactStore, digest: str, *, derived: bool) -> str:
+    text = _text(artifacts, digest)
+    if derived:
+        try:
+            document = json.loads(text)
+        except ValueError:
+            document = None
+        _require(
+            not isinstance(document, dict)
+            or document.get("kind")
+            not in {
+                "historical-derived-qualification-input",
+                "historical-derived-reference",
+                "derived-historical-data-authorization",
+                "historical-reference-derivation-v1",
+            },
+            "Derived reference containers cannot be supporting model evidence",
+        )
+    return text
+
+
 def _frozen_evidence(
     artifacts: ArtifactStore, input_artifact: str, rubric_artifact: str
 ) -> FrozenReviewEvidenceV2:
@@ -271,7 +293,8 @@ def _frozen_evidence(
         and document.get("kind") == "synthetic-calibration-review-subject"
     ):
         return _calibration_subject_evidence(artifacts, input_artifact, rubric_artifact, document)
-    spec = QualificationInput.model_validate(document)
+    resolved = resolve_qualification_input(artifacts, input_artifact)
+    spec = resolved.qualification_input
     source = _files(artifacts, spec.provenance.source_snapshot_artifact)
     oracle = _files(artifacts, spec.oracle_artifact)
     baseline = _files(artifacts, spec.baseline_snapshot_artifact)
@@ -328,7 +351,7 @@ def _frozen_evidence(
                 ),
             )
         )
-    forbidden = {spec.reference_snapshot_artifact, spec.reference_patch_artifact}
+    forbidden = set(resolved.forbidden_artifacts)
     if isinstance(spec.provenance, SyntheticProvenance):
         forbidden.add(spec.provenance.authoring_artifact)
     documents = []
@@ -341,7 +364,15 @@ def _frozen_evidence(
         _require(digest not in forbidden, "Reference artifact cannot be supporting model evidence")
         documents.append(
             EvidenceDocumentV2.model_validate(
-                {"role": role, "artifact_digest": digest, "text": _text(artifacts, digest)}
+                {
+                    "role": role,
+                    "artifact_digest": digest,
+                    "text": _supporting_text(
+                        artifacts,
+                        digest,
+                        derived=resolved.reference_provenance_artifact is not None,
+                    ),
+                }
             )
         )
     _require(rubric_artifact not in forbidden, "Reference artifact cannot be a rubric")
@@ -364,7 +395,11 @@ def _frozen_evidence(
         regression_nodes=spec.regression_nodes,
         executions=tuple(executions),
         rubric_artifact=rubric_artifact,
-        rubric_text=_text(artifacts, rubric_artifact),
+        rubric_text=_supporting_text(
+            artifacts,
+            rubric_artifact,
+            derived=resolved.reference_provenance_artifact is not None,
+        ),
     )
 
 

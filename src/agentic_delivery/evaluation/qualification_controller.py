@@ -16,9 +16,6 @@ from agentic_delivery.config import Settings
 from agentic_delivery.domain.models import Contract
 from agentic_delivery.evaluation.calibration import CalibrationPlan, CalibrationPolicy
 from agentic_delivery.evaluation.execution_store import EvaluationExecutionStore
-from agentic_delivery.evaluation.qualification import (
-    QualificationInput,
-)
 from agentic_delivery.evaluation.qualification_admission import (
     ControllerPlanV2,
     ExecutionInputsV2,
@@ -28,6 +25,7 @@ from agentic_delivery.evaluation.qualification_admission import (
     ReviewInvocationV2,
     validate_execution_inputs,
 )
+from agentic_delivery.evaluation.qualification_input_resolution import resolve_qualification_input
 from agentic_delivery.evaluation.qualification_inputs import materialize_qualification_input
 from agentic_delivery.evaluation.qualification_preparation import (
     PreparationPolicy,
@@ -271,7 +269,11 @@ async def _run(
         findings=request.findings,
         now=clock(),
     )
-    spec = QualificationInput.model_validate(_read(protected_artifacts, spec_ref))
+    spec = resolve_qualification_input(
+        protected_artifacts,
+        spec_ref,
+        expected_preparation=request.deterministic_request.preparation,
+    ).qualification_input
     ledger.checkpoint(runtime.account_id, "qualification-input-v2", spec_ref)
 
     async def review(

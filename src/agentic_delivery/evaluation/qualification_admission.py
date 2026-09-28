@@ -28,6 +28,7 @@ from agentic_delivery.evaluation.qualification import (
     QualificationInput,
     qualification_task_digest,
 )
+from agentic_delivery.evaluation.qualification_input_resolution import resolve_qualification_input
 from agentic_delivery.evaluation.qualification_preparation import (
     PreparationPolicy,
     PreparedQualification,
@@ -444,7 +445,11 @@ class QualificationAuthority:
             and current.calibration.completed_at <= plan.created_at,
             "Calibration/runtime stages are not ordered before qualification reviews",
         )
-        spec = QualificationInput.model_validate(_read(store, record.qualification_input_artifact))
+        spec = resolve_qualification_input(
+            store,
+            record.qualification_input_artifact,
+            expected_preparation=request.deterministic_request.preparation,
+        ).qualification_input
         input_checkpoint = self.ledger.checkpoint_receipt(plan.account_id, "qualification-input-v2")
         _require(
             input_checkpoint is not None
