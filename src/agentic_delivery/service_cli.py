@@ -24,7 +24,7 @@ async def serve(config: Path, mode: str, once: bool = False) -> None:
     store = Store(create_database(settings.database_url))
     client = await Client.connect(settings.temporal_address, namespace=settings.temporal_namespace)
     if mode == "worker":
-        activities = Activities(settings, store)
+        activities = Activities(settings, store, settings_provider=lambda: load_settings(config))
         worker = Worker(
             client,
             task_queue=settings.task_queue,

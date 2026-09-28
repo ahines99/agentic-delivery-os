@@ -1,5 +1,6 @@
 """Linear GraphQL reads and version-aware status updates through the control plane."""
 
+from collections.abc import Callable
 from typing import Any
 
 import httpx
@@ -91,7 +92,10 @@ class LinearClient:
         assignee_id: str,
         expected_title: str | None = None,
         expected_description: str | None = None,
+        authorization_check: Callable[[], None] | None = None,
     ) -> None:
+        if authorization_check is not None:
+            authorization_check()
         issue = await self.issue(identity)
         self.validate_issue(
             issue,
@@ -102,6 +106,8 @@ class LinearClient:
         )
         if issue["state"]["id"] == state_id:
             return
+        if authorization_check is not None:
+            authorization_check()
         result = await self.query(
             "mutation UpdateIssue($id: String!, $input: IssueUpdateInput!) { "
             "issueUpdate(id: $id, input: $input) { success } }",

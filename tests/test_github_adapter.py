@@ -10,6 +10,7 @@ from test_evidence_manifest import manifest_fixture
 
 from agentic_delivery.config import RepositoryConfig, Settings
 from agentic_delivery.integrations.github import GitHubFailure, GitHubPublisher
+from agentic_delivery.security import AccessDenied
 from agentic_delivery.storage.artifacts import ArtifactStore
 
 
@@ -184,3 +185,103 @@ async def test_disabled_publisher_never_uses_user_cli_token(tmp_path: Path) -> N
     repo = RepositoryConfig(id="test/repo", github_owner="test", github_name="repo")
     with pytest.raises(GitHubFailure, match="not configured"):
         await GitHubPublisher(settings, repo).publish("run-1", "a" * 64)
+
+
+@pytest.mark.parametrize(
+    "revoke_after",
+    [
+        ("POST", "/access_tokens"),
+        ("GET", "/git/commits/" + "a" * 40),
+        ("POST", "/git/trees"),
+        ("GET", "/git/ref/heads/agent/run-1"),
+        ("POST", "/git/commits"),
+        ("POST", "/git/refs"),
+        ("GET", "/pulls"),
+    ],
+)
+async def test_publication_checks_current_authorization_before_each_new_mutation(
+    tmp_path, monkeypatch, revoke_after
+):
+    settings, repository, digest = fixture(tmp_path, monkeypatch)
+    provider, _, counts = mock_github_provider()
+    authorized = True
+    revoked = False
+    calls = []
+
+    def guard():
+        if not authorized:
+            raise AccessDenied("Synthetic publication authorization revoked")
+
+    def transport(request):
+        nonlocal authorized, revoked
+        calls.append((request.method, request.url.path))
+        if request.method == "POST" and not request.url.path.endswith("access_tokens"):
+            assert authorized, "New GitHub mutation issued after authorization revocation"
+        response = provider(request)
+        if request.method == revoke_after[0] and request.url.path.endswith(revoke_after[1]):
+            authorized, revoked = False, True
+        return response
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(transport)) as client:
+        with pytest.raises(GitHubFailure, match="reconcile"):
+            await GitHubPublisher(settings, repository, client).publish(
+                "run-1", digest, authorization_check=guard
+            )
+    assert revoked
+    assert counts["pull_posts"] == 0
+    assert counts["revocations"] == 1
+    assert calls[-1] == ("DELETE", "/installation/token")
+
+
+async def test_initial_publication_denial_issues_no_token(tmp_path, monkeypatch):
+    settings, repository, digest = fixture(tmp_path, monkeypatch)
+    calls = []
+
+    def guard():
+        raise AccessDenied("Synthetic publication authorization revoked")
+
+    def provider(request):
+        calls.append(request)
+        raise AssertionError("No network operation is permitted after initial denial")
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(provider)) as client:
+        with pytest.raises(AccessDenied):
+            await GitHubPublisher(settings, repository, client).publish(
+                "run-1", digest, authorization_check=guard
+            )
+    assert calls == []
+
+
+async def test_completed_pr_is_read_back_and_token_revoked_after_inflight_revocation(
+    tmp_path, monkeypatch
+):
+    settings, repository, digest = fixture(tmp_path, monkeypatch)
+    provider, _, counts = mock_github_provider()
+    authorized = True
+    after_revocation = []
+
+    def guard():
+        if not authorized:
+            raise AccessDenied("Synthetic publication authorization revoked")
+
+    def transport(request):
+        nonlocal authorized
+        if not authorized:
+            after_revocation.append((request.method, request.url.path))
+        response = provider(request)
+        if request.method == "POST" and request.url.path.endswith("/pulls"):
+            authorized = False
+        return response
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(transport)) as client:
+        observed = await GitHubPublisher(settings, repository, client).publish(
+            "run-1", digest, authorization_check=guard
+        )
+    assert observed["number"] == 1 and observed["head_sha"] == "c" * 40
+    assert after_revocation == [
+        ("GET", "/repos/test/repo/pulls/1"),
+        ("DELETE", "/installation/token"),
+    ]
+    assert counts == {"pull_posts": 1, "revocations": 1, "final_reads": 1}
+    with pytest.raises(AccessDenied):
+        guard()  # Activities persists observed effects before this readiness check.

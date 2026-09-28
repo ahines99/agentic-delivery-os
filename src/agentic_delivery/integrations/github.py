@@ -2,6 +2,7 @@
 
 import re
 import time
+from collections.abc import Callable
 from contextlib import suppress
 from typing import Any
 from urllib.parse import quote
@@ -28,7 +29,18 @@ class GitHubPublisher:
         self.settings, self.repository, self.client = settings, repository, client
         self.prefix = f"/repos/{repository.github_owner}/{repository.github_name}"
 
-    async def publish(self, workflow_id: str, manifest_digest: str) -> dict[str, Any]:
+    async def publish(
+        self,
+        workflow_id: str,
+        manifest_digest: str,
+        *,
+        authorization_check: Callable[[], None] | None = None,
+    ) -> dict[str, Any]:
+        def guard() -> None:
+            if authorization_check is not None:
+                authorization_check()
+
+        guard()
         if not (
             self.settings.publication_enabled
             and self.settings.github_app_id
@@ -76,6 +88,7 @@ class GitHubPublisher:
                 secret(self.settings.github_private_key_env),
                 algorithm="RS256",
             )
+            guard()
             token_response = await client.post(
                 f"https://api.github.com/app/installations/{self.settings.github_installation_id}/access_tokens",
                 headers=self.headers(app_jwt),
@@ -94,6 +107,10 @@ class GitHubPublisher:
                 body: dict[str, Any] | None = None,
                 accepted: tuple[int, ...] = (200, 201),
             ) -> Any:
+                # Stop new mutations after revocation. Existing-token reads still
+                # reconcile already-issued effects; cleanup must remain possible.
+                if method not in {"GET", "HEAD"}:
+                    guard()
                 response = await client.request(
                     method,
                     "https://api.github.com" + self.prefix + route,

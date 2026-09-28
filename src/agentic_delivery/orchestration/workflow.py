@@ -6,7 +6,7 @@ from typing import Any
 
 from temporalio import workflow
 from temporalio.common import RetryPolicy
-from temporalio.exceptions import ActivityError
+from temporalio.exceptions import ActivityError, is_cancelled_exception
 
 
 @workflow.defn
@@ -376,8 +376,23 @@ class DeliveryWorkflow:
                     await self.disposition(
                         command, "REJECTED", "Command unavailable in current state"
                     )
-        except ActivityError:
+        except ActivityError as failure:
             if self.cancel_request is not None:
+                if workflow.patched(
+                    "verified-cancellation-outcome-v1"
+                ) and not is_cancelled_exception(failure):
+                    await self.move(
+                        identity,
+                        "FAILED",
+                        "Cancellation requested; activity cleanup not confirmed",
+                        actor=self.cancel_request["actor"],
+                    )
+                    await self.disposition(
+                        self.cancel_request,
+                        "APPLIED",
+                        "Cancellation requested; cleanup not confirmed",
+                    )
+                    return self.status()
                 await self.move(
                     identity,
                     "CANCELLED",

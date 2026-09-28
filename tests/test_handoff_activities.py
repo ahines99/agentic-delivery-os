@@ -187,6 +187,9 @@ def context(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, mapping: bool = 
 
     class Linear:
         async def set_review_state(self, issue_id: str, state_id: str, **kwargs: Any) -> None:
+            authorization_check = kwargs.pop("authorization_check", None)
+            if authorization_check is not None:
+                authorization_check()
             calls.append({"issue_id": issue_id, "state_id": state_id, **kwargs})
 
     monkeypatch.setattr("agentic_delivery.orchestration.activities.LinearClient", Linear)

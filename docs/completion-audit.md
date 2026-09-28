@@ -48,7 +48,7 @@ Dated follow-up evidence (2026-09-28) records bounded work after the initial aud
 | E18 | [ADR-007](adr/ADR-007-automated-benchmark-qualification.md) records the user's explicit hands-off benchmark preference. `evaluation/qualification.py` implements bounded offline validation of dual-agent provenance and deterministic qualification receipts; `validate-qualification` checks all task records against protected artifacts; worker-input export and candidate scoring refuse unverified structural manifests before reading snapshots or starting Docker. Local qualification unit and real Docker receipt checks pass; the real qualifier runner remains missing. A supplied digest or agent name is not authenticated execution. No actual candidate admission or campaign is claimed; all 36 remain UNQUALIFIED. |
 | E19 | [Operational export](operations-export.md): actual private PostgreSQL export for workflow `2abb68f2-d32f-4ceb-90e9-5b8f53e9b322`, output SHA-256 `cac7f2b60b5a8def617cbb15939829cf920c82717347005a5472355241758ef6`. Allowlisted correlation/spend/state metadata only; no artifact bytes or secrets. This bounded snapshot is partial M4-03 evidence, not retention/deletion, a metrics service, whole-system recovery or complete telemetry. |
 
-The **163-test** local run remains historical baseline evidence. A follow-up full local suite passed **392 tests, zero skips**, in 107.40 seconds with actual PostgreSQL/Temporal/Docker; Ruff check/format (116 files) and mypy (52 source files) also passed. A subsequent focused run passed 17 tests (10 dispatch-scope and 7 actual Temporal CI/Linear tests, including confirmed and UNKNOWN tracker outcomes); it includes 12 newly added tests. Two focused PostgreSQL tests then passed, including a new concurrent CI inbox/reconciliation-generation test. Current collection is 405, but no complete 405-test local run is claimed. A rebuilt wheel installed in an isolated environment and applied packaged migration 0006 successfully. These are dated working-tree results, not a final hosted release revision. Scoped counts above overlap and must not be summed. Earlier hosted CI proves its recorded SHA only. Do not combine historical CI, current source and synthetic demonstrations into one complete production run.
+The **163-test** local run remains historical baseline evidence. A follow-up full local suite passed **392 tests, zero skips**, in 107.40 seconds with actual PostgreSQL/Temporal/Docker; Ruff check/format (116 files) and mypy (52 source files) also passed. A subsequent focused run passed 17 tests (10 dispatch-scope and 7 actual Temporal CI/Linear tests, including confirmed and UNKNOWN tracker outcomes); it includes 12 newly added tests. Two focused PostgreSQL tests then passed, including a new concurrent CI inbox/reconciliation-generation test. The collection at that checkpoint was 405, without a complete 405-test local run claimed. A rebuilt wheel installed in an isolated environment and applied packaged migration 0006 successfully. These are dated working-tree results, not a final hosted release revision. Scoped counts above overlap and must not be summed. Earlier hosted CI proves its recorded SHA only. Do not combine historical CI, current source and synthetic demonstrations into one complete production run.
 
 E20: [Paired comparison tooling](evaluation-comparison.md) now provides seeded paired bootstrap,
 Wilson intervals, explicit missing-task/cost coverage, discordant pairs and an offline `compare`
@@ -75,6 +75,58 @@ collections and receipt bindings; actual Docker positive/negative synthetic scor
 artifact and coverage readers reject nonregular files without blocking on POSIX FIFOs; Windows
 cannot exercise that POSIX case and reports an explicit skip.
 
+E25: [ADR-008](adr/ADR-008-active-authorization-and-cancellation.md) implements worker-side
+current-configuration authorization, per-operation checks, a five-second candidate monitor,
+cleanup exception propagation and `verified-cancellation-outcome-v1`. A scoped run passed
+19 active-authorization, 12 pipeline-guard and 7 saved-replay tests together (38 tests, 7.53s).
+[Three actual PostgreSQL/Temporal/Docker drills](active-cancellation.md) passed in 43.52s:
+authorized active cancellation reached durable CANCELLED with no labelled containers in
+15.359s; injected failed cleanup acknowledgement reached FAILED in 15.312s; injected approval
+expiry reached FAILED in 4.265s. Each replayed history; no model/provider call or spend occurred.
+The cleanup failure was injected after successful real removal, and expiry aged only its
+synthetic approval. These are not daemon/host-loss, paid-model cancellation or universal SLA proofs.
+
+E26: [Operator rotation rehearsal](operator-rotation.md) passed one real loopback HTTP test
+with PostgreSQL in 1.79s. Temporary synthetic token/config replacement required orderly API
+restart; old-token denial, new-token scoped reads, paused admission and authorized cancellation
+enqueue were verified. The queued cancellation stayed RECEIVED without a worker. Actual
+operator credentials were unchanged; no replica-wide, hot-reload or provider-key rotation claimed.
+
+E27: [Saved replay corpus](versioned-replay.md) contains three actual Temporal histories
+generated from pinned production commit `21077431f5839fd17d1ac2581dd16f13c04b567a` with fake
+activities and synthetic protocol payloads. Seven offline tests include current-workflow replay,
+hash/protocol checks and an incompatible-command negative control; they are included in E25's
+38-test scoped run. This is a saved prior-commit regression corpus, not a supervised deployment
+transition, pre-CI-patch corpus or proof of activity/database upgrade compatibility.
+
+E28: [Read-only retention planner](artifact-retention.md) passed 38 focused tests with two
+explicit Windows skips (symlink privilege, POSIX FIFO). An actual uniquely named disposable
+PostgreSQL database verified both snapshots were read-only/repeatable-read, database/transitive
+references stayed KEEP, one old unrelated file was CANDIDATE_REVIEW_ONLY, and workflow/artifact
+bytes stayed unchanged. Only that created database was removed and its absence verified; shared
+state was untouched. The bounded, hash-validating planner requires explicit dedicated-store,
+quiescence, complete external roots/holds and independent-backup assertions; reports bind DB,
+config and listing without raw payloads. Independent review reproduced and corrected missed nested
+escaped references and duplicate-key ambiguity: bounded decoded-string traversal retains the former
+and duplicate keys refuse planning. There is no deletion API or deletion authorization.
+Ruff check/format and targeted mypy passed. The final complete local operational-update suite
+passed 748 tests with five explicit Windows skips in 254.01s, including actual PostgreSQL,
+Temporal and Docker. Ruff/format (154 files), mypy (59 source files), locked dependency validation,
+wheel build/installation and staged secret scan passed. These overlapping scoped counts do not
+replace or add to historical full-suite totals above; hosted CI must verify the final commit.
+
+E29: [PostgreSQL transaction/outbox faults](postgres-faults.md) passed 12 cases against real
+PostgreSQL and Temporal. Injected insert/precommit failures leave no partial intake/revision;
+committed-response loss deduplicates; reclaimed leases fence the old owner. Three lost-start/ack
+cases retain one Temporal run through redelivery, canonical cancellation and history replay.
+Exceptions and scoped lease acceleration simulate boundaries; no process crash or partition is claimed.
+
+E30: [Model-provider faults](model-provider-faults.md) passed five actual PostgreSQL ledger cases
+with controlled HTTP transport: 429, 503, lost response and in-flight cancellation retain reservation
+and deny duplicate logical calls; a committed settlement with lost acknowledgement returns cached
+output. Fresh database engines verify persisted accounting. No external/paid call or actual invoice
+reconciliation is claimed, and unknown reservations are not released automatically.
+
 ## M0–M5 backlog ledger
 
 Every stable backlog ID appears below. Dependencies continue to apply even where later implementation was developed ahead of a milestone's full gate.
@@ -85,12 +137,12 @@ Every stable backlog ID appears below. Dependencies continue to apply even where
 | M0-02 | proved — structural foundation | E2 and E9: contracts, explicit transitions, intake policy, stale/missing/self-authored evidence tests. Runtime authenticity is separately open. | Continue regressions; do not reuse this proof as M3 evidence provenance. |
 | M0-03 | proved — foundation at recorded CI revision | Three fixtures, health route, package/lockfile, contribution assets and hosted checks exist (E2/E9). | Run the required checks again for the final changed revision; retain result SHA. |
 | M1-01 | partial | E3: repository/provider/operator allowlists, command profiles, protected paths, finite model/token/wall limits and secret references. Full environment onboarding and infrastructure budget enforcement absent. | Validate complete connected settings before admission; add explicit infrastructure/transport budget contract and qualification record. |
-| M1-02 | partial | E3: real PG migrations and concurrent unique intake/spend proof, transactional inbox/outbox, immutable specifications. Full crash/rollback fault matrix not found. | Inject failures across commit/dispatch/ack boundaries using real PG and retain rollback/dedup evidence. |
-| M1-03 | partial | E4/E16: durable wait/restart/replay plus actual closed-workflow projection reconstruction on PG/Temporal. Multi-version replay qualification and granular real-build recovery remain open. | Archive prior-version histories; rehearse upgrades and active-execution faults. |
+| M1-02 | partial | E3/E29: real PG concurrency plus rollback, committed-response loss, reclaimed-lease fencing and actual Temporal redelivery at injected commit/dispatch/ack boundaries. Full process/database crash matrix remains open. | Extend to process loss, database failover and terminal-workflow races without conflating injected exceptions with crashes. |
+| M1-03 | partial | E4/E16/E27: durable wait/restart/replay, actual closed projection repair, and three saved prior-commit synthetic histories replayed by current code. Full version-transition qualification and granular real-build recovery remain open. | Extend history branches and rehearse supervised upgrades, activity compatibility and active-execution crashes. |
 | M1-04 | external prerequisite, with partial code | E3/E7: signature, timestamp, org/team/assignee checks, payload/semantic dedup; no live Linear organization or callback evidence. | Authorized workspace/team/worker/API+signing keys and HTTPS endpoint; exercise real delivery, duplicate, stale/out-of-order and changed-ticket handling. |
 | M1-05 | partial | E5/E11: real Anthropic plans/build/review, strict response parsing and durable reservations. ADR-006 explicitly says account availability selected provider, not benchmark comparison. | Run and retain development selection experiment; strengthen malformed/429/timeout/cancellation and billed-usage reconciliation proof. |
 | M1-06 | partial | E3/E4/E5: revised specifications, unchanged existing criteria, max observed risk, plan digest, authenticated clarification. Real synthetic plan exists; full live Linear clarification and adversarial missing-requirement cases absent. | Exercise ambiguity→authorized revision→new plan end to end, including stale/unauthorized answer and immutable source identity. |
-| M1-07 | partial | E3/E4/E13/E16: canonical commands, current reviewer/repository authorization and approval expiry at use; closed projection repair is exercised. Full active-work revocation/cancellation/cleanup qualification remains open. | Extend connected restart, revoked-role, expiry and active-resource fault scenarios; retain durable cleanup evidence. |
+| M1-07 | partial | E3/E4/E13/E16/E25/E26: canonical commands, worker current authorization/expiry monitoring, actual active Docker cancellation/expiry, cleanup-error classification and restart-based HTTP token rotation. Full recovery/identity qualification remains open. | Extend worker/daemon/host-loss, paid-operation uncertainty and multi-process credential/revocation scenarios. |
 | M1-08 | partial preparation; agent qualification required | E8/E17: 36 metadata-only candidates are explicitly UNQUALIFIED; zero qualified or scored tasks. Rights/linkage decisions, independent agent judgments with immutable execution provenance, oracle qualification and final frozen splits remain open. | Use the curation worklist; execute two isolated agent reviews per task with disagreement handling and oracle stability/leakage evidence before promotion. |
 | M2-01 | partial | E6/E9 prove actual named Docker resource, egress, filesystem and credential probes. Broader malicious runtime/cleanup/host-admission qualification remains open. | Extend adversarial cases on the selected host; document residual shared-kernel risk and fail release on unresolved bypasses. |
 | M2-02 | partial | E6/E11: exact Git snapshot, fixed image, separated offline execution and real passing baseline. No general dependency bundle/lock qualification path for multiple historical repositories. | Add pinned dependency preparation/provenance and a failing-baseline integration case; retain installation/baseline records. |
@@ -102,9 +154,9 @@ Every stable backlog ID appears below. Dependencies continue to apply even where
 | M3-03 | partial | E13/E14/E15: strict manifest/reference validation, structured collection and independent producer-scoped CI observations/reconciliation are implemented and fixture tested; fresh synthetic manifest passed the gate. Live App check evidence and complete manual pending/denial handling remain open. | Exercise the full onboarded product chain, manual evidence semantics and remaining adversarial provenance/race matrix. |
 | M3-04 | external prerequisite, with partial code | E7: Linear state adapter and signed GitHub PR observations, staleness/merge/closed records. No actual Linear→product PR→observed close/merge run. ADR-006 keeps PR draft for human review. | Complete live integration sequence and preserve signed receipts and revision tuple; human performs readiness/merge. Do not infer deployment. |
 | M3-05 | missing; qualified data/campaign prerequisite | No A/B development/validation campaign or promotion result found (E8). Synthetic success is outside the historical denominator. | Implement campaign executor and genuine A/B configuration, qualify tasks, run equal-cap arms with the frozen calibrated automated rubric; leave sealed split unopened. |
-| M4-01 | partial | E3/E4/E7 cover bounded fixture faults, waiting-worker restart, replay and contract reconciliation. No actual candidate-worker crash or unknown live publication recovery drill. | Inject faults at real activity/DB/provider boundaries; prove stop/cleanup within 30 seconds and one visible effect after lost responses. |
+| M4-01 | partial | E3/E4/E7/E25/E27/E29/E30 cover fixture faults, wait restart, saved replay, actual active Docker cancellation below 30 seconds, PG rollback/redelivery and model reservation recovery. No actual candidate-worker crash or unknown live publication recovery drill. | Extend daemon/host/worker crashes, paid-model cancellation and actual-provider lost-response reconciliation; retain one-effect evidence. |
 | M4-02 | partial ? release qualification open | E2/E6/E7/E13/E14: named forged-summary/early-exit paths now rejected; strict manifest and CI producer/revision/rerun guards have regressions. Complete prompt-injection, malicious oracle and race qualification remains open. | Execute the full P-03/P-06/P-09/P-11 matrix on the actual selected runtime; investigate same-interpreter evidence limitations. |
-| M4-03 | partial | E3/E12/E16/E19: operational views, bounded actual PG metadata export, local PG/artifact restore and closed-workflow projection repair. Full correlated telemetry, retention/deletion, whole-system restore and rotation rehearsal remain open. | Extend telemetry and implement reference-aware retention; drill DB+Temporal+artifacts/provider reconciliation, kill switch and rotation. |
+| M4-03 | partial | E3/E12/E16/E19/E26/E28: operational views/export, local restore, closed projection repair, restart-based HTTP operator rotation and read-only reference-aware retention planning. Full telemetry, coordinated deletion, whole-system restore and provider/replica rotation remain open. | Establish writer/hold/backup coordination before deletion; rehearse cross-system recovery and remaining credential/kill-switch paths. |
 | M4-04 | missing; external prerequisite | No complete P-01–P-12 evidence matrix, validation promotion decision or human pilot signoff. | Close preceding gates; retain scenario manifests and actual authenticated operator signoff for a restricted pilot. |
 | M5-01 | partial preparation; agent qualification required | E17: 36 real metadata candidates with pinned source/base/license provenance and proposed 12/12/12 groups; all UNQUALIFIED, zero scored. This is not the required qualified corpus or frozen campaign. | Qualify at least 30 tasks with actual independent agent curation, rights/oracle/linkage decisions, protected references and frozen splits. |
 | M5-02 | partial | E8/E23: conservative reverse-import traversal, standalone bound coverage-context import/ranking, explicit unknowns and mandatory full suite. Product integration, AST edge provenance and paired full-suite comparison remain open. | Integrate qualified measured coverage and revision-bound AST provenance; compare full-suite outcomes without skipping mandatory checks. |
@@ -118,15 +170,15 @@ Every stable backlog ID appears below. Dependencies continue to apply even where
 | P-01 clear ticket | external prerequisite | E11 proves synthetic local candidate; no product-created GitHub App PR or real Linear review state. | One real authorized Linear ticket, exact candidate PR/evidence, independent checks/review and actual status handoff. |
 | P-02 ambiguity | partial | Intake fixtures and revisioned clarification routes exist; Temporal test planner returns a fixed ready plan. | End-to-end ambiguous analysis, no execution while blocked, authenticated answer and fresh revision/plan; live source mapping. |
 | P-03 risk | partial | High-risk fixtures and sensitive-change detectors reject named cases. Model must not lower observed risk. | Actual end-to-end high-risk/sensitive-diff rejection with zero unauthorized tools, publication or spend. |
-| P-04 duplicates | partial | Real PG concurrent intake; outbox leases; changed delivery-header dedup; mocked PR reconciliation. | Lost-response/duplicate activity matrix plus real provider redelivery showing one logical PR/status operation. |
+| P-04 duplicates | partial | E29 adds real PG intake rollback/response-loss dedup and actual Temporal start/ack redelivery with one run; outbox lease fencing and mocked PR reconciliation also exist. | Extend terminal/active activity races and real provider redelivery showing one logical PR/status operation. |
 | P-05 crash | partial | Real Temporal restart at human wait/replay and closed projection repair (E16). Neither is in-flight candidate recovery. | Crash active build, validator and publisher; reconcile provider/usage/resources, safely resume or terminate without duplicate effect. |
 | P-06 evidence | partial | E13/E14/E15: structured collector attack regressions, strict referenced manifest gate, exact producer/head CI and changed PR-context invalidation. Live product CI and complete malicious-runtime/manual-evidence matrix remain open. | Retain actual forged/changed-head/base/policy/criteria denial evidence through onboarded final handoff; qualify residual semantic trust. |
 | P-07 corrections | partial | Bounded loop is implemented; single live success has no repair; no full pipeline rejection-loop test found. | Reviewer requests changes, new candidate gets new checks/review, exhausted budget fails, all usage retained. |
-| P-08 stop/budget | partial | Finite reservations/waits, Docker cleanup and Temporal fixture cancellation; CI has an absolute deadline and cancellation, with tracker handoff a separate gated effect (E14). | Prove actual model/build/test cancellation within 30 seconds, no post-ack action and durable cleanup/ceiling records. |
+| P-08 stop/budget | partial | E14/E25: finite reservations/CI deadlines, separate tracker gate and actual active Docker parent/child cancellation in 15.359s with durable CANCELLED, APPLIED command and no remaining labelled container. Cleanup uncertainty fails; approval expiry stops execution. | Extend to paid-model uncertainty, worker/daemon loss and complete no-post-ack effect/budget matrix; one bounded drill is not a general timing guarantee. |
 | P-09 injection/secrets | partial | Real malicious dependency hook cannot read broker canary, Docker socket or external endpoints; protected paths and risk heuristics exist. | Repository/ticket/log injection and malicious tests cannot expand capabilities, forge readiness or access withheld artifacts; actual runtime evidence. |
 | P-10 external outcome | external prerequisite | Signed observation code and fabricated merged/closed/stale tests exist. | Actual authorized product PR close/merge observation retained separately from agent status; no invented deployment status. |
 | P-11 baseline | partial | Code returns failed baseline before builder. Live baseline was passing. | Deliberately failing baseline with actual receipts, no builder call/readiness, explicit triage outcome and regression distinction. |
-| P-12 provider fault | partial | Mock lost model response retains reservation; HTTP timeouts and bounded Temporal retries. | Real-storage controlled 429/outage/lost-response recovery, classified failure, retained spend and no duplicated billable call. |
+| P-12 provider fault | partial | E30: actual PostgreSQL with controlled 429/503/lost-response/cancellation retains unknown reservations and refuses a duplicate request; committed settlement recovers cached output after lost acknowledgement. | Extend integrated Temporal/provider recovery and actual billing reconciliation; controlled responses are not real outages or invoice evidence. |
 
 No complete product gate is closed merely because its unit predicate passes. Some can be proved locally with controlled fault providers, but the integrated P-01/P-04/P-10 provider claims need actual onboarded systems.
 
@@ -150,14 +202,14 @@ Recommendations below consolidate the five reviews without omitting their origin
 | Architecture: receipts distinct from applied commands | proved — bounded control tests | E3/E4 persist canonical command IDs, disposition and expected sequence; complete connected race matrix. |
 | Architecture: logical operation IDs and reconciliation | partial | E3/E5/E7 implement dedup and markers; live unknown-result recovery open. |
 | Architecture: revision-bound plan/evidence/approval | partial | Use-time expiry/current role and strict input/config/plan/candidate/PR/CI bindings are implemented (E13/E14); complete connected/live qualification remains open. |
-| Architecture: cancellation with bounded cleanup | partial | Fixture activity and Docker timeout cases exist; real active workload 30-second gate open. |
-| Architecture: replay-compatible upgrades | partial | Current history replay tested; saved prior-version CI corpus/deployment rehearsal absent. |
+| Architecture: cancellation with bounded cleanup | partial | E25 proves one actual active Docker parent/child workload stops below 30 seconds; cleanup-error and expiry drills fail closed. Host/daemon/worker loss and paid-provider effects remain open. |
+| Architecture: replay-compatible upgrades | partial | E27 supplies saved prior-commit synthetic histories and offline replay/negative control. More branches and supervised deployment/activity compatibility remain open. |
 | Architecture: database constraints/session boundaries/migrations | partial | Migrations through 0006, atomic CI generations/snapshots and E16 projection repair augment E3; full crash/restore matrix remains open. |
 | Security: deny outside prompt; no agent merge | partial qualification | No merge API; fixed tools/config/policy. Actual target App permissions/protection and end-to-end denial proofs pending. |
 | Security: offline runtime plus actual host probes | partial | E6/E9 named controls proved; stronger isolation explicitly not claimed; finish specified hostile candidate/cleanup cases. |
 | Security: credential-free builder and broker publication | partial | Actual canary absence and App token scope contract. Real App token/revocation/no-bypass proof pending. |
 | Security: raw signature, signed freshness, semantic dedup | partial | E3 handles Linear timestamp and GitHub signature without invented timestamp. Complete actual redelivery/out-of-order reconciliation. |
-| Security: approval expiration and changed-input invalidation | partial qualification | Use-time approval expiry/current reviewer authorization and revision/config invalidation implemented; retain broader active-work and provider-race evidence. |
+| Security: approval expiration and changed-input invalidation | partial qualification | E25 checks current worker settings per protected operation and during execution; actual Docker expiry stops work. Polling/provider races and distributed revocation qualification remain open. |
 | Security: authentic evidence, capability independence | partial | E13 structured collector/strict manifest and E14 independent CI close named gaps; same-interpreter semantic trust and live App/evaluator qualification remain open. |
 | Evaluation: qualify individual tasks, oracle and rights | partial preparation | E17/E18: all 36 candidates remain UNQUALIFIED. ADR-007 supersedes human-curator names with actual agent provenance, deterministic qualification and unresolved-disagreement refusal; no task admitted. |
 | Evaluation: acceptance vs regression, no empty/skipped success | partial | Separate scorer and structured completion/identity/phase checks reject named empty/skipped/early-exit cases (E13). Semantic oracle/rubric qualification remains open. |
@@ -176,9 +228,9 @@ Recommendations below consolidate the five reviews without omitting their origin
 ## Highest-priority local work
 
 1. Extend the newly implemented structured collector, strict manifest and CI gate into the remaining malicious-runtime, manual-evidence and complete handoff matrix. Named stdout-forgery/early-exit tests now pass; same-interpreter reports still cannot attest arbitrary candidate semantics.
-2. Complete connected expiry/revocation, cancellation and unknown-outcome fault scenarios across real activity/DB/provider boundaries. Preserve CI event/poll race limitations and human merge authority.
+2. Extend the proved active Docker cancellation/expiry and cleanup-error cases to worker/host/daemon loss, paid-operation uncertainty and remaining provider races. Preserve CI event/poll race limitations and human merge authority.
 3. Build protocol-complete campaign execution and A/B/C arms, qualification/result provenance and budget accounting. Use the 36 UNQUALIFIED candidates as preparation; execute actual independent agent qualification decisions before freezing eligible splits or opening held-out material.
-4. Extend active-work crash recovery, versioned replay, trace/export and retention. Closed projection repair and disposable PostgreSQL restore are proved only within their named scopes; rehearse cross-system recovery and credential rotation.
+4. Extend active-work crash recovery, saved replay branches, supervised upgrades and telemetry. Read-only retention planning and orderly local operator rotation now have bounded evidence; coordinated deletion, cross-system recovery and replica/provider credential rotation remain open.
 5. Integrate the standalone measured coverage contexts and complete AST revision/extractor provenance, retaining mandatory full regression execution; perform paired evaluation with calibrated agent scoring and actual usage records after qualification; report human benefit as unmeasured.
 6. Synchronize documentation and run final checks at the final changed revision. Keep live GitHub App/Linear access, agent benchmark qualification and human pilot signoff explicitly open as distinct gates.
 

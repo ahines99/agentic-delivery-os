@@ -63,6 +63,22 @@ Clarification uses `/workflows/{id}/clarify` with the sequence, digest and repla
 waiting for clarification. Cancellation uses `/workflows/{id}/cancel` with sequence/digest.
 Inspect command disposition after dispatch; queued does not mean applied.
 
+The service worker rereads the private configuration for authorization decisions. Under
+[ADR-008](adr/ADR-008-active-authorization-and-cancellation.md), candidate work checks current
+approval/configuration before each new model or verification operation, on a five-second monitor,
+and before returning readiness. Invalid or missing configuration stops protected work; changed
+storage/routing/artifact roots require restart. Direct embedded `Activities` callers need a
+settings provider to observe file changes. API and dispatcher settings remain startup snapshots.
+Replace configuration atomically and restart those processes for token/role/admission changes.
+
+An applied cancellation command means the request was issued, not that cleanup succeeded.
+The canonical activity-cancellation path reports `CANCELLED` for recognized cancellation;
+a concurrent cleanup/activity error yields `FAILED` with cleanup unconfirmed. Inspect both the
+terminal state and exact labelled resource absence. [Actual cancellation drills](active-cancellation.md)
+cover a running Docker parent/child workload, failed cleanup acknowledgement and expired approval.
+They do not establish daemon/host-loss recovery or immediate interruption of a paid provider call.
+Preserve unknown usage reservations and observed publication/tracker effects for reconciliation.
+
 For an eligible `FAILED`, `CANCELLED` or `POLICY_BLOCKED` attempt, submit
 `POST /workflows/{id}/rerun` with exactly `expected_sequence` and `spec_digest`, operator
 authentication and a new idempotency key. This creates a separate linked attempt and budget;
@@ -124,12 +140,13 @@ workflow result and retained intent/result before deciding how to reconcile; do 
 | --- | --- |
 | Pause new work | Set `admissions_enabled=false` and restart API; cancel active work through authenticated commands. |
 | API/dispatcher restart | Restart process with same settings/database. Inbox/outbox leases recover; do not delete rows or create replacement IDs. |
-| Worker restart during human wait | Restart worker on same task queue. Temporal restores state from history; retain the same workflow code version or replay before upgrade. |
+| Worker restart during human wait | Restart worker on same task queue. Replay the [saved prior-commit corpus](versioned-replay.md) before changing workflow code; its synthetic scenarios do not substitute for a supervised version-transition drill. |
 | Provider timeout or missing usage | Preserve the RESERVED usage entry; reconcile billing and provider request identity. Do not retry generation under a new operation ID to bypass budget. |
 | Publication response lost | Reconcile `agent/{workflow_id}` branch, exact tree/commit marker and PR before retry. The final PR must still have the exact base/head, repositories, refs, open state and draft status. Uncertain publication blocks rerun; never force-push to repair uncertainty. |
 | New base/head after verification | Treat evidence as stale; do not merge based on old checks. Start a separately reviewed attempt after revalidation. |
 | Sandbox cleanup failure | Find only containers with `agentic-delivery.managed=true`; inspect recorded run identity, then remove that confirmed job. Never prune shared Docker resources. |
-| Key exposure/revocation | Pause admission, revoke the affected provider/operator credential, rotate configuration and restart trusted services; never inject replacement credentials into jobs. |
+| Key exposure/revocation | Pause admission, revoke the affected credential, replace private configuration atomically and restart all consumers requiring startup settings. Verify old-token rejection and new scoped access through the actual ingress. See the bounded [operator rotation rehearsal](operator-rotation.md); provider/replica rotation needs separate evidence. |
+| Active authorization loss or cleanup uncertainty | Inspect FAILED outcome, canonical command disposition, retained usage/effect records and exact workflow-labelled resources. Do not relabel failure as CANCELLED or issue a fresh paid operation to hide an unknown outcome. |
 | Closed workflow projection damage | Use the preview/apply procedure in [projection recovery](projection-recovery.md). It requires complete closed Temporal history and refuses contradictory audits or concurrent projection changes. |
 | Database recovery | Preserve a consistent database/artifact backup; follow the bounded [local restore drill](local-backup.md). Whole-system Temporal/provider reconciliation before resuming dispatch remains a release gate. |
 | CI remains pending or changes | Inspect authorized check readiness and producer/ref identity; reconcile through the broker. Never synthesize success or extend the workflow deadline by sending invalid commands. |
@@ -137,7 +154,7 @@ workflow result and retained intent/result before deciding how to reconcile; do 
 | Development run remains NEW | Inspect pending/exhausted outbox and configuration digest before retrying. The live development driver scopes dispatch to its workflow so older unrelated rows cannot consume its 20-row claim batch; do not delete unrelated commands. |
 
 Do not manually rewrite audit history or workflow states. Use the explicit rerun endpoint rather
-than resetting state or spending. Granular build recovery, production retention/deletion and
+than resetting state or spending. Granular crash recovery, coordinated production deletion and
 cross-system recovery drills remain recorded gaps in
 [implementation status](implementation-status.md).
 
@@ -148,24 +165,32 @@ Run lint, format, types and tests as in the README. Integration tests require
 explicit skips. The historical baseline was 163 tests with all three configured. On 2026-09-28,
 392 tests passed with zero skips against actual Compose PostgreSQL/Temporal and Docker in 107.40 seconds;
 Ruff check/format and mypy passed. A later focused run passed 17 dispatch/Temporal CI/Linear tests, including 12 new tests;
-the current collection of 404 has not been represented as a new full-suite run.
+the collection of 404 at that checkpoint was not represented as a new full-suite run.
 See [implementation status](implementation-status.md) for dated scoped results and the exact collector
 image; do not combine overlapping test counts or infer a hosted result at a newer revision.
 Hosted CI passed on Python 3.12/3.13 and disposable PostgreSQL/Temporal/Docker services without
 provider credentials, plus secret scanning. Check the PR's current revision before merging.
+
+Later scoped operational runs on 2026-09-28 passed 38 active-authorization/pipeline/saved-replay
+tests together, three actual PostgreSQL/Temporal/Docker cancellation/expiry/cleanup-error drills,
+one PostgreSQL-backed socket HTTP rotation rehearsal, and 31 retention tests with two explicit
+Windows skips (symlink privilege and POSIX FIFO). The retention scope includes a disposable
+PostgreSQL read-only planning drill. These scopes overlap and cannot be summed into a full-suite
+result; the latest full suite remains pending. Follow the linked drill documents for synthetic
+inputs, exact fault injection and the boundaries of each observation.
 The two `scripts/live_*_check.py` scripts are operator-invoked development checks that spend model
 tokens; they require explicit environment-file and image inputs and were exercised against the
 recorded local services. They are not an unattended benchmark campaign.
 
 For offline evaluation tooling, `uv run delivery-eval --help` lists schema export, manifest
 validation and deterministic reporting. Follow [evals/README.md](../evals/README.md); structural
-structural validation does not establish executed qualification of historical tasks. The separate
+validation does not establish executed qualification of historical tasks. The separate
 [curation worklist](evaluation-curation.md) has 36 metadata-only UNQUALIFIED candidates and zero
 qualified/scored tasks. [ADR-007](adr/ADR-007-automated-benchmark-qualification.md) now requires two
 actual isolated agent passes with immutable provenance and deterministic baseline/reference checks
 three times each. Disagreements require a distinct adjudication context or remain unresolved;
-rights/risk failures cannot be voted into success. The new bounded qualification validator is
-implemented, with root checks pending; no actual qualification is claimed. Use `validate-qualification`
+rights/risk failures cannot be voted into success. The bounded qualification validator has
+local contract and synthetic Docker receipt tests; no actual qualification is claimed. Use `validate-qualification`
 with protected `--manifest` and `--artifacts` inputs and a distinct `--output` outside the artifact
 store; [evaluation instructions](../evals/README.md) show the command. Worker-input export and scoring
 refuse unverified structural manifests before snapshot reads or Docker execution. A real qualifier
@@ -205,3 +230,27 @@ An actual private PostgreSQL export of workflow `2abb68f2-d32f-4ceb-90e9-5b8f53e
 SHA-256 `cac7f2b60b5a8def617cbb15939829cf920c82717347005a5472355241758ef6`.
 That snapshot does not reconcile live providers or implement retention/deletion, a full telemetry
 service, backup or recovery. Preserve UNKNOWN reservations rather than treating unknown cost as zero.
+
+## Plan artifact retention without deletion
+
+The [read-only retention planner](artifact-retention.md) reads consistent database snapshots,
+hash-validates a bounded dedicated artifact store and retains database/external roots plus their
+transitive references. It also keeps young files and their older dependencies. It refuses active
+work, unknown operations, unresolved publications, special/corrupt files or an unrecognized scope.
+
+Establish that all writers are stopped and settled, the store is dedicated to this control plane,
+external roots/legal holds are complete, and backups have independent bytes outside the store.
+Then choose an explicit retention age and a new private output path in an existing directory
+outside every configured repository and artifact store:
+
+```sh
+uv run python -m agentic_delivery.operations.retention --config config.local.json --output C:/private/delivery-exports/retention-review.json --retention-days 90 --dedicated-control-plane-store --writers-quiescent --external-roots-complete --backups-independent
+```
+
+Supply each external root with `--retained-root SHA256`. These flags assert facts the tool cannot
+discover. Do not assert dedicated scope for shared evaluator/imported artifacts, or force-close
+unsettled workflows to obtain a plan. Reports contain hashes/counts/reasons without raw payloads
+and refuse overwrite/protected destinations. `CANDIDATE_REVIEW_ONLY` is not safe-to-delete proof:
+there is no deletion API, writer lock, complete external-hold discovery or backup validation.
+Do not convert the plan into an unattended deletion command. The actual drill used a separate
+disposable synthetic database/store and left the shared database and actual artifacts untouched.

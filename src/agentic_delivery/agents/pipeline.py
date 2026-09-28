@@ -2,6 +2,7 @@
 
 import difflib
 import json
+from collections.abc import Callable
 from typing import Any
 
 from agentic_delivery.agents.contracts import BuildProposal, ImplementationPlan, ReviewResult
@@ -59,9 +60,15 @@ async def build_and_review(
     repository: RepositoryConfig,
     *,
     approved_plan_digest: str | None = None,
+    authorization_check: Callable[[], None] | None = None,
 ) -> dict[str, Any]:
     import hashlib
 
+    def guard() -> None:
+        if authorization_check is not None:
+            authorization_check()
+
+    guard()
     validate_files(base)
     if any(
         criterion.verification_type
@@ -77,6 +84,7 @@ async def build_and_review(
     preflight = await runner.preflight()
     artifacts = ArtifactStore(settings.artifact_root)
     model = StructuredModel(settings.model, store)
+    guard()
     baseline = await verify(
         base,
         repository.commands,
@@ -96,6 +104,7 @@ async def build_and_review(
         if path.startswith("tests/") or path.rsplit("/", 1)[-1].startswith("test_")
     )
     for iteration in range(settings.budget.repair_rounds + 1):
+        guard()
         proposal = await model.generate(
             workflow_id,
             f"{workflow_id}:build:{iteration}",
@@ -118,6 +127,7 @@ async def build_and_review(
         diff = diff_files(base, candidate)
         if not diff:
             raise ValueError("Builder returned no change")
+        guard()
         validation = await verify(
             candidate,
             repository.commands,
@@ -148,6 +158,7 @@ async def build_and_review(
                 raise ValueError("Criterion test must belong to the verified candidate snapshot")
             from agentic_delivery.config import CommandProfile
 
+            guard()
             criterion_receipts[criterion] = await verify(
                 candidate,
                 (
@@ -162,6 +173,7 @@ async def build_and_review(
                 timeout=settings.budget.command_seconds,
                 workflow_id=workflow_id,
             )
+        guard()
         review = await model.generate(
             workflow_id,
             f"{workflow_id}:review:{iteration}",
@@ -193,6 +205,7 @@ async def build_and_review(
         }
         attempts.append(record)
         if complete:
+            guard()
             changed = tuple(
                 path
                 for path in base.keys() | candidate.keys()

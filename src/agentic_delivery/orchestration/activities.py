@@ -1,5 +1,6 @@
 import asyncio
 import json
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -29,28 +30,65 @@ Do not downgrade a supplied risk tier. Plan a minimal change and explicit tests 
 No claims of code execution, test passes, deployment, or approval are permitted.
 """
 
+CANDIDATE_AUTHORIZATION_POLL_SECONDS = 5.0
+
 
 class Activities:
-    def __init__(self, settings: Settings, store: Store) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        store: Store,
+        *,
+        settings_provider: Callable[[], Settings] | None = None,
+    ) -> None:
         self.settings, self.store = settings, store
+        self.settings_provider = settings_provider
+
+    def current_settings(self) -> Settings:
+        if self.settings_provider is None:
+            return self.settings
+        try:
+            current = self.settings_provider()
+        except (OSError, ValueError):
+            raise AccessDenied("Current worker configuration is unavailable or invalid") from None
+        if any(
+            getattr(current, name) != getattr(self.settings, name)
+            for name in (
+                "database_url",
+                "temporal_address",
+                "temporal_namespace",
+                "task_queue",
+                "artifact_root",
+            )
+        ):
+            raise AccessDenied("Worker storage or routing changed; restart is required")
+        return current
 
     def validate_configuration(self, identity: str) -> None:
+        current = self.current_settings()
         run = self.store.workflow(identity)
         expected = run["configuration_digest"]
-        if expected and expected != self.settings.execution_digest(run["repository"]):
+        configured = self.settings.execution_digest(run["repository"])
+        if current.execution_digest(run["repository"]) != configured or (
+            expected and expected != configured
+        ):
             raise ValueError("Execution settings changed; explicit new approval is required")
 
     def validate_approval(self, identity: str, plan_digest: str) -> None:
+        current = self.current_settings()
         approval = self.store.approved_plan(identity, plan_digest)
         run = self.store.workflow(identity)
         if approval["payload"].get("spec_digest") != run["spec_digest"]:
             raise AccessDenied("Approval no longer matches the input revision")
         created = datetime.fromisoformat(approval["created_at"])
-        if created.tzinfo is None or datetime.now(UTC) >= created + timedelta(
-            seconds=self.settings.approval_validity_seconds
+        instant = datetime.now(UTC)
+        if (
+            created.tzinfo is None
+            or created > instant
+            or instant >= created + timedelta(seconds=current.approval_validity_seconds)
         ):
-            raise AccessDenied("Plan approval expired")
-        actor = next((op for op in self.settings.operators if op.id == approval["actor"]), None)
+            raise AccessDenied("Plan approval expired or is not yet valid")
+        actor = next((op for op in current.operators if op.id == approval["actor"]), None)
         if actor is None:
             raise AccessDenied("Plan approver authorization was revoked")
         authorize(actor, run["repository"], "reviewer")
@@ -67,9 +105,11 @@ class Activities:
             or command["status"] in {"APPLIED", "REJECTED"}
         ):
             return None
-        operator = next((op for op in self.settings.operators if op.id == command["actor"]), None)
         run = self.store.workflow(request["workflow_id"])
         try:
+            operator = next(
+                (op for op in self.current_settings().operators if op.id == command["actor"]), None
+            )
             if operator is None:
                 raise AccessDenied("Operator authorization revoked")
             authorize(
@@ -111,6 +151,7 @@ class Activities:
         if not self.settings.model or not repository.model_data_authorized:
             raise ValueError("Model configuration or repository data authorization missing")
         base_sha, files = await fetch_snapshot(repository)
+        self.validate_configuration(request["workflow_id"])
         artifacts = ArtifactStore(self.settings.artifact_root)
         snapshot_digest = artifacts.put(json.dumps(files, sort_keys=True).encode())
         model = StructuredModel(self.settings.model, self.store)
@@ -125,6 +166,7 @@ class Activities:
             },
             output_type=ImplementationPlan,
         )
+        self.validate_configuration(request["workflow_id"])
         original = {criterion.id: criterion for criterion in item.acceptance_criteria}
         proposed = {criterion.id: criterion for criterion in plan.criteria}
         if any(proposed.get(identity) != criterion for identity, criterion in original.items()):
@@ -188,8 +230,11 @@ class Activities:
 
     @activity.defn(name="candidate")
     async def candidate(self, request: dict[str, Any]) -> dict[str, Any]:
-        self.validate_configuration(request["workflow_id"])
-        self.validate_approval(request["workflow_id"], request["assessment"]["plan_digest"])
+        def authorization_check() -> None:
+            self.validate_configuration(request["workflow_id"])
+            self.validate_approval(request["workflow_id"], request["assessment"]["plan_digest"])
+
+        authorization_check()
         item = WorkItem.model_validate(request["assessment"]["assessed_item"])
         repository = self.settings.repository(item.repository)
         base_sha = request["assessment"]["base_sha"]
@@ -200,26 +245,49 @@ class Activities:
 
         async def heartbeat() -> None:
             while True:
+                authorization_check()
                 activity.heartbeat("bounded candidate execution")
-                await asyncio.sleep(5)
+                await asyncio.sleep(CANDIDATE_AUTHORIZATION_POLL_SECONDS)
 
         heartbeat_task = asyncio.create_task(heartbeat())
+        build_task: asyncio.Task[dict[str, Any]] | None = None
         try:
             async with asyncio.timeout(self.settings.budget.wall_seconds):
-                result = await build_and_review(
-                    request["workflow_id"],
-                    item,
-                    plan,
-                    files,
-                    base_sha,
-                    self.settings,
-                    self.store,
-                    repository,
-                    approved_plan_digest=request["assessment"]["plan_digest"],
+                build_task = asyncio.create_task(
+                    build_and_review(
+                        request["workflow_id"],
+                        item,
+                        plan,
+                        files,
+                        base_sha,
+                        self.settings,
+                        self.store,
+                        repository,
+                        approved_plan_digest=request["assessment"]["plan_digest"],
+                        authorization_check=authorization_check,
+                    )
                 )
+                done, _ = await asyncio.wait(
+                    {build_task, heartbeat_task}, return_when=asyncio.FIRST_COMPLETED
+                )
+                if heartbeat_task in done:
+                    await heartbeat_task
+                    raise AccessDenied("Candidate authorization monitor stopped unexpectedly")
+                result = await build_task
+                authorization_check()
         finally:
             heartbeat_task.cancel()
-            await asyncio.gather(heartbeat_task, return_exceptions=True)
+            tasks: list[asyncio.Task[Any]] = [heartbeat_task]
+            if build_task is not None:
+                if not build_task.done():
+                    build_task.cancel()
+                tasks.append(build_task)
+            await asyncio.gather(*tasks, return_exceptions=True)
+            # A cancellation request is not proof of successful sandbox cleanup.
+            if build_task is not None and not build_task.cancelled():
+                failure = build_task.exception()
+                if failure is not None:
+                    raise failure
         # File content is stored in artifacts; do not inflate Temporal history with source trees.
         result.pop("candidate_files", None)
         return result
@@ -260,10 +328,21 @@ class Activities:
                 expected_title=item.title,
                 expected_description=item.description,
             )
+
+        def publication_authorization() -> None:
+            self.validate_configuration(request["workflow_id"])
+            self.validate_approval(request["workflow_id"], manifest["approved_plan_digest"])
+
+        publication_authorization()
         publication = await GitHubPublisher(self.settings, repository).publish(
-            request["workflow_id"], request["manifest_digest"]
+            request["workflow_id"],
+            request["manifest_digest"],
+            authorization_check=publication_authorization,
         )
         self.store.save_publication(request["workflow_id"], repository.id, publication)
+        # Preserve observed provider effects even if authorization changed in flight.
+        self.validate_configuration(request["workflow_id"])
+        self.validate_approval(request["workflow_id"], manifest["approved_plan_digest"])
         return {"status": "PUBLISHED", **publication}
 
     @activity.defn(name="reconcile_ci")
@@ -332,6 +411,7 @@ class Activities:
         )
         if self.store.publication(identity)["status"] != "DRAFT_HANDOFF":
             return {"ready": False, "reasons": ["publication_changed"]}
+        self.validate_configuration(identity)
         self.validate_approval(identity, manifest["approved_plan_digest"])
         return {**result, "evidence_digest": digest}
 
@@ -360,6 +440,7 @@ class Activities:
         manifest = json.loads(artifacts.get(publication["manifest_digest"]))
 
         def gate() -> bool:
+            self.validate_configuration(identity)
             self.validate_approval(identity, manifest["approved_plan_digest"])
             if (
                 not repository.github_repository_id
@@ -377,6 +458,10 @@ class Activities:
                 and current["generation"] == request["ci"]["generation"]
                 and current["evidence_digest"] == request["ci"]["evidence_digest"]
             )
+
+        def handoff_authorization() -> None:
+            if not gate():
+                raise AccessDenied("Tracker handoff evidence changed")
 
         if not gate():
             return {
@@ -418,6 +503,7 @@ class Activities:
                 assignee_id=repository.linear_assignee_id,
                 expected_title=item.title,
                 expected_description=item.description,
+                authorization_check=handoff_authorization,
             )
             result["tracker_status"] = "CONFIRMED"
             result["ready"] = gate()

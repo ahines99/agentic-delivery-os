@@ -4,6 +4,12 @@ Updated 2026-09-28 during continued controlled implementation. This is the curre
 the original milestone documents remain the release targets. Source code alone is not a passed
 integration or production release gate.
 
+The [transaction/outbox fault matrix](postgres-faults.md) also passed 12 scoped actual
+PostgreSQL/Temporal cases, and [model-provider ledger faults](model-provider-faults.md) passed
+five PostgreSQL cases with controlled HTTP responses. These preserve rollback, deduplication and
+uncertain usage accounting across fresh consumers; injected exceptions do not establish process-
+crash recovery or live-provider reconciliation.
+
 ## Implemented and exercised
 
 - Validated operator/repository configuration; hashed bearer credentials, repository/role checks,
@@ -17,6 +23,10 @@ integration or production release gate.
   before workflow signals are applied. Plan approval requires the reviewer role and an absolute
   decision deadline; repeated invalid signals do not extend it. Approval use rechecks its expiry,
   current reviewer role/repository authorization, input revision and configuration before protected work.
+- [ADR-008](adr/ADR-008-active-authorization-and-cancellation.md) adds worker configuration rereads,
+  per-operation authorization and a five-second active-candidate monitor. Authorization failure
+  cancels work and awaits cleanup; cleanup errors propagate rather than becoming successful
+  cancellation. API/dispatcher settings still require restart. Polling cannot undo in-flight effects.
 - Per-run configuration digests bind model, repository, budget and publication settings. A changed
   execution configuration fails the attempt and requires fresh planning/approval. Changed payloads
   for the same source ticket return conflict rather than creating parallel budget allocations.
@@ -75,13 +85,15 @@ local code and does not establish a qualified historical measurement or C-arm re
 Scoring now preserves original tests/configuration and revalidates the frozen collection and
 receipt bindings; contradictory success/regression records fail validation.
 
-The latest complete local verification on 2026-09-28 passed **638 tests, three explicit Windows
-skips**, in 173.22 seconds with actual PostgreSQL, Temporal and Docker. The skips cover two POSIX
-FIFO regressions and unprivileged symlink creation; Linux CI exercises those platform cases.
-Ruff check/format (137 files), mypy (58 source files), locked dependency validation, wheel build
-and clean-wheel evaluation/operations/coverage imports passed. Qualification/scoring Docker tests
+The latest complete local verification on 2026-09-28 passed **748 tests, five explicit Windows
+skips**, in 254.01 seconds with actual PostgreSQL, Temporal and Docker. The skips cover three POSIX
+FIFO regressions and two unprivileged symlink cases; Linux CI exercises those platform cases.
+Ruff check/format (154 files), mypy (59 source files), locked dependency validation, wheel build,
+clean-wheel imports and the installed retention correction passed. The staged secret scan passed.
+Qualification/scoring Docker tests
 use explicitly synthetic agent/rights records and do not admit historical tasks. No extra model
-spend or historical benchmark run occurred in this update.
+spend or historical benchmark run occurred in this update. The preceding complete checkpoint was
+638 passed with three Windows skips; these counts are separate full runs, not additive evidence.
 
 The earlier complete local verification passed **163 tests** with `TEST_DATABASE_URL`,
 `TEST_TEMPORAL_ADDRESS` and `TEST_SANDBOX_IMAGE` configured against actual Compose PostgreSQL,
@@ -93,8 +105,8 @@ The [draft implementation PR](https://github.com/ahines99/agentic-delivery-os/pu
 On 2026-09-28 a new complete local run passed **392 tests, zero skips**, in 107.40 seconds
 with actual PostgreSQL, Temporal and Docker configured; Ruff check, format (116 files) and mypy
 (52 source files) passed. A subsequent focused run passed 17 tests: 10 dispatch-scope and 7 actual Temporal CI/Linear tests,
-including confirmed and UNKNOWN tracker outcomes, with 12 new tests overall. Current collection
-is 405 after an additional real PostgreSQL CI concurrency test passed (two focused PostgreSQL tests). No full 405-test local run is claimed. The rebuilt wheel installed in an isolated environment
+including confirmed and UNKNOWN tracker outcomes, with 12 new tests overall. The collection
+was 405 at that checkpoint after an additional real PostgreSQL CI concurrency test passed (two focused PostgreSQL tests). No full 405-test local run was claimed at that checkpoint. The rebuilt wheel installed in an isolated environment
 and applied packaged migration 0006. These are working-tree results, not a new hosted CI result.
 Scoped runs included 27 collector tests (9 actual Docker), 39 existing collector regressions,
 70 manifest unit/adapter tests plus one actual Docker producer fixture, 113 CI contract/API/storage
@@ -112,6 +124,34 @@ removed only that disposable database. A fresh 2026-09-28 drill restored migrati
 12 table counts, verified 46 artifacts (140503 bytes), and removed its disposable database; the
 109106-byte dump has SHA-256 `f6c1fc64c7450887119f512833896aee8229de3d74d8836942adce45c2bcd234`.
 These drills do not establish Temporal/provider recovery.
+
+Further scoped operational evidence on 2026-09-28:
+
+- [Active cancellation](active-cancellation.md): three real PostgreSQL/Temporal/Docker drills
+  passed in 43.52s. Authorized cancellation stopped an observed parent/child workload and reached
+  durable CANCELLED with no labelled containers in 15.359s. A failed cleanup acknowledgement,
+  injected after real removal, reached FAILED in 15.312s; injected approval expiry reached FAILED
+  in 4.265s. All histories replayed; no model/provider calls or spend. These controlled faults
+  do not establish host-loss recovery, paid-model interruption or a general 30-second SLA.
+- Active authorization (19 tests), pipeline guards (12) and [saved replay](versioned-replay.md)
+  (7) passed together: 38 tests in 7.53s. Three saved histories from pinned commit
+  `21077431f5839fd17d1ac2581dd16f13c04b567a` use synthetic activities/protocol data and replay
+  against current workflow code, with a nondeterminism negative control. This is a prior-commit
+  regression corpus, not a supervised deployment upgrade or activity/migration compatibility proof.
+- [Operator rotation](operator-rotation.md): one PostgreSQL-backed real loopback HTTP test passed
+  in 1.79s. Replacing temporary synthetic settings alone did not rotate the running API; orderly
+  restart denied the old token and allowed the new scoped token. Paused admission and cancellation
+  enqueue were checked; the cancellation remained RECEIVED without a worker. No actual token
+  was rotated, and replica-wide/provider-key rotation and ingress TLS are outside this result.
+- [Read-only retention](artifact-retention.md): 31 tests passed, two Windows cases explicitly
+  skipped. A disposable PostgreSQL drill verified read-only/repeatable-read snapshots, retained
+  DB/transitive references, classified an old unrelated file for review, and preserved workflow
+  and artifact bytes. Only its newly created database was dropped and checked absent. The planner
+  requires dedicated-store/quiescence/external-root/backup assertions and hashes the bounded
+  inventory; it never authorizes or performs deletion. Ruff/format and targeted mypy passed.
+
+These counts overlap existing scopes and remain separate from historical full-suite results.
+The full suite for the latest working tree is pending; no new aggregate total is asserted here.
 
 ## Recorded live development runs
 
@@ -148,9 +188,9 @@ The successful candidate result is `LOCAL_REVIEW_READY`, not a merged or deploye
 3. Extend security qualification beyond the exercised memory/PID/disk/dependency-hook controls.
    Current Docker tests do not establish general runtime-escape resistance or hostile multi-tenant isolation.
 4. Qualify the implemented check-run/suite ingestion and REST readiness gate with the live product App.
-   Complete granular active-execution recovery, production identity hardening, full telemetry,
-   retention/deletion and cross-system recovery. Closed projection repair, terminal reruns and bounded
-   waits do not replace these operational gates.
+   Complete granular active-execution crash recovery, production identity hardening, full telemetry,
+   coordinated deletion and cross-system recovery. Active cancellation, saved replay, local token
+   rotation and read-only retention plans do not replace these broader operational gates.
 5. Independently qualify 30+ historical tasks from a reviewed inventory, then execute the frozen paired evaluation
    with calibrated independent agent scoring and authoritative deterministic tests under ADR-007.
    Manifest validation and one synthetic live demo cannot satisfy this requirement. Human plan
@@ -174,4 +214,5 @@ A bounded [operational metadata export](operations-export.md) was exercised agai
 PostgreSQL for workflow `2abb68f2-d32f-4ceb-90e9-5b8f53e9b322`; output SHA-256
 `cac7f2b60b5a8def617cbb15939829cf920c82717347005a5472355241758ef6`.
 It contains allowlisted metadata, not artifact bytes or secrets. This advances M4-03 only within
-that scope; retention/deletion, a full telemetry service and cross-system recovery remain open.
+that scope; coordinated retention/deletion, a full telemetry service and cross-system recovery
+remain open despite the separate bounded read-only retention planner.

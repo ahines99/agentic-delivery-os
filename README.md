@@ -15,10 +15,10 @@ Linear -> Requirements -> Risk policy -> Plan -> Isolated build
 Implemented and exercised locally: authenticated intake and plan approval, PostgreSQL
 inbox/outbox and audit storage, Temporal workflows, real Anthropic planning/build/review,
 bounded Docker execution, independent test runs, and digest-verified candidate artifacts.
-The local suite passed 638 tests with actual PostgreSQL, Temporal and Docker, including
+The local suite passed 748 tests with actual PostgreSQL, Temporal and Docker, including
 structured test-evidence validation, CI races, projection recovery, resource exhaustion and
-hostile dependency hooks; three POSIX/symlink cases explicitly skipped on Windows.
-[The preceding revision's hosted CI passed](https://github.com/ahines99/agentic-delivery-os/actions/runs/36434771217)
+hostile dependency hooks; five POSIX/symlink cases explicitly skipped on Windows.
+[The preceding revision's hosted CI passed](https://github.com/ahines99/agentic-delivery-os/actions/runs/36439308860)
 on Python 3.12/3.13, real service integration and secret scanning.
 A synthetic customer task reached `LOCAL_REVIEW_READY`; its durable workflow stopped at
 `POLICY_BLOCKED` because publication was disabled. No PR, merge, or deployment is implied.
@@ -85,6 +85,10 @@ skip without the runbook's service variables.
 | [docs/evaluation-methodology.md](docs/evaluation-methodology.md) | Reproducible evaluation protocol |
 | [docs/evaluation-campaign.md](docs/evaluation-campaign.md) | Qualified dataset/arm preregistration and frozen scheduling |
 | [docs/coverage-contexts.md](docs/coverage-contexts.md) | Revision-bound measured coverage hints and uncertainty |
+| [docs/active-cancellation.md](docs/active-cancellation.md) | Actual workload cancellation, expiry and cleanup-failure drills |
+| [docs/operator-rotation.md](docs/operator-rotation.md) | Restart-based HTTP token rotation and paused-admission rehearsal |
+| [docs/artifact-retention.md](docs/artifact-retention.md) | Read-only artifact reachability planning and required scope |
+| [docs/versioned-replay.md](docs/versioned-replay.md) | Saved prior-commit Temporal histories and replay limits |
 | [docs/backlog.md](docs/backlog.md) | Dependency-ordered implementation issues |
 | [docs/research/](docs/research/) | Five independent research reviews |
 | [docs/adr/](docs/adr/) | Architecture decision records |

@@ -6,6 +6,7 @@ import httpx
 import pytest
 
 from agentic_delivery.integrations.linear import LinearClient
+from agentic_delivery.security import AccessDenied
 
 
 def issue() -> dict[str, Any]:
@@ -137,3 +138,54 @@ async def test_provider_failures_are_sanitized_without_secret_chains(
     rendered = "".join(traceback.format_exception(caught.value))
     assert key not in rendered
     assert calls == 1
+
+
+@pytest.mark.parametrize("revoke", ["before_read", "during_read", "during_write", "none"])
+async def test_review_state_authorization_is_checked_before_new_effects(monkeypatch, revoke):
+    monkeypatch.setenv("TEST_LINEAR_KEY", "synthetic-key-never-a-real-secret")
+    authorized = revoke != "before_read"
+    calls = []
+
+    def guard():
+        if not authorized:
+            raise AccessDenied("Synthetic tracker authorization revoked")
+
+    def provider(request):
+        nonlocal authorized
+        body = json.loads(request.content)
+        mutation = "mutation UpdateIssue" in body["query"]
+        assert authorized, "New tracker effect began after authorization revocation"
+        calls.append("mutation" if mutation else "read")
+        if mutation:
+            if revoke == "during_write":
+                authorized = False
+            return httpx.Response(200, json={"data": {"issueUpdate": {"success": True}}})
+        if revoke == "during_read":
+            authorized = False
+        return httpx.Response(200, json={"data": {"issue": issue()}})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(provider)) as client:
+        operation = LinearClient("TEST_LINEAR_KEY", client).set_review_state(
+            "issue-1",
+            "review",
+            team_id="team-1",
+            assignee_id="worker-1",
+            authorization_check=guard,
+        )
+        if revoke in {"before_read", "during_read"}:
+            with pytest.raises(AccessDenied):
+                await operation
+        else:
+            await operation
+    assert (
+        calls
+        == {
+            "before_read": [],
+            "during_read": ["read"],
+            "during_write": ["read", "mutation"],
+            "none": ["read", "mutation"],
+        }[revoke]
+    )
+    if revoke == "during_write":
+        with pytest.raises(AccessDenied):
+            guard()  # The activity retains confirmed effects then denies readiness.
