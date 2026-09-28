@@ -1,0 +1,42 @@
+name: agentic-delivery
+
+services:
+  postgres:
+    image: postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
+    environment:
+      POSTGRES_USER: delivery
+      POSTGRES_DB: delivery
+      POSTGRES_PASSWORD: ${DELIVERY_POSTGRES_PASSWORD:?Set a local database password}
+    ports:
+      - "127.0.0.1:25432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U delivery -d delivery"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [control]
+
+  temporal:
+    image: temporalio/temporal:1.9.1@sha256:ad4c82c97bd12b417d1ea942610dbcd511afb250c4d5ed26c694009533df447e
+    # Development control-plane service only; root owns the dedicated state volume.
+    user: "0:0"
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    read_only: true
+    tmpfs: ["/tmp:size=64m"]
+    command: ["server", "start-dev", "--ip", "0.0.0.0", "--headless", "--db-filename", "/data/temporal.db"]
+    ports:
+      - "127.0.0.1:27233:7233"
+    volumes:
+      - temporal-data:/data
+    networks: [control]
+
+networks:
+  control:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  temporal-data:

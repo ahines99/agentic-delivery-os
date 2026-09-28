@@ -1,0 +1,39 @@
+name: Implementation task
+description: A bounded task from the accepted project plan
+title: "[M#] "
+body:
+  - type: input
+    id: backlog
+    attributes:
+      label: Backlog ID and milestone
+      placeholder: M1-01 — durable intake
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Problem and intended behavior
+      description: Describe the observable outcome and scope exclusions.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria and evidence
+      description: Give each criterion an ID and verification method. Include failure cases.
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies and decisions
+      description: Link prerequisite backlog issues and relevant ADRs; write none if independent.
+    validations:
+      required: true
+  - type: textarea
+    id: risk
+    attributes:
+      label: Risk and trust boundaries
+      description: Identify permissions, external effects, untrusted inputs, and rollback or recovery.
+    validations:
+      required: true

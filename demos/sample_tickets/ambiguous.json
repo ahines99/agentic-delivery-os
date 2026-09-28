@@ -1,0 +1,9 @@
+{
+  "id": "DEMO-2",
+  "title": "Automatically reprice customers",
+  "description": "Automatically update customer prices.",
+  "repository": "demo/customer-service",
+  "ambiguities": ["Which contracts are eligible?", "What rounding and approval rules apply?"],
+  "risk_tier": 3,
+  "risk_tags": ["payments"]
+}

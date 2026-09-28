@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "database_url": "postgresql+psycopg://delivery:REPLACE_LOCAL_PASSWORD@127.0.0.1:25432/delivery",
+  "temporal_address": "127.0.0.1:27233",
+  "task_queue": "agentic-delivery",
+  "artifact_root": ".local/artifacts",
+  "operators": [],
+  "repositories": [
+    {
+      "id": "ahines99/agentic-delivery-os",
+      "github_owner": "ahines99",
+      "github_name": "agentic-delivery-os",
+      "base_branch": "main",
+      "snapshot_prefix": "demos/sample_repo",
+      "model_data_authorized": false,
+      "commands": [{"id": "pytest", "argv": ["python", "-m", "pytest", "-q", "-p", "no:cacheprovider"], "expected_tests": 1}]
+    }
+  ],
+  "publication_enabled": false,
+  "admissions_enabled": true
+}

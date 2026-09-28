@@ -1,0 +1,271 @@
+"""Deterministic workflow; all I/O is performed by named activities."""
+
+import asyncio
+from datetime import timedelta
+from typing import Any
+
+from temporalio import workflow
+from temporalio.common import RetryPolicy
+from temporalio.exceptions import ActivityError
+
+
+@workflow.defn
+class DeliveryWorkflow:
+    def __init__(self) -> None:
+        self.state = "NEW"
+        self.sequence = 0
+        self.spec_digest = ""
+        self.commands: list[dict[str, Any]] = []
+        self.seen: set[str] = set()
+        self.active: asyncio.Task[Any] | None = None
+        self.cancel_request: dict[str, Any] | None = None
+
+    @workflow.signal
+    async def command(self, notification: dict[str, Any]) -> None:
+        # Signals are wakeups, never an authority for actor, payload, or operation.
+        if not isinstance(notification, dict) or not isinstance(
+            notification.get("command_id"), str
+        ):
+            return
+        command = await self.call(
+            "resolve_command",
+            {
+                "workflow_id": workflow.info().workflow_id,
+                "command_id": notification["command_id"],
+            },
+        )
+        if command is None:
+            return
+        if command["command_id"] not in self.seen:
+            self.seen.add(command["command_id"])
+            if (
+                command["kind"] == "cancel"
+                and self.active is not None
+                and command["payload"].get("expected_sequence") == self.sequence
+                and command["payload"].get("spec_digest") == self.spec_digest
+            ):
+                self.cancel_request = command
+                self.active.cancel()
+                return
+            self.commands.append(command)
+
+    @workflow.query
+    def status(self) -> dict[str, Any]:
+        return {"state": self.state, "sequence": self.sequence, "spec_digest": self.spec_digest}
+
+    async def call(self, name: str, payload: dict[str, Any], *, model: bool = False) -> Any:
+        handle = workflow.execute_activity(
+            name,
+            payload,
+            start_to_close_timeout=timedelta(seconds=300 if model else 30),
+            retry_policy=RetryPolicy(maximum_attempts=1 if model else 3),
+            cancellation_type=workflow.ActivityCancellationType.WAIT_CANCELLATION_COMPLETED,
+        )
+        if model:
+            self.active = asyncio.ensure_future(handle)
+            try:
+                return await self.active
+            finally:
+                self.active = None
+        return await handle
+
+    async def move(
+        self,
+        identity: str,
+        state: str,
+        reason: str,
+        result: dict[str, Any] | None = None,
+        actor: str = "workflow",
+    ) -> None:
+        self.sequence += 1
+        await self.call(
+            "project",
+            {
+                "workflow_id": identity,
+                "sequence": self.sequence,
+                "state": state,
+                "actor": actor,
+                "reason": reason,
+                "result": result,
+                "spec_digest": self.spec_digest,
+            },
+        )
+        self.state = state
+
+    async def disposition(self, command: dict[str, Any], status: str, reason: str = "") -> None:
+        await self.call(
+            "command_status",
+            {"command_id": command["command_id"], "status": status, "reason": reason},
+        )
+
+    @workflow.run
+    async def run(self, request: dict[str, Any]) -> dict[str, Any]:
+        identity = request["workflow_id"]
+        self.spec_digest = request["spec_digest"]
+        item = request["item"]
+        try:
+            await self.move(identity, "INGESTED", "Authenticated input durably received")
+            await self.disposition(request, "APPLIED")
+            while True:
+                await self.move(identity, "ANALYZING", "Analyze immutable requirements")
+                assessment = await self.call(
+                    "analyze",
+                    {
+                        "workflow_id": identity,
+                        "item": item,
+                        "spec_digest": self.spec_digest,
+                        "sequence": self.sequence,
+                    },
+                    model=True,
+                )
+                state = assessment["state"]
+                if state == "POLICY_BLOCKED":
+                    await self.move(identity, state, assessment["reason"], assessment)
+                    return self.status()
+                if state == "NEEDS_CLARIFICATION":
+                    await self.move(identity, state, assessment["reason"], assessment)
+                else:
+                    await self.move(
+                        identity, "READY", "Requirements and deterministic policy passed"
+                    )
+                    await self.move(
+                        identity, "PLANNING", "Persist revision-bound implementation plan"
+                    )
+                    await self.move(
+                        identity, "PLAN_REVIEW", "Human plan approval required", assessment
+                    )
+                decision_deadline = workflow.now() + timedelta(
+                    seconds=request["human_wait_seconds"]
+                )
+                while True:
+                    try:
+                        remaining = decision_deadline - workflow.now()
+                        if remaining <= timedelta(0):
+                            raise TimeoutError
+                        await workflow.wait_condition(
+                            lambda: bool(self.commands),
+                            timeout=remaining,
+                        )
+                    except TimeoutError:
+                        await self.move(identity, "FAILED", "Human decision deadline expired")
+                        return self.status()
+                    command = self.commands.pop(0)
+                    payload = command["payload"]
+                    if (
+                        payload.get("expected_sequence") != self.sequence
+                        or payload.get("spec_digest") != self.spec_digest
+                    ):
+                        await self.disposition(
+                            command, "REJECTED", "Stale workflow or specification"
+                        )
+                        continue
+                    if command["kind"] == "cancel":
+                        await self.move(
+                            identity,
+                            "CANCELLED",
+                            "Authenticated cancellation",
+                            actor=command["actor"],
+                        )
+                        await self.disposition(command, "APPLIED")
+                        return self.status()
+                    if command["kind"] == "clarify" and self.state == "NEEDS_CLARIFICATION":
+                        revision = await self.call(
+                            "clarify",
+                            {
+                                "workflow_id": identity,
+                                "item": payload["item"],
+                                "expected_repository": item["repository"],
+                            },
+                        )
+                        item, self.spec_digest = revision["item"], revision["digest"]
+                        await self.disposition(command, "APPLIED")
+                        break
+                    if command["kind"] == "approve-plan" and self.state == "PLAN_REVIEW":
+                        if payload.get("plan_digest") != assessment["plan_digest"]:
+                            await self.disposition(command, "REJECTED", "Stale plan approval")
+                            continue
+                        await self.disposition(command, "APPLIED")
+                        await self.move(
+                            identity,
+                            "IMPLEMENTING",
+                            "Approved plan admitted to runner",
+                            actor=command["actor"],
+                        )
+                        self.active = asyncio.ensure_future(
+                            workflow.execute_activity(
+                                "candidate",
+                                {"workflow_id": identity, "assessment": assessment},
+                                start_to_close_timeout=timedelta(
+                                    seconds=request.get("wall_seconds", 1800) + 60
+                                ),
+                                heartbeat_timeout=timedelta(seconds=20),
+                                retry_policy=RetryPolicy(maximum_attempts=1),
+                                cancellation_type=(
+                                    workflow.ActivityCancellationType.WAIT_CANCELLATION_COMPLETED
+                                ),
+                            )
+                        )
+                        candidate = await self.active
+                        self.active = None
+                        if candidate["state"] != "LOCAL_REVIEW_READY":
+                            await self.move(identity, "FAILED", candidate["reason"], candidate)
+                            return self.status()
+                        await self.move(
+                            identity,
+                            "VALIDATING",
+                            "Independent candidate evidence recorded",
+                            candidate,
+                        )
+                        publication = await self.call(
+                            "publish",
+                            {
+                                "workflow_id": identity,
+                                "manifest_digest": candidate["manifest_digest"],
+                            },
+                            model=True,
+                        )
+                        if publication["status"] == "UNAVAILABLE":
+                            await self.move(
+                                identity,
+                                "POLICY_BLOCKED",
+                                publication["reason"],
+                                {**candidate, "publication": publication},
+                            )
+                            return self.status()
+                        await self.move(
+                            identity,
+                            "PR_OPEN",
+                            "Draft PR publication reconciled",
+                            {**candidate, "publication": publication},
+                        )
+                        await self.move(
+                            identity, "REVIEWING", "Independent prepublication review verified"
+                        )
+                        await self.move(identity, "ACCEPTANCE_CHECK", "Criterion evidence verified")
+                        await self.move(
+                            identity, "HUMAN_REVIEW", "Draft PR and evidence handed to human"
+                        )
+                        return self.status()
+                    await self.disposition(
+                        command, "REJECTED", "Command unavailable in current state"
+                    )
+        except ActivityError:
+            if self.cancel_request is not None:
+                await self.move(
+                    identity,
+                    "CANCELLED",
+                    "Authenticated cancellation completed",
+                    actor=self.cancel_request["actor"],
+                )
+                await self.disposition(self.cancel_request, "APPLIED")
+                return self.status()
+            await self.move(
+                identity, "FAILED", "Activity failed; inspect redacted operation records"
+            )
+            return self.status()
+        except asyncio.CancelledError:
+            await self.move(identity, "CANCELLED", "Temporal cancellation received")
+            if self.cancel_request is not None:
+                await self.disposition(self.cancel_request, "APPLIED")
+                return self.status()
+            raise
