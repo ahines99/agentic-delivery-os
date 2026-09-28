@@ -328,7 +328,9 @@ async def test_canonical_adapter_consumes_existing_v2_scoring_without_new_capaci
     assert case.ledger.account(c.account_id)["reserved_microdollars"] == 0
 
 
-@pytest.mark.parametrize("fault", ["used-partial", "different-budget", "expired-retry"])
+@pytest.mark.parametrize(
+    "fault", ["used-partial", "zero-cost-partial", "different-budget", "expired-retry"]
+)
 def test_partial_or_expired_account_cannot_be_laundered(allocation_case, fault):
     c = allocation_case
     budget = c.case.budget
@@ -341,10 +343,11 @@ def test_partial_or_expired_account_cannot_be_laundered(allocation_case, fault):
         total_microdollars=c.case.arm.limits.model_microdollars
         + c.case.arm.limits.infrastructure_microdollars,
     )
-    if fault == "used-partial":
+    if fault in {"used-partial", "zero-cost-partial"}:
         c.case.ledger.reserve(c.account_id, "premature-operation", 1, 1, 1)
+        usage = 0 if fault == "zero-cost-partial" else 1
         c.case.ledger.settle(
-            "premature-operation", cost=1, input_tokens=1, output_tokens=1, result={}
+            "premature-operation", cost=usage, input_tokens=usage, output_tokens=usage, result={}
         )
     elif fault == "expired-retry":
         c.case.state["now"] = c.state["grant"].expires_at + timedelta(seconds=1)

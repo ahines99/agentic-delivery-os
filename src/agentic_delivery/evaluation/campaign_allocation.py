@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Annotated, Literal
 
 from pydantic import AwareDatetime, Field, TypeAdapter
+from sqlalchemy import select
 
 from agentic_delivery.config import Budget
 from agentic_delivery.domain.models import Contract
@@ -29,7 +30,11 @@ from agentic_delivery.evaluation.campaign_scoring import (
     _resolve_campaign,
     _timestamp,
 )
-from agentic_delivery.evaluation.execution_store import INFRA_TERMS, EvaluationExecutionStore
+from agentic_delivery.evaluation.execution_store import (
+    INFRA_TERMS,
+    EvaluationExecutionStore,
+    operations,
+)
 from agentic_delivery.evaluation.harness import HistoricalTask
 from agentic_delivery.evaluation.qualification import Digest, qualification_task_digest
 from agentic_delivery.evaluation.qualification_admission import QualificationAuthority
@@ -353,6 +358,16 @@ class CampaignAllocator:
                         )
                     )
                 )
+                # Settled zero-cost operations still prove an effect preceded authority.
+                with self.ledger.engine.connect() as connection:
+                    _require(
+                        connection.scalar(
+                            select(operations.c.id)
+                            .where(operations.c.account_id == expected.attempt.account_id)
+                            .limit(1)
+                        )
+                        is None
+                    )
             self._guard(task, grant, inputs.policy)
             _require(
                 self.output_artifacts.put(
