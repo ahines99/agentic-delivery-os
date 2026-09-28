@@ -11,11 +11,21 @@
       "github_owner": "ahines99",
       "github_name": "agentic-delivery-os",
       "base_branch": "main",
+      "github_repository_id": 1391630044,
+      "required_checks": [
+        {"name": "Python 3.12", "app_id": 15368},
+        {"name": "Python 3.13", "app_id": 15368},
+        {"name": "PostgreSQL, Temporal, Docker", "app_id": 15368},
+        {"name": "Secret scan", "app_id": 15368}
+      ],
       "snapshot_prefix": "demos/sample_repo",
       "model_data_authorized": false,
       "commands": [{"id": "pytest", "argv": ["python", "-m", "pytest", "-q", "-p", "no:cacheprovider"], "expected_tests": 1}]
     }
   ],
   "publication_enabled": false,
+  "approval_validity_seconds": 86400,
+  "ci_wait_seconds": 900,
+  "ci_poll_seconds": 15,
   "admissions_enabled": true
 }

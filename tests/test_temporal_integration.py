@@ -84,9 +84,9 @@ async def test_restart_stale_command_cancellation_and_replay(tmp_path: Path) -> 
     async with Worker(
         client, task_queue=settings.task_queue, workflows=[DeliveryWorkflow], activities=functions
     ):
-        assert await dispatch_once(settings, store, client) >= 1
+        assert await dispatch_once(settings, store, client, workflow_id=identity) >= 1
         first = await wait_state(store, identity, "PLAN_REVIEW")
-        assert await dispatch_once(settings, store, client) == 0
+        assert await dispatch_once(settings, store, client, workflow_id=identity) == 0
     # New worker restores from actual server history, not in-memory Python state.
     async with Worker(
         client, task_queue=settings.task_queue, workflows=[DeliveryWorkflow], activities=functions
@@ -111,7 +111,7 @@ async def test_restart_stale_command_cancellation_and_replay(tmp_path: Path) -> 
                 },
             },
         )
-        await dispatch_once(settings, store, client)
+        await dispatch_once(settings, store, client, workflow_id=identity)
         for _ in range(100):
             if store.command(stale["command_id"])["status"] == "REJECTED":
                 break
@@ -124,7 +124,7 @@ async def test_restart_stale_command_cancellation_and_replay(tmp_path: Path) -> 
             key=uuid4().hex,
             payload={"expected_sequence": first["sequence"], "spec_digest": first["spec_digest"]},
         )
-        await dispatch_once(settings, store, client)
+        await dispatch_once(settings, store, client, workflow_id=identity)
         assert (await client.get_workflow_handle(identity).result())["state"] == "CANCELLED"
     history = await client.get_workflow_handle(identity).fetch_history()
     replay = await Replayer(workflows=[DeliveryWorkflow]).replay_workflow(history)
@@ -186,7 +186,7 @@ async def test_approved_candidate_handoff_or_active_cancellation(
             disabled_publication,
         ],
     ):
-        await dispatch_once(settings, store, client)
+        await dispatch_once(settings, store, client, workflow_id=identity)
         first = await wait_state(store, identity, "PLAN_REVIEW")
         approval = store.enqueue_command(
             identity,
@@ -199,7 +199,7 @@ async def test_approved_candidate_handoff_or_active_cancellation(
                 "plan_digest": "a" * 64,
             },
         )
-        await dispatch_once(settings, store, client)
+        await dispatch_once(settings, store, client, workflow_id=identity)
         if cancel:
             active = await wait_state(store, identity, "IMPLEMENTING")
             cancellation = store.enqueue_command(
@@ -212,7 +212,7 @@ async def test_approved_candidate_handoff_or_active_cancellation(
                     "spec_digest": active["spec_digest"],
                 },
             )
-            await dispatch_once(settings, store, client)
+            await dispatch_once(settings, store, client, workflow_id=identity)
         result = await asyncio.wait_for(client.get_workflow_handle(identity).result(), timeout=30)
         assert result["state"] == ("CANCELLED" if cancel else "POLICY_BLOCKED")
         assert store.command(approval["command_id"])["status"] == "APPLIED"

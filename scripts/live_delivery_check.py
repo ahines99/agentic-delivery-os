@@ -144,7 +144,7 @@ async def main() -> None:
         )
         response.raise_for_status()
         identity = response.json()["workflow_id"]
-        await dispatch_once(settings, store, client)
+        await dispatch_once(settings, store, client, workflow_id=identity)
         async with asyncio.timeout(180):
             while store.workflow(identity)["state"] not in {
                 "PLAN_REVIEW",
@@ -165,7 +165,7 @@ async def main() -> None:
             headers={"Authorization": f"Bearer {token}", "Idempotency-Key": uuid4().hex},
         )
         response.raise_for_status()
-        await dispatch_once(settings, store, client)
+        await dispatch_once(settings, store, client, workflow_id=identity)
         async with asyncio.timeout(settings.budget.wall_seconds + 30):
             await client.get_workflow_handle(identity).result()
         run = store.workflow(identity)

@@ -53,11 +53,20 @@ class DeliveryWorkflow:
     def status(self) -> dict[str, Any]:
         return {"state": self.state, "sequence": self.sequence, "spec_digest": self.spec_digest}
 
-    async def call(self, name: str, payload: dict[str, Any], *, model: bool = False) -> Any:
+    async def call(
+        self,
+        name: str,
+        payload: dict[str, Any],
+        *,
+        model: bool = False,
+        timeout: timedelta | None = None,
+        heartbeat_timeout: timedelta | None = None,
+    ) -> Any:
         handle = workflow.execute_activity(
             name,
             payload,
-            start_to_close_timeout=timedelta(seconds=300 if model else 30),
+            start_to_close_timeout=timeout or timedelta(seconds=300 if model else 30),
+            heartbeat_timeout=heartbeat_timeout,
             retry_policy=RetryPolicy(maximum_attempts=1 if model else 3),
             cancellation_type=workflow.ActivityCancellationType.WAIT_CANCELLATION_COMPLETED,
         )
@@ -242,6 +251,124 @@ class DeliveryWorkflow:
                             identity, "REVIEWING", "Independent prepublication review verified"
                         )
                         await self.move(identity, "ACCEPTANCE_CHECK", "Criterion evidence verified")
+                        if workflow.patched("reconciled-ci-handoff-v1"):
+                            deadline = workflow.now() + timedelta(
+                                seconds=request.get("ci_wait_seconds", 900)
+                            )
+                            ci: dict[str, Any] = {
+                                "ready": False,
+                                "reasons": ["ci_deadline_expired"],
+                            }
+                            while True:
+                                remaining = deadline - workflow.now()
+                                if remaining > timedelta(0):
+                                    try:
+                                        ci = await self.call(
+                                            "reconcile_ci",
+                                            {"workflow_id": identity},
+                                            model=True,
+                                            timeout=min(remaining, timedelta(seconds=300)),
+                                            heartbeat_timeout=timedelta(seconds=5),
+                                        )
+                                    except ActivityError:
+                                        if self.cancel_request is not None:
+                                            raise
+                                        await self.move(
+                                            identity,
+                                            "POLICY_BLOCKED",
+                                            "CI reconciliation failed or exceeded deadline",
+                                            {
+                                                **candidate,
+                                                "publication": publication,
+                                                "ci": {
+                                                    "ready": False,
+                                                    "reasons": ["ci_reconciliation_unavailable"],
+                                                },
+                                            },
+                                        )
+                                        return self.status()
+                                remaining = deadline - workflow.now()
+                                if ci["ready"] and remaining > timedelta(0):
+                                    handoff: dict[str, Any] = {
+                                        "ready": True,
+                                        "tracker_status": "NOT_APPLICABLE",
+                                    }
+                                    if item.get("source_system") == "linear":
+                                        try:
+                                            handoff = await self.call(
+                                                "finish_handoff",
+                                                {"workflow_id": identity, "ci": ci},
+                                                model=True,
+                                                timeout=timedelta(seconds=90),
+                                                heartbeat_timeout=timedelta(seconds=5),
+                                            )
+                                        except ActivityError:
+                                            if self.cancel_request is not None:
+                                                raise
+                                            handoff = {"ready": False, "tracker_status": "UNKNOWN"}
+                                    if not handoff["ready"]:
+                                        await self.move(
+                                            identity,
+                                            "POLICY_BLOCKED",
+                                            "Tracker handoff requires reconciliation",
+                                            {
+                                                **candidate,
+                                                "publication": publication,
+                                                "ci": ci,
+                                                "handoff": handoff,
+                                            },
+                                        )
+                                        return self.status()
+                                    await self.move(
+                                        identity,
+                                        "HUMAN_REVIEW",
+                                        "Exact-head CI and draft PR reconciled",
+                                        {
+                                            **candidate,
+                                            "publication": publication,
+                                            "ci": ci,
+                                            "handoff": handoff,
+                                        },
+                                    )
+                                    return self.status()
+                                if remaining <= timedelta(0):
+                                    await self.move(
+                                        identity,
+                                        "POLICY_BLOCKED",
+                                        "Required CI did not become ready before deadline",
+                                        {**candidate, "publication": publication, "ci": ci},
+                                    )
+                                    return self.status()
+                                try:
+                                    await workflow.wait_condition(
+                                        lambda: bool(self.commands),
+                                        timeout=min(
+                                            remaining,
+                                            timedelta(seconds=request.get("ci_poll_seconds", 15)),
+                                        ),
+                                    )
+                                except TimeoutError:
+                                    continue
+                                while self.commands:
+                                    pending = self.commands.pop(0)
+                                    if (
+                                        pending["kind"] == "cancel"
+                                        and pending["payload"].get("expected_sequence")
+                                        == self.sequence
+                                        and pending["payload"].get("spec_digest")
+                                        == self.spec_digest
+                                    ):
+                                        await self.move(
+                                            identity,
+                                            "CANCELLED",
+                                            "Authenticated CI wait cancellation",
+                                            actor=pending["actor"],
+                                        )
+                                        await self.disposition(pending, "APPLIED")
+                                        return self.status()
+                                    await self.disposition(
+                                        pending, "REJECTED", "Stale or unavailable CI wait command"
+                                    )
                         await self.move(
                             identity, "HUMAN_REVIEW", "Draft PR and evidence handed to human"
                         )

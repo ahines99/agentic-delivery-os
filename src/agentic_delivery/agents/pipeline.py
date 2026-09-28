@@ -12,7 +12,7 @@ from agentic_delivery.execution.files import apply_edits, safe_path, validate_fi
 from agentic_delivery.execution.verification import verify
 from agentic_delivery.integrations.model import StructuredModel
 from agentic_delivery.policy.changes import check_candidate
-from agentic_delivery.policy.engine import evaluate_intake
+from agentic_delivery.policy.engine import POLICY_VERSION, evaluate_intake
 from agentic_delivery.repository.impact import impact_report
 from agentic_delivery.storage.artifacts import ArtifactStore
 from agentic_delivery.storage.store import Store, digest_json
@@ -199,6 +199,7 @@ async def build_and_review(
                 if base.get(path) != candidate.get(path)
             )
             manifest = {
+                "schema_version": 1,
                 "workflow_id": workflow_id,
                 "repository": repository.id,
                 "base_sha": base_sha,
@@ -207,9 +208,18 @@ async def build_and_review(
                 "plan_digest": digest_json(plan.model_dump(mode="json")),
                 "approved_plan_digest": approved_plan_digest,
                 "input_spec_digest": store.workflow(workflow_id)["spec_digest"],
+                "input_spec_artifact": artifacts.put(
+                    json.dumps(store.workflow(workflow_id)["work_item"], sort_keys=True).encode()
+                ),
+                "assessed_item_artifact": artifacts.put(
+                    json.dumps(item.model_dump(mode="json"), sort_keys=True).encode()
+                ),
+                "review_artifact": artifacts.put(
+                    json.dumps(review.model_dump(mode="json"), sort_keys=True).encode()
+                ),
                 "configuration_digest": settings.execution_digest(repository.id),
                 "model_configuration": settings.model.model_dump(mode="json"),
-                "policy_version": "mvp-1",
+                "policy_version": POLICY_VERSION,
                 "baseline": baseline,
                 "attempts": attempts,
                 "preflight": preflight,

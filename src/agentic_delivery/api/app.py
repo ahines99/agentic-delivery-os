@@ -3,6 +3,7 @@
 import hashlib
 import json
 import re
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from fastapi import FastAPI, Request
@@ -14,7 +15,9 @@ from sqlalchemy.exc import SQLAlchemyError
 from agentic_delivery import __version__
 from agentic_delivery.config import Operator, Settings, load_settings, secret
 from agentic_delivery.domain.models import WorkItem
+from agentic_delivery.integrations.checks import parse_check_run
 from agentic_delivery.security import AccessDenied, authenticate, authorize, verified_payload
+from agentic_delivery.storage.artifacts import ArtifactStore
 from agentic_delivery.storage.database import create_database
 from agentic_delivery.storage.schema import RunRecord
 from agentic_delivery.storage.store import Conflict, NotFound, Store
@@ -238,6 +241,93 @@ def create_app(settings: Settings | None = None, store: Store | None = None) -> 
         permitted_run(request, identity)
         return store.publication(identity)
 
+    @api.get("/workflows/{identity}/checks")
+    def checks(identity: str, request: Request) -> dict[str, Any]:
+        run = permitted_run(request, identity)
+        repository = settings.repository(run["repository"])
+        unavailable = {
+            "ready": False,
+            "ci_ready": False,
+            "observed_ready": False,
+            "reconciliation_required": True,
+            "observational_only": True,
+            "selected_run_ids": {},
+        }
+        if repository.github_repository_id is None:
+            return {**unavailable, "reasons": ["github_repository_identity_not_configured"]}
+        try:
+            published = store.publication(identity)
+        except NotFound:
+            return {**unavailable, "reasons": ["publication_missing"]}
+        result = store.ci_readiness(
+            repository_id=repository.github_repository_id,
+            head_sha=published["head_sha"],
+            required=repository.required_checks,
+            policy_digest=settings.execution_digest(repository.id),
+        )
+        result["ci_ready"] = result["ready"]
+        if published["status"] != "DRAFT_HANDOFF" or any(
+            (
+                published.get("repository_id") != repository.github_repository_id,
+                published.get("repository_full_name")
+                != f"{repository.github_owner}/{repository.github_name}",
+                published.get("head_ref") != "agent/" + identity,
+                published.get("base_ref") != repository.base_branch,
+            )
+        ):
+            result["ready"] = False
+            result["observed_ready"] = False
+            result["reconciliation_required"] = True
+            result["reasons"] = [*result["reasons"], "publication_not_current"]
+            result["ci_ready"] = False
+        if run["state"] != "HUMAN_REVIEW":
+            result["ready"] = False
+            result["reasons"] = [*result["reasons"], "workflow_not_human_review"]
+        if result["ready"]:
+            try:
+                expected = settings.execution_digest(repository.id)
+                if run["configuration_digest"] != expected:
+                    raise ValueError("Configuration changed")
+                artifacts = ArtifactStore(settings.artifact_root)
+                manifest = json.loads(artifacts.get(published["manifest_digest"]))
+                if any(
+                    (
+                        manifest.get("workflow_id") != identity,
+                        manifest.get("repository") != repository.id,
+                        manifest.get("base_sha") != published["base_sha"],
+                        manifest.get("input_spec_digest") != run["spec_digest"],
+                        manifest.get("configuration_digest") != expected,
+                    )
+                ):
+                    raise ValueError("Manifest context changed")
+                approval = store.approved_plan(identity, manifest["approved_plan_digest"])
+                approved_at = datetime.fromisoformat(approval["created_at"])
+                actor = next((op for op in settings.operators if op.id == approval["actor"]), None)
+                if (
+                    actor is None
+                    or approved_at.tzinfo is None
+                    or datetime.now(UTC)
+                    >= approved_at + timedelta(seconds=settings.approval_validity_seconds)
+                    or approval["payload"].get("spec_digest") != run["spec_digest"]
+                ):
+                    raise ValueError("Approval is no longer current")
+                authorize(actor, repository.id, "reviewer")
+                ci_evidence = json.loads(artifacts.get(result["evidence_digest"]))
+                context = ci_evidence.get("publication", {})
+                if (
+                    ci_evidence.get("workflow_id") != identity
+                    or ci_evidence.get("configuration_digest") != expected
+                    or any(
+                        context.get(field) != published[field]
+                        for field in ("number", "head_sha", "base_sha", "manifest_digest")
+                    )
+                ):
+                    raise ValueError("CI evidence publication context changed")
+            except (ValueError, KeyError, TypeError, OSError):
+                result["ready"] = False
+                result["reasons"] = [*result["reasons"], "handoff_authority_not_current"]
+        return {**result, "observational_only": True}
+
     @api.post("/webhooks/github")
     async def github(request: Request) -> dict[str, Any]:
         if not settings.github_installation_id:
@@ -250,9 +340,19 @@ def create_app(settings: Settings | None = None, store: Store | None = None) -> 
             provider="github",
             max_bytes=settings.max_body_bytes,
         )
-        if (payload.get("installation") or {}).get("id") != settings.github_installation_id:
+        installation = payload.get("installation")
+        if (
+            not isinstance(installation, dict)
+            or type(installation.get("id")) is not int
+            or installation["id"] != settings.github_installation_id
+        ):
             raise AccessDenied("Installation not authorized")
         provider_repository = payload.get("repository") or {}
+        if (
+            not isinstance(provider_repository, dict)
+            or type(provider_repository.get("id")) is not int
+        ):
+            raise AccessDenied("Repository identity missing or invalid")
         repository = next(
             (
                 repo
@@ -266,13 +366,63 @@ def create_app(settings: Settings | None = None, store: Store | None = None) -> 
         )
         if repository is None:
             raise AccessDenied("Repository not authorized")
+        if "check_run" in payload:
+            if "pull_request" in payload or "check_suite" in payload:
+                raise ValueError("Ambiguous GitHub event payload")
+            assert repository.github_repository_id is not None
+            observation = parse_check_run(
+                payload,
+                repository_id=repository.github_repository_id,
+                installation_id=settings.github_installation_id,
+            )
+            delivery = request.headers.get("x-github-delivery", "")
+            if not re.fullmatch(r"[A-Za-z0-9-]{1,200}", delivery):
+                raise ValueError("Delivery identifier missing or invalid")
+            digest = hashlib.sha256(raw).hexdigest()
+            return store.record_check_observation(
+                observation,
+                {
+                    "provider": "github",
+                    "integration_id": str(settings.github_installation_id),
+                    "delivery_id": delivery,
+                    "semantic_key": digest,
+                    "digest": digest,
+                    "payload": payload,
+                },
+            )
+        if "check_suite" in payload:
+            if "pull_request" in payload:
+                raise ValueError("Ambiguous GitHub event payload")
+            assert repository.github_repository_id is not None
+            delivery = request.headers.get("x-github-delivery", "")
+            if not re.fullmatch(r"[A-Za-z0-9-]{1,200}", delivery):
+                raise ValueError("Delivery identifier missing or invalid")
+            digest = hashlib.sha256(raw).hexdigest()
+            return store.record_check_suite_invalidation(
+                payload,
+                {
+                    "provider": "github",
+                    "integration_id": str(settings.github_installation_id),
+                    "delivery_id": delivery,
+                    "semantic_key": digest,
+                    "digest": digest,
+                    "payload": payload,
+                },
+                repository_id=repository.github_repository_id,
+            )
         pull = payload.get("pull_request")
         if not isinstance(pull, dict):
             return {"status": "ignored", "reason": "Not a pull request notification"}
-        branch = (pull.get("head") or {}).get("ref", "")
-        if not re.fullmatch(r"agent/[a-zA-Z0-9-]{1,80}", branch):
-            return {"status": "ignored", "reason": "Unmanaged branch"}
-        identity = branch.removeprefix("agent/")
+        number = pull.get("number")
+        if not isinstance(number, int) or isinstance(number, bool):
+            raise ValueError("Pull request number is missing or invalid")
+        identity = store.workflow_for_publication(repository.id, number)
+        if identity is None:
+            head = pull.get("head")
+            branch = head.get("ref", "") if isinstance(head, dict) else ""
+            if not isinstance(branch, str) or not re.fullmatch(r"agent/[a-zA-Z0-9-]{1,80}", branch):
+                return {"status": "ignored", "reason": "Unmanaged branch"}
+            identity = branch.removeprefix("agent/")
         run = store.workflow(identity)
         if run["repository"] != repository.id:
             raise AccessDenied("Workflow repository mismatch")

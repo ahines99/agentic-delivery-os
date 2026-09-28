@@ -1,6 +1,6 @@
 from typing import Any
 
-from sqlalchemy import JSON, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import JSON, BigInteger, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -128,3 +128,30 @@ class PublicationRecord(Base):
     status: Mapped[str] = mapped_column(String(40), default="DRAFT_HANDOFF")
     observed_at: Mapped[str] = mapped_column(String(40), default="")
     details: Mapped[dict[str, Any]] = mapped_column(JSON)
+
+
+class CIHeadRecord(Base):
+    __tablename__ = "ci_heads"
+    repository_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    head_sha: Mapped[str] = mapped_column(String(40), primary_key=True)
+    generation: Mapped[int] = mapped_column(Integer, default=0)
+    snapshot_generation: Mapped[int | None] = mapped_column(Integer)
+    policy_digest: Mapped[str] = mapped_column(String(64), default="")
+    evidence_digest: Mapped[str] = mapped_column(String(64), default="")
+    snapshot: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    observed_at: Mapped[str] = mapped_column(String(40), default="")
+    reconciled_at: Mapped[str] = mapped_column(String(40), default="")
+    expires_at: Mapped[str] = mapped_column(String(40), default="")
+    invalidation_reason: Mapped[str] = mapped_column(String(80), default="")
+
+
+class CIObservationRecord(Base):
+    __tablename__ = "ci_observations"
+    __table_args__ = (Index("ix_ci_observations_repository_head", "repository_id", "head_sha"),)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    inbox_id: Mapped[str] = mapped_column(ForeignKey("inbox.id"), unique=True)
+    repository_id: Mapped[int] = mapped_column(BigInteger)
+    head_sha: Mapped[str] = mapped_column(String(40))
+    generation: Mapped[int] = mapped_column(Integer)
+    observation: Mapped[dict[str, Any]] = mapped_column(JSON)
+    created_at: Mapped[str] = mapped_column(String(40))

@@ -15,8 +15,9 @@ Linear -> Requirements -> Risk policy -> Plan -> Isolated build
 Implemented and exercised locally: authenticated intake and plan approval, PostgreSQL
 inbox/outbox and audit storage, Temporal workflows, real Anthropic planning/build/review,
 bounded Docker execution, independent test runs, and digest-verified candidate artifacts.
-The local suite passed 163 tests with actual PostgreSQL, Temporal and Docker, including
-resource-exhaustion and hostile dependency-hook cases. [Hosted CI passed](https://github.com/ahines99/agentic-delivery-os/actions/runs/36374850293)
+The local suite passed 392 tests with actual PostgreSQL, Temporal and Docker, including
+structured test-evidence validation, CI races, projection recovery, resource exhaustion and
+hostile dependency hooks. [The preceding revision's hosted CI passed](https://github.com/ahines99/agentic-delivery-os/actions/runs/36375406106)
 on Python 3.12/3.13, real service integration and secret scanning.
 A synthetic customer task reached `LOCAL_REVIEW_READY`; its durable workflow stopped at
 `POLICY_BLOCKED` because publication was disabled. No PR, merge, or deployment is implied.
@@ -28,6 +29,10 @@ remain release gates. The Docker checks establish named controls, not safety aga
 hostile code. See [implementation status](docs/implementation-status.md) for recorded runs,
 verification boundaries, and outstanding work. The original proposal remains preserved in
 [docs/reference/original-handoff.md](docs/reference/original-handoff.md).
+
+The [full completion audit](docs/completion-audit.md) tracks every M0–M5 backlog item,
+product gate and research recommendation. The [historical candidate catalog](docs/evaluation-curation.md)
+contains 36 real metadata-only candidates; none is represented as a qualified or scored task.
 
 ## Local quickstart
 

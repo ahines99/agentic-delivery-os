@@ -3,6 +3,7 @@ import hmac
 import json
 import time
 from concurrent.futures import ThreadPoolExecutor
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import uuid4
 
@@ -423,3 +424,34 @@ def test_material_configuration_change_requires_new_attempt(
     changed = settings.model_copy(update={"publication_enabled": True})
     with pytest.raises(ValueError, match="settings changed"):
         Activities(changed, store).validate_configuration(receipt["workflow_id"])
+
+
+def test_applied_approval_expires_and_revocation_is_checked_at_use(
+    store: Store,
+    settings: Settings,
+) -> None:
+    identity = submit(store)
+    reviewer = settings.operators[0].model_copy(update={"roles": ("operator", "reviewer")})
+    settings = settings.model_copy(update={"operators": (reviewer,)})
+    run = store.workflow(identity)
+    receipt = store.enqueue_command(
+        identity,
+        kind="approve-plan",
+        actor=reviewer.id,
+        key="approval-use",
+        payload={"spec_digest": run["spec_digest"], "plan_digest": "a" * 64},
+    )
+    with pytest.raises(Conflict):
+        Activities(settings, store).validate_approval(identity, "a" * 64)
+    store.command_status(receipt["command_id"], "APPLIED")
+    Activities(settings, store).validate_approval(identity, "a" * 64)
+    with pytest.raises(AccessDenied, match="revoked"):
+        Activities(settings.model_copy(update={"operators": ()}), store).validate_approval(
+            identity, "a" * 64
+        )
+    with Session(store.engine) as session, session.begin():
+        row = session.get(CommandRecord, receipt["command_id"])
+        row.created_at = (datetime.now(UTC) - timedelta(days=2)).isoformat()
+    with pytest.raises(AccessDenied, match="expired"):
+        Activities(settings, store).validate_approval(identity, "a" * 64)
+    assert store.command(receipt["command_id"])["status"] == "APPLIED"

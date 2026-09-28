@@ -53,7 +53,10 @@ parallel attempt with a new budget; use the supported clarification or rerun lif
 
 At `PLAN_REVIEW`, submit `/workflows/{id}/approve-plan` with the current `expected_sequence`,
 `spec_digest` and `plan_digest`, plus a new idempotency key. A stale tuple is rejected by Temporal.
-Approval additionally requires the `reviewer` role. The human-decision deadline is absolute;
+Approval additionally requires the `reviewer` role. Approval use rechecks the current actor's
+reviewer/repository authorization and its finite validity (`approval_validity_seconds`, default
+24 hours, maximum seven days), alongside input/plan/configuration bindings. Removing that role
+or allowing approval to expire blocks further protected work. The human-decision deadline is absolute;
 invalid or repeated commands cannot extend the wait. Signals resolve the canonical stored command
 and current actor authorization before application; sending a command-shaped signal is not approval.
 Clarification uses `/workflows/{id}/clarify` with the sequence, digest and replacement `item` while
@@ -81,7 +84,39 @@ complete production telemetry/export system.
 Evidence metadata is in the workflow result. Bytes live in the configured artifact store under
 their content digest. Read with `ArtifactStore.get`, which verifies the hash. Keep an access-controlled
 copy of the manifest, candidate/diff and command receipts when sharing a demonstration. Artifact
-hashes establish identity, not test adequacy or absence of defects.
+hashes establish identity, not test adequacy or absence of defects. The strict manifest gate reads
+and validates referenced bytes plus input/configuration/plan/candidate/check/reviewer relationships;
+a digest string alone cannot satisfy admission.
+
+Rebuild and pin the sandbox after collector changes. Verification uses the image-owned pytest
+launcher and bounded structured report, with plugin autoload/configuration controlled by the image.
+Missing completion, early process exit, forged stdout, skipped/failing phases or insufficient test
+identities fail closed. The collector and candidate share an interpreter; this is not an attestation
+against arbitrary monkeypatching or proof that assertions cover the intended behavior.
+
+## CI and draft handoff
+
+Configure each target's numeric GitHub repository/installation IDs and required check names plus
+trusted producer App IDs. The product App needs the read permissions/events in
+[provider onboarding](provider-onboarding.md). Follow [CI evidence](ci-evidence.md) for the precise
+contract. A check with the right name from a different producer is insufficient.
+
+Signed `check_run` and `check_suite` deliveries are durable observations/invalidation signals.
+They cannot alone establish readiness. The broker authenticates bounded paginated REST reads,
+compares two complete check snapshots, checks suite state and exact open/draft PR identity/ref/base/head,
+and saves a generation-bound snapshot valid for at most 60 seconds. Reruns, new observations,
+changed policy or publication context invalidate prior readiness. GitHub propagation and events
+in flight leave a residual race; these checks do not replace protected branches and human review.
+
+`GET /workflows/{id}/checks` requires repository-scoped bearer access. `observed_ready` is provisional;
+`ci_ready` describes a current reconciled CI snapshot; `ready` additionally requires the current
+human-review/handoff context and authorization. The response is observational, never merge authority.
+Workflow CI polling defaults to a 900-second absolute deadline and 15-second interval, with configured
+maxima of 3600 and 60 seconds respectively. Missing or failing checks cannot become a timeout success.
+Cancellation remains available during this wait. Linear review-state update is a separate activity
+after the CI gate, with intent/result artifacts and authorization checks before and after its effect.
+A lost/failed provider response is UNKNOWN, not an inferred completed handoff. Inspect the publication,
+workflow result and retained intent/result before deciding how to reconcile; do not force state rows.
 
 ## Incidents
 
@@ -95,7 +130,11 @@ hashes establish identity, not test adequacy or absence of defects.
 | New base/head after verification | Treat evidence as stale; do not merge based on old checks. Start a separately reviewed attempt after revalidation. |
 | Sandbox cleanup failure | Find only containers with `agentic-delivery.managed=true`; inspect recorded run identity, then remove that confirmed job. Never prune shared Docker resources. |
 | Key exposure/revocation | Pause admission, revoke the affected provider/operator credential, rotate configuration and restart trusted services; never inject replacement credentials into jobs. |
-| Database recovery | Restore a consistent database backup and retained artifact store together; reconcile with Temporal and provider state before resuming dispatch. Automated reconciliation/restore drills are still a release gate. |
+| Closed workflow projection damage | Use the preview/apply procedure in [projection recovery](projection-recovery.md). It requires complete closed Temporal history and refuses contradictory audits or concurrent projection changes. |
+| Database recovery | Preserve a consistent database/artifact backup; follow the bounded [local restore drill](local-backup.md). Whole-system Temporal/provider reconciliation before resuming dispatch remains a release gate. |
+| CI remains pending or changes | Inspect authorized check readiness and producer/ref identity; reconcile through the broker. Never synthesize success or extend the workflow deadline by sending invalid commands. |
+| Linear handoff outcome unknown | Preserve intent/result artifacts; inspect the actual issue state and identity before any retry. CI readiness alone does not prove the tracker update happened. |
+| Development run remains NEW | Inspect pending/exhausted outbox and configuration digest before retrying. The live development driver scopes dispatch to its workflow so older unrelated rows cannot consume its 20-row claim batch; do not delete unrelated commands. |
 
 Do not manually rewrite audit history or workflow states. Use the explicit rerun endpoint rather
 than resetting state or spending. Granular build recovery, production retention/deletion and
@@ -106,8 +145,12 @@ cross-system recovery drills remain recorded gaps in
 
 Run lint, format, types and tests as in the README. Integration tests require
 `TEST_DATABASE_URL`, `TEST_TEMPORAL_ADDRESS` and `TEST_SANDBOX_IMAGE`; unconfigured tests report
-explicit skips. The latest local run passed 163 tests with all three configured against actual
-Compose PostgreSQL/Temporal and Docker, including memory/PID/disk limits and hostile PEP 517 hooks.
+explicit skips. The historical baseline was 163 tests with all three configured. On 2026-09-28,
+392 tests passed with zero skips against actual Compose PostgreSQL/Temporal and Docker in 107.40 seconds;
+Ruff check/format and mypy passed. A later focused run passed 17 dispatch/Temporal CI/Linear tests, including 12 new tests;
+the current collection of 404 has not been represented as a new full-suite run.
+See [implementation status](implementation-status.md) for dated scoped results and the exact collector
+image; do not combine overlapping test counts or infer a hosted result at a newer revision.
 Hosted CI passed on Python 3.12/3.13 and disposable PostgreSQL/Temporal/Docker services without
 provider credentials, plus secret scanning. Check the PR's current revision before merging.
 The two `scripts/live_*_check.py` scripts are operator-invoked development checks that spend model
@@ -116,9 +159,23 @@ recorded local services. They are not an unattended benchmark campaign.
 
 For offline evaluation tooling, `uv run delivery-eval --help` lists schema export, manifest
 validation and deterministic reporting. Follow [evals/README.md](../evals/README.md); structural
-validation does not verify artifact provenance or human qualification of historical tasks.
+validation does not establish human qualification of historical tasks. The separate
+[curation worklist](evaluation-curation.md) has 36 metadata-only UNQUALIFIED candidates and zero
+qualified/scored tasks. Keep rights/linkage/oracle decisions and the two independent actual human
+reviews explicit; proposed splits are not frozen campaign authorization.
 
 The [local backup drill](local-backup.md) was exercised against the Compose database and artifacts.
 Stop all writers before invoking it; the script only restores into a newly created disposable
 database. It does not restore Temporal or provider state. Follow [provider onboarding](provider-onboarding.md)
 to supply the live integration inputs and keep publication disabled until they are verified.
+
+For a closed workflow's damaged read projection, preview first:
+
+```sh
+uv run delivery-service recover-projection --config config.local.json --workflow-id WORKFLOW_ID
+```
+
+After inspecting the identity and report, use the same command with `--apply`; that invocation
+refetches history and checks for concurrent changes. See [projection recovery](projection-recovery.md)
+for preconditions, refusal cases and the actual 11-test PostgreSQL/Temporal drill. This operation
+preserves financial/provider records and cannot resume a candidate or reconstruct a missing database.

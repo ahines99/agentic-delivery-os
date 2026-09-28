@@ -2,8 +2,9 @@
 
 import hashlib
 import json
+import re
 import time
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import uuid4
 
@@ -13,8 +14,17 @@ from sqlalchemy.orm import Session
 
 from agentic_delivery.config import Budget
 from agentic_delivery.domain.models import WorkItem
+from agentic_delivery.integrations.checks import (
+    MAX_OBSERVATIONS,
+    CheckRunObservation,
+    RequiredCheck,
+    evaluate_checks,
+    parse_check_run,
+)
 from agentic_delivery.storage.schema import (
     AuditRecord,
+    CIHeadRecord,
+    CIObservationRecord,
     CommandRecord,
     InboxRecord,
     OutboxRecord,
@@ -52,6 +62,320 @@ class Store:
     def __init__(self, engine: Engine) -> None:
         self.engine = engine
 
+    @staticmethod
+    def _ci_namespace(repository_id: int, head_sha: str) -> None:
+        if type(repository_id) is not int or repository_id <= 0:
+            raise ValueError("Invalid CI repository ID")
+        if not isinstance(head_sha, str) or not re.fullmatch(r"[a-f0-9]{40}", head_sha):
+            raise ValueError("Invalid CI head SHA")
+
+    def _ci_head(self, session: Session, repository_id: int, head_sha: str) -> CIHeadRecord:
+        self._ci_namespace(repository_id, head_sha)
+        # The supported dialects provide atomic insert-if-absent. The write also
+        # serializes SQLite transactions, where SELECT FOR UPDATE is unavailable.
+        if self.engine.dialect.name == "postgresql":
+            from sqlalchemy.dialects.postgresql import insert
+        else:
+            from sqlalchemy.dialects.sqlite import insert  # type: ignore[assignment]
+        statement = (
+            insert(CIHeadRecord)
+            .values(
+                repository_id=repository_id,
+                head_sha=head_sha,
+                generation=0,
+                snapshot_generation=None,
+                policy_digest="",
+                evidence_digest="",
+                snapshot=[],
+                observed_at="",
+                reconciled_at="",
+                expires_at="",
+                invalidation_reason="",
+            )
+            .on_conflict_do_nothing(index_elements=["repository_id", "head_sha"])
+        )
+        session.execute(statement)
+        record = session.scalar(
+            select(CIHeadRecord)
+            .where(CIHeadRecord.repository_id == repository_id, CIHeadRecord.head_sha == head_sha)
+            .with_for_update()
+        )
+        assert record is not None
+        return record
+
+    def ci_generation(self, repository_id: int, head_sha: str) -> int:
+        with Session(self.engine) as session, session.begin():
+            return self._ci_head(session, repository_id, head_sha).generation
+
+    @staticmethod
+    def _ci_receipt(session: Session, inbox: dict[str, Any]) -> InboxRecord | None:
+        scope = (
+            InboxRecord.provider == "github",
+            InboxRecord.integration_id == inbox["integration_id"],
+        )
+        by_delivery = session.scalar(
+            select(InboxRecord).where(*scope, InboxRecord.delivery_id == inbox["delivery_id"])
+        )
+        if by_delivery:
+            if by_delivery.digest != inbox["digest"]:
+                raise Conflict("Delivery identifier reused with a different payload")
+            return by_delivery
+        return session.scalar(
+            select(InboxRecord).where(
+                *scope,
+                or_(
+                    InboxRecord.digest == inbox["digest"],
+                    InboxRecord.semantic_key == inbox["semantic_key"],
+                ),
+            )
+        )
+
+    def record_check_observation(
+        self, observation: CheckRunObservation, inbox: dict[str, Any]
+    ) -> dict[str, Any]:
+        if observation.action == "reconciled" or inbox.get("provider") != "github":
+            raise ValueError("Only verified webhook observations belong in the CI inbox")
+        if (
+            not re.fullmatch(r"[a-f0-9]{64}", str(inbox.get("digest", "")))
+            or inbox.get("semantic_key") != inbox["digest"]
+            or not re.fullmatch(r"[A-Za-z0-9-]{1,200}", str(inbox.get("delivery_id", "")))
+        ):
+            raise ValueError("Invalid CI inbox identity")
+        canonical = parse_check_run(
+            inbox["payload"],
+            repository_id=observation.repository_id,
+            installation_id=int(inbox["integration_id"]),
+        )
+        if canonical != observation:
+            raise ValueError("CI observation does not match its signed payload projection")
+        try:
+            with Session(self.engine) as session, session.begin():
+                head = self._ci_head(session, observation.repository_id, observation.head_sha)
+                if self._ci_receipt(session, inbox):
+                    return {"duplicate": True, "generation": head.generation}
+                receipt_id = str(uuid4())
+                session.add(
+                    InboxRecord(id=receipt_id, workflow_id=None, created_at=now_iso(), **inbox)
+                )
+                session.flush()
+                head.generation += 1
+                head.snapshot_generation = None
+                head.snapshot = []
+                head.policy_digest = head.evidence_digest = ""
+                head.reconciled_at = head.expires_at = ""
+                head.observed_at = now_iso()
+                if not head.invalidation_reason.startswith("check_suite_"):
+                    head.invalidation_reason = "check_run_event"
+                session.add(
+                    CIObservationRecord(
+                        id=str(uuid4()),
+                        inbox_id=receipt_id,
+                        repository_id=observation.repository_id,
+                        head_sha=observation.head_sha,
+                        generation=head.generation,
+                        observation=observation.model_dump(mode="json"),
+                        created_at=now_iso(),
+                    )
+                )
+                return {"duplicate": False, "generation": head.generation}
+        except IntegrityError:
+            with Session(self.engine) as session:
+                if self._ci_receipt(session, inbox):
+                    committed_head = session.get(
+                        CIHeadRecord, (observation.repository_id, observation.head_sha)
+                    )
+                    assert committed_head is not None
+                    return {"duplicate": True, "generation": committed_head.generation}
+            raise Conflict("Concurrent conflicting CI observation") from None
+
+    def record_check_suite_invalidation(
+        self, payload: dict[str, Any], inbox: dict[str, Any], *, repository_id: int
+    ) -> dict[str, Any]:
+        suite = payload.get("check_suite")
+        action = payload.get("action")
+        if (
+            not isinstance(suite, dict)
+            or not isinstance(action, str)
+            or action not in {"requested", "rerequested", "completed"}
+        ):
+            raise ValueError("Unsupported or malformed check-suite event")
+        app = suite.get("app")
+        repository, installation = payload.get("repository"), payload.get("installation")
+        if (
+            not isinstance(app, dict)
+            or type(app.get("id")) is not int
+            or app["id"] <= 0
+            or type(suite.get("id")) is not int
+            or suite["id"] <= 0
+            or not isinstance(repository, dict)
+            or type(repository.get("id")) is not int
+            or repository["id"] != repository_id
+            or not isinstance(installation, dict)
+            or type(installation.get("id")) is not int
+            or installation["id"] <= 0
+            or str(installation["id"]) != inbox.get("integration_id")
+            or inbox.get("provider") != "github"
+            or inbox.get("payload") != payload
+            or not re.fullmatch(r"[a-f0-9]{64}", str(inbox.get("digest", "")))
+            or inbox.get("semantic_key") != inbox["digest"]
+            or not re.fullmatch(r"[A-Za-z0-9-]{1,200}", str(inbox.get("delivery_id", "")))
+        ):
+            raise ValueError("Check suite is outside the authorized signed context")
+        head_sha = suite.get("head_sha")
+        if not isinstance(head_sha, str):
+            raise ValueError("Check suite head SHA is missing")
+        self._ci_namespace(repository_id, head_sha)
+        try:
+            with Session(self.engine) as session, session.begin():
+                head = self._ci_head(session, repository_id, head_sha)
+                if self._ci_receipt(session, inbox):
+                    return {"duplicate": True, "generation": head.generation}
+                session.add(
+                    InboxRecord(id=str(uuid4()), workflow_id=None, created_at=now_iso(), **inbox)
+                )
+                head.generation += 1
+                head.snapshot_generation = None
+                head.snapshot = []
+                head.policy_digest = head.evidence_digest = ""
+                head.reconciled_at = head.expires_at = ""
+                head.observed_at = now_iso()
+                head.invalidation_reason = "check_suite_" + action
+                return {"duplicate": False, "generation": head.generation}
+        except IntegrityError:
+            with Session(self.engine) as session:
+                if self._ci_receipt(session, inbox):
+                    committed = session.get(CIHeadRecord, (repository_id, head_sha))
+                    assert committed is not None
+                    return {"duplicate": True, "generation": committed.generation}
+            raise Conflict("Concurrent conflicting CI suite event") from None
+
+    def save_ci_reconciliation(
+        self,
+        *,
+        repository_id: int,
+        head_sha: str,
+        expected_generation: int,
+        policy_digest: str,
+        observations: tuple[CheckRunObservation, ...],
+        evidence_digest: str,
+    ) -> bool:
+        self._ci_namespace(repository_id, head_sha)
+        if type(expected_generation) is not int or expected_generation < 0:
+            raise ValueError("Invalid CI reconciliation generation")
+        if any(
+            not re.fullmatch(r"[a-f0-9]{64}", value) for value in (policy_digest, evidence_digest)
+        ):
+            raise ValueError("CI policy and evidence digests are required")
+        if len(observations) > MAX_OBSERVATIONS or any(
+            item.repository_id != repository_id
+            or item.head_sha != head_sha
+            or item.action != "reconciled"
+            for item in observations
+        ):
+            raise ValueError("Reconciliation must contain one complete authorized REST snapshot")
+        instant = datetime.now(UTC)
+        with Session(self.engine) as session, session.begin():
+            # A successful save advances the same generation, so two concurrent
+            # reconciliations cannot overwrite one another at a shared watermark.
+            changed = session.execute(
+                update(CIHeadRecord)
+                .where(
+                    CIHeadRecord.repository_id == repository_id,
+                    CIHeadRecord.head_sha == head_sha,
+                    CIHeadRecord.generation == expected_generation,
+                )
+                .values(
+                    generation=expected_generation + 1,
+                    snapshot_generation=expected_generation + 1,
+                    policy_digest=policy_digest,
+                    evidence_digest=evidence_digest,
+                    snapshot=[item.model_dump(mode="json") for item in observations],
+                    reconciled_at=instant.isoformat(),
+                    expires_at=(instant + timedelta(seconds=60)).isoformat(),
+                    invalidation_reason="",
+                )
+            )
+            return bool(changed.rowcount)  # type: ignore[attr-defined]
+
+    def ci_readiness(
+        self,
+        *,
+        repository_id: int,
+        head_sha: str,
+        required: tuple[RequiredCheck, ...],
+        policy_digest: str,
+    ) -> dict[str, Any]:
+        self._ci_namespace(repository_id, head_sha)
+        if not re.fullmatch(r"[a-f0-9]{64}", policy_digest):
+            raise ValueError("Current CI policy digest is required")
+        with Session(self.engine) as session:
+            head = session.get(CIHeadRecord, (repository_id, head_sha))
+            clock_valid = False
+            if head is not None:
+                try:
+                    reconciled_at = datetime.fromisoformat(head.reconciled_at)
+                    expires_at = datetime.fromisoformat(head.expires_at)
+                    clock_valid = bool(
+                        reconciled_at.tzinfo is not None
+                        and expires_at.tzinfo is not None
+                        and timedelta(0) < expires_at - reconciled_at <= timedelta(seconds=60)
+                        and reconciled_at <= datetime.now(UTC) < expires_at
+                    )
+                except (ValueError, TypeError):
+                    pass
+            reconciled = bool(
+                head is not None
+                and head.snapshot_generation == head.generation
+                and head.policy_digest == policy_digest
+                and clock_valid
+            )
+            if reconciled:
+                assert head is not None
+                values = head.snapshot
+            else:
+                values = list(
+                    session.scalars(
+                        select(CIObservationRecord.observation)
+                        .where(
+                            CIObservationRecord.repository_id == repository_id,
+                            CIObservationRecord.head_sha == head_sha,
+                        )
+                        .order_by(CIObservationRecord.generation)
+                        .limit(MAX_OBSERVATIONS + 1)
+                    )
+                )
+            if len(values) > MAX_OBSERVATIONS:
+                result: dict[str, Any] = {
+                    "ready": False,
+                    "observed_ready": False,
+                    "reconciliation_required": True,
+                    "reasons": ["observation_history_exceeds_limit"],
+                    "selected_run_ids": {},
+                }
+            else:
+                result = evaluate_checks(
+                    repository_id=repository_id,
+                    head_sha=head_sha,
+                    required=required,
+                    observations=tuple(
+                        CheckRunObservation.model_validate(value) for value in values
+                    ),
+                    reconciled=reconciled,
+                ).model_dump(mode="json")
+            if not reconciled and head and head.invalidation_reason.startswith("check_suite_"):
+                result["observed_ready"] = False
+                result["reasons"] = [*result["reasons"], head.invalidation_reason]
+            return {
+                **result,
+                "repository_id": repository_id,
+                "head_sha": head_sha,
+                "generation": head.generation if head else 0,
+                "reconciled_at": head.reconciled_at if head else "",
+                "expires_at": head.expires_at if head else "",
+                "evidence_digest": head.evidence_digest if reconciled and head else "",
+                "policy_digest": policy_digest,
+            }
+
     def save_publication(self, workflow_id: str, repository: str, details: dict[str, Any]) -> None:
         with Session(self.engine) as session, session.begin():
             old = session.get(PublicationRecord, workflow_id)
@@ -59,6 +383,18 @@ class Store:
                 if (
                     old.head_sha != details["head_sha"]
                     or old.manifest_digest != details["manifest_digest"]
+                    or old.base_sha != details["base_sha"]
+                    or old.number != details["number"]
+                    or old.repository != repository
+                    or any(
+                        old.details.get(field) != details.get(field)
+                        for field in (
+                            "head_ref",
+                            "base_ref",
+                            "repository_id",
+                            "repository_full_name",
+                        )
+                    )
                 ):
                     raise Conflict("Publication binding cannot be replaced")
                 return
@@ -80,6 +416,24 @@ class Store:
             if not record:
                 raise NotFound("Publication not found")
             return {**record.details, "status": record.status, "observed_at": record.observed_at}
+
+    def workflow_for_publication(self, repository: str, number: int) -> str | None:
+        if type(number) is not int or number <= 0:
+            raise ValueError("Invalid pull request number")
+        with Session(self.engine) as session:
+            matches = list(
+                session.scalars(
+                    select(PublicationRecord.workflow_id)
+                    .where(
+                        PublicationRecord.repository == repository,
+                        PublicationRecord.number == number,
+                    )
+                    .limit(2)
+                )
+            )
+            if len(matches) > 1:
+                raise Conflict("Ambiguous persisted pull request identity")
+            return matches[0] if matches else None
 
     def observe_publication(
         self, workflow_id: str, payload: dict[str, Any], inbox: dict[str, Any]
@@ -107,11 +461,32 @@ class Store:
                 raise ValueError("Provider timestamp must have a timezone")
             updated = timestamp.astimezone(UTC).isoformat()
             if updated >= record.observed_at:
+                expected = record.details
                 same = (
-                    pull["head"]["sha"] == record.head_sha
-                    and pull["base"]["sha"] == record.base_sha
+                    type(expected.get("repository_id")) is int
+                    and expected["repository_id"] > 0
+                    and isinstance(expected.get("repository_full_name"), str)
+                    and bool(expected["repository_full_name"])
+                    and expected.get("head_ref") == "agent/" + workflow_id
+                    and isinstance(expected.get("base_ref"), str)
+                    and bool(expected["base_ref"])
+                    and all(
+                        isinstance(pull.get(side), dict)
+                        and pull[side].get("sha") == getattr(record, side + "_sha")
+                        and pull[side].get("ref") == expected[side + "_ref"]
+                        and isinstance(pull[side].get("repo"), dict)
+                        and type(pull[side]["repo"].get("id")) is int
+                        and pull[side]["repo"]["id"] == expected["repository_id"]
+                        and pull[side]["repo"].get("full_name") == expected["repository_full_name"]
+                        for side in ("head", "base")
+                    )
                 )
-                if not same:
+                if (
+                    not same
+                    or pull.get("draft") is not True
+                    or pull.get("state") != "open"
+                    or pull.get("merged") is not False
+                ):
                     record.status = "STALE"
                 if pull.get("merged") is True:
                     record.status = "MERGED" if same else "MERGED_UNVERIFIED"
@@ -369,7 +744,25 @@ class Store:
                 "actor": command.actor,
                 "kind": command.kind,
                 "payload": command.payload,
+                "created_at": command.created_at,
             }
+
+    def approved_plan(self, workflow_id: str, plan_digest: str) -> dict[str, Any]:
+        with Session(self.engine) as session:
+            commands = session.scalars(
+                select(CommandRecord).where(
+                    CommandRecord.workflow_id == workflow_id,
+                    CommandRecord.kind == "approve-plan",
+                    CommandRecord.status == "APPLIED",
+                )
+            ).all()
+            matching = [
+                command for command in commands if command.payload.get("plan_digest") == plan_digest
+            ]
+            if len(matching) != 1:
+                raise Conflict("Exactly one applied approval for this plan is required")
+            command_id = matching[0].id
+        return self.command(command_id)
 
     def enqueue_command(
         self,
@@ -653,7 +1046,17 @@ class Store:
                 for row in rows
             ]
 
-    def claim_outbox(self, owner: str, limit: int = 20) -> list[dict[str, Any]]:
+    def claim_outbox(
+        self,
+        owner: str,
+        limit: int = 20,
+        *,
+        workflow_id: str | None = None,
+    ) -> list[dict[str, Any]]:
+        if workflow_id is not None and (
+            not isinstance(workflow_id, str) or not workflow_id.strip()
+        ):
+            raise ValueError("Explicit dispatch scope must identify a workflow")
         claimed = []
         current = int(time.time())
         with Session(self.engine) as session, session.begin():
@@ -663,6 +1066,7 @@ class Store:
                     OutboxRecord.delivered.is_(False),
                     OutboxRecord.lease_until < current,
                     OutboxRecord.attempts < 20,
+                    *([OutboxRecord.workflow_id == workflow_id] if workflow_id is not None else []),
                 )
                 .with_for_update(skip_locked=True)
                 .limit(limit)

@@ -86,7 +86,7 @@ async def main() -> None:
             activities.clarify,
         ],
     ):
-        await dispatch_once(settings, store, client)
+        await dispatch_once(settings, store, client, workflow_id=identity)
         for _ in range(150):
             result = store.workflow(identity)
             if result["state"] in {
@@ -120,7 +120,7 @@ async def main() -> None:
                     "spec_digest": result["spec_digest"],
                 },
             )
-            await dispatch_once(settings, store, client)
+            await dispatch_once(settings, store, client, workflow_id=identity)
             await client.get_workflow_handle(identity).result()
         if result["state"] != "PLAN_REVIEW":
             raise SystemExit("Live plan did not reach plan review")

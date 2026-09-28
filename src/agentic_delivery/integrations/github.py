@@ -1,6 +1,5 @@
 """GitHub App publisher. No merge operation, PAT fallback, checkout, or target execution."""
 
-import json
 import re
 import time
 from contextlib import suppress
@@ -10,10 +9,9 @@ from urllib.parse import quote
 import httpx
 import jwt
 
+from agentic_delivery.agents.evidence import validate_manifest
 from agentic_delivery.config import RepositoryConfig, Settings, secret
 from agentic_delivery.execution.files import protected, safe_path
-from agentic_delivery.storage.artifacts import ArtifactStore
-from agentic_delivery.storage.store import digest_json
 
 
 class GitHubFailure(RuntimeError):
@@ -39,13 +37,9 @@ class GitHubPublisher:
             raise GitHubFailure("GitHub App publication is not configured")
         if not re.fullmatch(r"[a-zA-Z0-9-]{1,80}", workflow_id):
             raise ValueError("Invalid publication operation identifier")
-        artifacts = ArtifactStore(self.settings.artifact_root)
-        manifest = json.loads(artifacts.get(manifest_digest))
-        if manifest["workflow_id"] != workflow_id or manifest["repository"] != self.repository.id:
-            raise GitHubFailure("Manifest identity mismatch")
-        candidate = json.loads(artifacts.get(manifest["candidate_artifact"]))
-        if digest_json(candidate) != manifest["candidate_digest"]:
-            raise GitHubFailure("Candidate content does not match verified manifest")
+        manifest, candidate = validate_manifest(
+            self.settings, self.repository, workflow_id, manifest_digest
+        )
         base_sha = manifest["base_sha"]
         if not re.fullmatch(r"[a-f0-9]{40}", base_sha):
             raise GitHubFailure("Invalid base revision")
@@ -211,6 +205,10 @@ class GitHubPublisher:
                 "url": pull["html_url"],
                 "head_sha": head["sha"],
                 "base_sha": target["sha"],
+                "head_ref": head["ref"],
+                "base_ref": target["ref"],
+                "repository_id": head["repo"]["id"],
+                "repository_full_name": head["repo"]["full_name"],
                 "manifest_digest": manifest_digest,
                 "draft": pull["draft"],
                 "human_merge_required": True,

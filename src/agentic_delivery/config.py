@@ -10,6 +10,8 @@ from typing import Literal, Self
 from pydantic import Field, model_validator
 
 from agentic_delivery.domain.models import Contract, NonEmpty
+from agentic_delivery.integrations.checks import RequiredCheck
+from agentic_delivery.policy.engine import POLICY_VERSION
 
 
 class Budget(Contract):
@@ -43,6 +45,7 @@ class RepositoryConfig(Contract):
     linear_assignee_id: NonEmpty | None = None
     linear_review_state_id: NonEmpty | None = None
     github_repository_id: int | None = Field(default=None, gt=0, strict=True)
+    required_checks: tuple[RequiredCheck, ...] = Field(default=(), max_length=100)
     commands: tuple[CommandProfile, ...] = ()
     protected_paths: tuple[str, ...] = (
         ".github/",
@@ -59,6 +62,8 @@ class RepositoryConfig(Contract):
 
     @model_validator(mode="after")
     def validate_refs(self) -> Self:
+        if len({check.name for check in self.required_checks}) != len(self.required_checks):
+            raise ValueError("Required check names must be unique")
         if self.snapshot_prefix:
             from agentic_delivery.execution.files import safe_path
 
@@ -103,6 +108,9 @@ class Settings(Contract):
     admissions_enabled: bool = True
     max_body_bytes: int = Field(default=262144, gt=0, le=1048576, strict=True)
     human_wait_seconds: int = Field(default=86400, gt=0, le=604800, strict=True)
+    approval_validity_seconds: int = Field(default=86400, gt=0, le=604800, strict=True)
+    ci_wait_seconds: int = Field(default=900, gt=0, le=3600, strict=True)
+    ci_poll_seconds: int = Field(default=15, gt=0, le=60, strict=True)
     github_app_id: int | None = Field(default=None, gt=0)
     github_private_key_env: str = "GITHUB_APP_PRIVATE_KEY"
     publication_enabled: bool = False
@@ -139,9 +147,12 @@ class Settings(Contract):
             "model": self.model.model_dump(mode="json") if self.model else None,
             "budget": self.budget.model_dump(mode="json"),
             "publication_enabled": self.publication_enabled,
+            "approval_validity_seconds": self.approval_validity_seconds,
+            "ci_wait_seconds": self.ci_wait_seconds,
+            "ci_poll_seconds": self.ci_poll_seconds,
             "github_app_id": self.github_app_id,
             "github_installation_id": self.github_installation_id,
-            "policy_version": "controlled-prototype-v1",
+            "policy_version": POLICY_VERSION,
         }
         return hashlib.sha256(json.dumps(material, sort_keys=True).encode()).hexdigest()
 

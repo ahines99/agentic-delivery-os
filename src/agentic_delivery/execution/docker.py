@@ -25,6 +25,8 @@ class ExecutionResult:
     elapsed_seconds: float
     image: str
     timed_out: bool = False
+    verification_report: dict[str, Any] | None = None
+    report_error: str | None = None
 
 
 def docker_executable() -> str:
@@ -114,6 +116,7 @@ class DockerRunner:
         *,
         timeout_seconds: int = 60,
         run_id: str | None = None,
+        verification_binding: dict[str, Any] | None = None,
     ) -> ExecutionResult:
         if not argv or timeout_seconds <= 0 or timeout_seconds > 1800:
             raise ValueError("Invalid approved command or timeout")
@@ -184,14 +187,33 @@ class DockerRunner:
             )
             if code:
                 raise SandboxError("Snapshot transfer failed")
+            actual_argv = argv
+            if verification_binding is not None:
+                if not re.fullmatch(r"[a-f0-9]{32}", str(verification_binding.get("nonce"))):
+                    raise ValueError("Invalid collector nonce")
+                actual_argv = (
+                    "/usr/local/bin/python",
+                    "-I",
+                    "/opt/delivery/collector.py",
+                    json.dumps(verification_binding, sort_keys=True),
+                )
             try:
-                code, stdout, stderr = await self.cli("exec", name, *argv, timeout=timeout_seconds)
+                code, stdout, stderr = await self.cli(
+                    "exec", name, *actual_argv, timeout=timeout_seconds
+                )
+                report, report_error = None, None
+                if verification_binding is not None:
+                    report, report_error = await self.collect_report(
+                        name, verification_binding["nonce"]
+                    )
                 return ExecutionResult(
                     code,
                     stdout.decode(errors="replace"),
                     stderr.decode(errors="replace"),
                     time.monotonic() - started,
                     self.image,
+                    verification_report=report,
+                    report_error=report_error,
                 )
             except TimeoutError:
                 return ExecutionResult(
@@ -201,12 +223,47 @@ class DockerRunner:
                     time.monotonic() - started,
                     self.image,
                     timed_out=True,
+                    report_error="Execution timed out before complete verification"
+                    if verification_binding is not None
+                    else None,
                 )
         finally:
             if created:
                 code, _, _ = await asyncio.shield(self.cli("rm", "--force", "--volumes", name))
                 if code:
                     raise SandboxError(f"Sandbox cleanup failed: {name}")
+
+    async def collect_report(
+        self, container: str, nonce: str
+    ) -> tuple[dict[str, Any] | None, str | None]:
+        """Read a bounded regular file through a fresh isolated interpreter, never job stdout."""
+        reader = (
+            "import os,stat,sys; "
+            "fd=os.open(sys.argv[1],os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK); "
+            "s=os.fstat(fd); "
+            "assert stat.S_ISREG(s.st_mode) and s.st_size<=1048576; "
+            "data=os.read(fd,1048577); os.close(fd); "
+            "assert len(data)==s.st_size and len(data)<=1048576; "
+            "sys.stdout.buffer.write(data)"
+        )
+        code, output, _ = await self.cli(
+            "exec",
+            container,
+            "/usr/local/bin/python",
+            "-I",
+            "-c",
+            reader,
+            "/tmp/delivery-report-" + nonce + ".json",
+        )
+        if code:
+            return None, "Trusted collector report is missing or unreadable"
+        try:
+            report = json.loads(output)
+        except (ValueError, UnicodeDecodeError):
+            return None, "Trusted collector report is malformed"
+        if not isinstance(report, dict):
+            return None, "Trusted collector report is not an object"
+        return report, None
 
     async def preflight(self) -> dict[str, Any]:
         probe = """import json, os, socket, pathlib

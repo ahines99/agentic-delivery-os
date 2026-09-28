@@ -12,6 +12,7 @@ from temporalio.worker import Worker
 from agentic_delivery.config import load_settings
 from agentic_delivery.orchestration.activities import Activities
 from agentic_delivery.orchestration.dispatcher import dispatch_once
+from agentic_delivery.orchestration.recovery import recover_projection
 from agentic_delivery.orchestration.workflow import DeliveryWorkflow
 from agentic_delivery.storage.database import create_database
 from agentic_delivery.storage.migrate import upgrade
@@ -36,6 +37,8 @@ async def serve(config: Path, mode: str, once: bool = False) -> None:
                 activities.clarify,
                 activities.candidate,
                 activities.publish,
+                activities.reconcile_ci,
+                activities.finish_handoff,
             ],
         )
         await worker.run()
@@ -50,12 +53,27 @@ async def serve(config: Path, mode: str, once: bool = False) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["migrate", "worker", "dispatch", "doctor"])
+    parser.add_argument(
+        "command", choices=["migrate", "worker", "dispatch", "doctor", "recover-projection"]
+    )
     parser.add_argument("--config", type=Path, default=Path("config.local.json"))
     parser.add_argument("--once", action="store_true")
+    parser.add_argument("--workflow-id")
+    parser.add_argument(
+        "--apply", action="store_true", help="Apply a verified closed-workflow projection repair"
+    )
     args = parser.parse_args()
     settings = load_settings(args.config)
-    if args.command == "doctor":
+    if args.command == "recover-projection":
+        if not args.workflow_id:
+            parser.error("--workflow-id is required")
+        print(
+            json.dumps(
+                asyncio.run(recover_projection(settings, args.workflow_id, apply=args.apply)),
+                indent=2,
+            )
+        )
+    elif args.command == "doctor":
         print(
             json.dumps(
                 {

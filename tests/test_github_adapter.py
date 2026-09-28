@@ -6,11 +6,11 @@ import httpx
 import pytest
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
+from test_evidence_manifest import manifest_fixture
 
 from agentic_delivery.config import RepositoryConfig, Settings
 from agentic_delivery.integrations.github import GitHubFailure, GitHubPublisher
 from agentic_delivery.storage.artifacts import ArtifactStore
-from agentic_delivery.storage.store import digest_json
 
 
 def fixture(
@@ -21,26 +21,8 @@ def fixture(
         serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption()
     ).decode()
     monkeypatch.setenv("TEST_GITHUB_PRIVATE_KEY", pem)
-    repository = RepositoryConfig(id="test/repo", github_owner="test", github_name="repo")
-    settings = Settings(
-        repositories=(repository,),
-        artifact_root=tmp_path,
-        publication_enabled=True,
-        github_app_id=123,
-        github_installation_id=456,
-        github_private_key_env="TEST_GITHUB_PRIVATE_KEY",
-    )
+    settings, repository, manifest = manifest_fixture(tmp_path)
     artifacts = ArtifactStore(tmp_path)
-    candidate = {"app.py": "print('safe fixture')\n"}
-    manifest = {
-        "workflow_id": "run-1",
-        "repository": repository.id,
-        "candidate_digest": digest_json(candidate),
-        "candidate_artifact": artifacts.put(json.dumps(candidate).encode()),
-        "base_sha": "a" * 40,
-        "impact": {"changed": ["app.py"]},
-        "attempts": [{"criteria": {"AC-1": {"passed": True}}}],
-    }
     return settings, repository, artifacts.put(json.dumps(manifest).encode())
 
 
