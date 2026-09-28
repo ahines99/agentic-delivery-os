@@ -144,3 +144,19 @@ reconstruct the scoring-code commit. A future controller must enforce campaign
 uniqueness, phase gates, sealed-set retirement, per-call reservations, cancellation,
 candidate freezing, independent final scoring, and artifact access boundaries.
 No task results, human effort estimates, or efficacy claims follow from freezing.
+
+## Explicit execution-budget contract
+
+[ADR-014](adr/ADR-014-campaign-execution-budgets.md) adds the separate
+`freeze_execution_campaign(...)` API, with the same arguments, returning a schema-3
+`ExecutionCampaign`. It preserves admitted task manifests and explicitly uses the
+frozen arm limits for builder, review, repairs and final scoring together. This allows
+separately metered qualification to have a different budget without changing its
+evidence or increasing comparison limits. Schema-2 `freeze_campaign` keeps its
+existing exact budget-equality requirement; no record is automatically upgraded.
+
+The new API reuses all corpus, current-authority, calibration, arm-parity, schedule
+and campaign-cap checks. Seven owned contract cases and the existing campaign suite
+passed together (58 tests); the authority injection remains a test boundary, not a
+qualified corpus. Schema 3 still creates no account or execution permission. Its
+execution controller and versioned scoring consumer remain required before use.

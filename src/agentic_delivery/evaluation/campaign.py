@@ -132,6 +132,20 @@ class FrozenCampaign(CampaignArtifact):
     qualification_mode: Literal["independent-agents-v2"] = "independent-agents-v2"
 
 
+class ExecutionCampaign(CampaignArtifact):
+    """Explicit v3 preparation/execution budget separation; still no authority to spend."""
+
+    schema_version: Literal[3] = 3
+    calibration_verified: Literal[True] = True
+    qualification_mode: Literal["independent-agents-v2"] = "independent-agents-v2"
+    execution_budget_basis: Literal["FROZEN_ARM_LIMITS_SEPARATE_FROM_QUALIFICATION"] = (
+        "FROZEN_ARM_LIMITS_SEPARATE_FROM_QUALIFICATION"
+    )
+    execution_budget_scope: Literal["BUILDER_REVIEW_AND_FINAL_SCORING"] = (
+        "BUILDER_REVIEW_AND_FINAL_SCORING"
+    )
+
+
 def inspect_legacy_campaign(store: ArtifactStore, artifact_digest: str) -> dict[str, Any]:
     """Read a saved v1 artifact as historical metadata, without current authority or spend."""
     legacy = LegacyFrozenCampaign.model_validate(_read(store, artifact_digest))
@@ -248,6 +262,52 @@ def freeze_campaign(
         result = _freeze(
             normalized_tasks, normalized_spec, protected_artifacts, output_artifacts, authority
         )
+        assert isinstance(result, FrozenCampaign)
+        digest = output_artifacts.put(result.model_dump_json().encode())
+        return result, digest
+    except CampaignFailure:
+        raise
+    except (ValueError, OSError, KeyError, TypeError):
+        raise CampaignFailure("Invalid or missing campaign prerequisite") from None
+
+
+def freeze_execution_campaign(
+    tasks: tuple[HistoricalTask, ...],
+    specification: CampaignSpecification,
+    protected_artifacts: ArtifactStore,
+    output_artifacts: ArtifactStore,
+    *,
+    authority: "QualificationAuthority | None" = None,
+) -> tuple[ExecutionCampaign, str]:
+    """Freeze v3 without rewriting admitted manifests to change qualification budgets.
+
+    Every execution stage must share the arm's existing protocol ceilings. This
+    explicit schema is not consumed by legacy v2 executors or an offline CLI, and
+    freezing it creates neither an account nor any permission to execute.
+    """
+    try:
+        from agentic_delivery.evaluation.qualification_admission import QualificationAuthority
+
+        _require(
+            isinstance(authority, QualificationAuthority),
+            "Concrete current qualification authority is required to freeze a campaign",
+        )
+        assert authority is not None
+        normalized_spec = CampaignSpecification.model_validate(
+            specification.model_dump(mode="json")
+        )
+        normalized_tasks = tuple(
+            HistoricalTask.model_validate(task.model_dump(mode="json")) for task in tasks
+        )
+        result = _freeze(
+            normalized_tasks,
+            normalized_spec,
+            protected_artifacts,
+            output_artifacts,
+            authority,
+            separate_execution_budget=True,
+        )
+        assert isinstance(result, ExecutionCampaign)
         digest = output_artifacts.put(result.model_dump_json().encode())
         return result, digest
     except CampaignFailure:
@@ -262,7 +322,9 @@ def _freeze(
     store: ArtifactStore,
     output: ArtifactStore,
     authority: "QualificationAuthority",
-) -> FrozenCampaign:
+    *,
+    separate_execution_budget: bool = False,
+) -> FrozenCampaign | ExecutionCampaign:
     _require(
         not output.root.is_relative_to(store.root) and not store.root.is_relative_to(output.root),
         "Frozen campaign output must be disjoint from protected evidence",
@@ -376,10 +438,11 @@ def _freeze(
     qualifier_configuration = None
     for task in tasks:
         task_budget = task.budget.model_dump()
-        _require(
-            all(task_budget[key] == getattr(common.limits, key) for key in task_budget),
-            "Task resource ceilings differ from equal-cap arm configuration",
-        )
+        if not separate_execution_budget:
+            _require(
+                all(task_budget[key] == getattr(common.limits, key) for key in task_budget),
+                "Task resource ceilings differ from equal-cap arm configuration",
+            )
         admitted = task.validate_qualification(store, authority=authority, purpose="campaign")
         if qualifier_configuration is None:
             qualifier_configuration = (
@@ -408,7 +471,8 @@ def _freeze(
         )
         for t in sorted(tasks, key=lambda t: t.id)
     )
-    return FrozenCampaign(
+    campaign_type = ExecutionCampaign if separate_execution_budget else FrozenCampaign
+    return campaign_type(
         specification=spec,
         tasks=frozen_tasks,
         manifest_digest=digest_json([t.model_dump(mode="json") for t in frozen_tasks]),
