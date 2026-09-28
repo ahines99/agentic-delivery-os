@@ -478,6 +478,234 @@ async def test_structured_model_settles_reopens_and_validates_cached_receipt(
     assert calls == 1
 
 
+def infrastructure(store, account: str, operation: str, **changes):
+    return store.reserve_infrastructure(
+        account,
+        operation,
+        **{
+            "max_seconds": 10,
+            "microdollars_per_second": 10,
+            "rate_card_version": "synthetic-rate-v1",
+            "binding_digest": "a" * 64,
+            **changes,
+        },
+    )
+
+
+def infrastructure_account(
+    store, identity: str = "infra", *, model: int = 100, infra: int = 100, total: int = 150
+):
+    return store.create_account(
+        identity,
+        Budget(model_microdollars=model, input_tokens=100, output_tokens=100),
+        infrastructure_microdollars=infra,
+        total_microdollars=total,
+    )
+
+
+def test_infrastructure_time_receipt_has_zero_tokens_and_explicit_combined_totals(ledger) -> None:
+    infrastructure_account(ledger)
+    ledger.reserve("infra", "model", 50, 10, 20)
+    assert infrastructure(ledger, "infra", "preflight") is None
+    before = ledger.account("infra")
+    assert before["reserved_microdollars"] == 150
+    assert before["model_reserved_microdollars"] == 50
+    assert before["infrastructure_reserved_microdollars"] == 100
+    unknown = ledger.operation_receipt("infra", "preflight")
+    assert unknown["operation_kind"] == "infrastructure" and unknown["outcome"] == "UNKNOWN"
+    assert unknown["reserved_input_tokens"] == unknown["reserved_output_tokens"] == 0
+    assert unknown["infrastructure_receipt"] is None
+    ledger.record_observation("infra", "preflight", {"synthetic": True})
+    ledger.settle_infrastructure("preflight", elapsed_milliseconds=1001, result={"passed": False})
+    ledger.settle_infrastructure("preflight", elapsed_milliseconds=1001, result={"passed": False})
+    receipt = ledger.operation_receipt("infra", "preflight")
+    assert receipt["actual_microdollars"] == 11  # ceil(1001ms * 10 micro$/s / 1000)
+    assert receipt["actual_input_tokens"] == receipt["actual_output_tokens"] == 0
+    assert receipt["infrastructure_receipt"]["elapsed_milliseconds"] == 1001
+    assert receipt["infrastructure_receipt"]["binding_digest"] == "a" * 64
+    assert receipt["observation"] == {"synthetic": True}
+    assert infrastructure(ledger, "infra", "preflight") == receipt["result"]
+    ledger.settle("model", cost=5, input_tokens=2, output_tokens=3, result={})
+    account = ledger.account("infra")
+    assert account["spent_microdollars"] == 16 and account["reserved_microdollars"] == 0
+    assert account["model_spent_microdollars"] == 5
+    assert account["infrastructure_spent_microdollars"] == 11
+    assert (account["input_tokens"], account["output_tokens"]) == (2, 3)
+    reopened = EvaluationExecutionStore(ledger.engine.url.render_as_string(hide_password=False))
+    try:
+        assert reopened.account("infra") == account
+        assert infrastructure(reopened, "infra", "preflight") == receipt["result"]
+    finally:
+        reopened.engine.dispose()
+
+
+def test_infrastructure_requires_immutable_opt_in_and_respects_legacy_accounts(ledger) -> None:
+    create(ledger, "legacy")
+    before = ledger.account("legacy")
+    with pytest.raises(EvaluationConflict, match="opted"):
+        infrastructure(ledger, "legacy", "op")
+    with pytest.raises(EvaluationConflict, match="immutable"):
+        ledger.create_account(
+            "legacy",
+            Budget(model_microdollars=100, input_tokens=100, output_tokens=100),
+            infrastructure_microdollars=100,
+            total_microdollars=150,
+        )
+    assert ledger.account("legacy") == before
+    infrastructure_account(ledger)
+    assert infrastructure_account(ledger) == ledger.account("infra")
+    with pytest.raises(EvaluationConflict):
+        infrastructure_account(ledger, total=151)
+    assert "infrastructure_spent_microdollars" not in before
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        {"binding_digest": "b" * 64},
+        {"max_seconds": 5, "microdollars_per_second": 20},
+        {"rate_card_version": "another-rate"},
+    ],
+)
+def test_infrastructure_cached_reservation_rejects_changed_exact_binding(ledger, change) -> None:
+    infrastructure_account(ledger)
+    infrastructure(ledger, "infra", "op")
+    ledger.settle_infrastructure("op", elapsed_milliseconds=1, result={})
+    with pytest.raises(EvaluationConflict, match="binding"):
+        infrastructure(ledger, "infra", "op", **change)
+
+
+def test_infrastructure_unknown_duration_overrun_and_receipt_changes_never_release_budget(
+    ledger,
+) -> None:
+    infrastructure_account(ledger)
+    infrastructure(ledger, "infra", "op", microdollars_per_second=1)
+    before = ledger.account("infra")
+    with pytest.raises(EvaluationConflict, match="UNKNOWN"):
+        infrastructure(ledger, "infra", "op", microdollars_per_second=1)
+    with pytest.raises(EvaluationBudgetExceeded, match="time exceeded"):
+        ledger.settle_infrastructure("op", elapsed_milliseconds=10001, result={})
+    assert ledger.account("infra") == before
+    assert ledger.operation_receipt("infra", "op")["outcome"] == "UNKNOWN"
+    ledger.settle_infrastructure("op", elapsed_milliseconds=1, result={})
+    settled = ledger.operation_receipt("infra", "op")
+    with pytest.raises(EvaluationConflict):
+        ledger.settle_infrastructure("op", elapsed_milliseconds=2, result={})  # same rounded cost
+    with pytest.raises(EvaluationConflict):
+        ledger.settle_infrastructure("op", elapsed_milliseconds=1, result={"different": True})
+    assert ledger.operation_receipt("infra", "op") == settled
+
+
+def test_model_and_infrastructure_operations_cannot_impersonate_each_other(ledger) -> None:
+    infrastructure_account(ledger)
+    ledger.reserve("infra", "model", 1, 1, 1)
+    infrastructure(ledger, "infra", "sandbox")
+    with pytest.raises(EvaluationConflict, match="measured-time"):
+        ledger.settle("sandbox", cost=0, input_tokens=0, output_tokens=0, result={})
+    with pytest.raises(EvaluationConflict, match="Model operation"):
+        ledger.settle_infrastructure("model", elapsed_milliseconds=0, result={})
+    with pytest.raises(EvaluationConflict):
+        infrastructure(ledger, "infra", "model")
+    with pytest.raises(EvaluationConflict):
+        ledger.reserve("infra", "sandbox", 100, 1, 1)
+    with pytest.raises(EvaluationConflict, match="ledger-owned"):
+        ledger.settle_infrastructure(
+            "sandbox",
+            elapsed_milliseconds=0,
+            result={"infrastructure_receipt": {"cost_microdollars": 0}},
+        )
+    with pytest.raises(EvaluationConflict, match="infrastructure accounting"):
+        ledger.settle(
+            "model",
+            cost=0,
+            input_tokens=0,
+            output_tokens=0,
+            result={"infrastructure_reservation": {}},
+        )
+
+
+@pytest.mark.parametrize(
+    "options",
+    [
+        {"infrastructure_microdollars": 1},
+        {"total_microdollars": 1},
+        {"infrastructure_microdollars": True, "total_microdollars": 2},
+        {"infrastructure_microdollars": 1, "total_microdollars": 0},
+    ],
+)
+def test_infrastructure_account_terms_are_explicit_and_strict(ledger, options) -> None:
+    with pytest.raises(ValueError):
+        ledger.create_account("invalid", Budget(), **options)
+
+
+def shared_ceiling_race(store) -> None:
+    account = "mixed-" + uuid4().hex
+    infrastructure_account(store, account, model=100, infra=100, total=100)
+
+    def reserve(number: int) -> bool:
+        try:
+            if number % 2:
+                infrastructure(store, account, f"{account}:{number}", max_seconds=6)
+            else:
+                store.reserve(account, f"{account}:{number}", 60, 1, 1)
+            return True
+        except EvaluationBudgetExceeded:
+            return False
+
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        assert sum(executor.map(reserve, range(8))) == 1
+    result = store.account(account)
+    assert result["reserved_microdollars"] == 60
+    assert (
+        result["model_reserved_microdollars"] + result["infrastructure_reserved_microdollars"] == 60
+    )
+
+
+def test_shared_ceiling_serializes_mixed_model_and_infrastructure_sqlite(ledger) -> None:
+    shared_ceiling_race(ledger)
+
+
+@pytest.mark.parametrize("resource", ["model", "infrastructure", "total"])
+def test_each_cost_ceiling_remains_independent(ledger, resource) -> None:
+    infrastructure_account(
+        ledger,
+        model=20 if resource == "model" else 100,
+        infra=20 if resource == "infrastructure" else 100,
+        total=20 if resource == "total" else 200,
+    )
+    with pytest.raises(EvaluationBudgetExceeded):
+        if resource == "model":
+            ledger.reserve("infra", "op", 21, 1, 1)
+        else:
+            infrastructure(ledger, "infra", "op", max_seconds=3)
+    assert ledger.account("infra")["reserved_microdollars"] == 0
+
+
+@pytest.mark.parametrize("phase", ["reserve", "settle"])
+def test_infrastructure_write_faults_roll_back_cost_and_receipt_atomically(ledger, phase) -> None:
+    infrastructure_account(ledger)
+    if phase == "settle":
+        infrastructure(ledger, "infra", "op")
+    before = ledger.account("infra")
+
+    def fault(connection, cursor, statement, parameters, context, many):
+        if (
+            context.isinsert or context.isupdate
+        ) and context.compiled.statement.table.name == "evaluation_operations":
+            raise RuntimeError("synthetic infrastructure persistence fault")
+
+    event.listen(ledger.engine, "after_cursor_execute", fault)
+    try:
+        with pytest.raises(RuntimeError):
+            if phase == "reserve":
+                infrastructure(ledger, "infra", "op")
+            else:
+                ledger.settle_infrastructure("op", elapsed_milliseconds=1, result={})
+    finally:
+        event.remove(ledger.engine, "after_cursor_execute", fault)
+    assert ledger.account("infra") == before
+
+
 @pytest.mark.integration
 def test_real_postgres_isolated_ledger_concurrency_and_receipts() -> None:
     configured = os.environ.get("TEST_DATABASE_URL")
@@ -501,6 +729,22 @@ def test_real_postgres_isolated_ledger_concurrency_and_receipts() -> None:
         )
         for dimension in ("money", "input", "output"):
             concurrent_budget(store, dimension)
+        shared_ceiling_race(store)
+        infrastructure_account(store)
+        infrastructure(store, "infra", "preflight")
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            list(
+                executor.map(
+                    lambda _: store.settle_infrastructure(
+                        "preflight", elapsed_milliseconds=1234, result={"synthetic": True}
+                    ),
+                    range(8),
+                )
+            )
+        assert store.account("infra")["infrastructure_spent_microdollars"] == 13
+        assert (
+            store.account("infra")["input_tokens"] == store.account("infra")["output_tokens"] == 0
+        )
         create(store, "one")
         create(store, "two")
 

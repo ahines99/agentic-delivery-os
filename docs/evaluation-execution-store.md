@@ -1,6 +1,6 @@
 # Separate evaluation usage ledger
 
-`evaluation.execution_store.EvaluationExecutionStore` provides durable model-usage
+`evaluation.execution_store.EvaluationExecutionStore` provides durable model and opt-in infrastructure
 accounting for a trusted evaluation controller. It has an independent SQLAlchemy schema
 and database, with no fake delivery workflows and no changes to delivery tables or
 migrations. Account creation is **not authorization to run tasks or spend money**.
@@ -76,6 +76,93 @@ no arbitrary SQL, execution, provider, deletion, reset, reservation-release or d
 API. The local database operator is trusted; raw SQL tampering is outside this ledger's
 integrity boundary. Protect the dedicated database because model results can be sensitive.
 
+## Infrastructure operations and a shared account ceiling
+
+Infrastructure accounting is opt-in at account creation, with immutable additional terms:
+
+```python
+ledger.create_account(
+    "preparation-1",
+    Budget(model_microdollars=5_000_000),
+    infrastructure_microdollars=100_000,
+    total_microdollars=5_100_000,
+)
+```
+
+Both new ceilings must be supplied together. A zero infrastructure ceiling can explicitly
+deny infrastructure operations; the shared ceiling must be positive. Terms are stored under
+`budget["evaluation_infrastructure_terms"]` in the existing JSON field. Existing v1 accounts
+without those terms retain their model-only behavior and cannot be silently upgraded; create
+a new explicitly authorized account for new terms. No table/schema migration or live private
+database modification is needed.
+
+The infrastructure API is:
+
+```python
+cached = ledger.reserve_infrastructure(
+    "preparation-1",
+    "preparation-1:preflight",
+    max_seconds=30,
+    microdollars_per_second=10,
+    rate_card_version="authorized-local-rate-v1",
+    binding_digest=prepared_execution_digest,
+)
+# Only an independently authorized controller may execute when this returns None.
+# After it measures execution AND confirms cleanup:
+ledger.settle_infrastructure(
+    "preparation-1:preflight",
+    elapsed_milliseconds=measured_elapsed_milliseconds,
+    result={"execution_artifact": verified_execution_artifact},
+)
+```
+
+The reservation is `max_seconds * microdollars_per_second`. The controller's required
+`binding_digest` must bind exact prepared inputs, command, image, collector and execution
+configuration. Reusing the same operation with a different binding, duration ceiling, rate
+or rate-card version is a conflict even when the total reserved amount is identical.
+An unchanged settled reservation returns its cached result; an unchanged unresolved
+reservation remains `UNKNOWN` and denies re-execution.
+
+The controller should measure the entire awaited runner invocation, including preflight,
+transfer and cleanup as applicable, with a monotonic clock and round elapsed nanoseconds
+up to integer milliseconds. Supply honest measured time, never truncate it to fit a cap.
+Settlement computes `ceil(elapsed_milliseconds * microdollars_per_second / 1000)`. A duration
+over `max_seconds * 1000`, changed duration/result on retry, or an invalid receipt is rejected;
+unknown reservations are retained. Changing elapsed time is rejected even if rounding yields
+the same charge. Actual failed checks may still have known infrastructure cost after confirmed
+cleanup; a settled cost receipt never turns them into successful qualification. Cancellation
+or uncertain cleanup requires retaining unknown usage until separately reconciled.
+
+Infrastructure reservations and settlements have **zero model input and output tokens**;
+there are no fake model calls or invented tokens. Their immutable zero token bounds distinguish
+them from strictly positive model reservations. Model and infrastructure settlement methods
+cannot act on each other's operations. Infrastructure rate/time/binding terms are ledger-owned:
+callers cannot inject those keys in settlement output.
+
+`operation_receipt` identifies infrastructure operations with `operation_kind="infrastructure"`.
+Its `result["infrastructure_reservation"]` binds the original terms. After settlement,
+`result["infrastructure_receipt"]` and the top-level `infrastructure_receipt` contain the same
+measured-duration/rate/binding/cost receipt; the top-level receipt is `None` while unresolved.
+Observations survive settlement. These are controller-supplied measurements and rate cards,
+not host attestation, cloud invoices or proof that an execution was authorized.
+
+For opted-in accounts, existing `reserved_microdollars` and `spent_microdollars` are aggregate
+model-plus-infrastructure amounts. `account()` additionally reports
+`model_reserved_microdollars`, `model_spent_microdollars`,
+`infrastructure_reserved_microdollars`, and `infrastructure_spent_microdollars`. Account reads
+lock the same account row while deriving the breakdown. Both reservation methods share that
+lock and enforce three ceilings: model cost, infrastructure cost and combined cost. Model
+token ceilings remain separate. Infrastructure metadata alone does not increase token totals.
+
+A controller can reserve distinct preflight and acceptance/regression operations before a
+batch to fit its overall ceiling. Reservations are individually atomic, not a multi-operation
+transaction. Partially admitted or never-issued reservations are still unknown and are not
+automatically released. Account creation/reservation remains bookkeeping, not spending approval.
+The deterministic qualification controller currently checks the batch's aggregate declared
+worst-case cost first, then reserves each operation immediately before executing it. It does
+not reserve all thirteen operations atomically or promise that a concurrent account user
+cannot consume budget before a later operation is reserved.
+
 ## Conservative accounting and concurrency
 
 `RESERVED` means outcome **UNKNOWN**, including a call that might have failed before any
@@ -97,8 +184,10 @@ Budget comparisons cover spent plus reserved microdollars, and actual plus reser
 and output tokens. Integer values are strict and bounded to signed 64-bit storage.
 
 `Budget` also contains wall/command-time and repair settings. They are retained as immutable
-account metadata, but this ledger enforces **model cost and token totals only**. The execution
-controller must enforce time, infrastructure cost, retry rules and campaign-wide allocation.
+account metadata. The ledger enforces model/token totals and, for opted-in accounts,
+infrastructure and combined cost plus measured duration against each infrastructure reservation.
+The execution controller must stop actual work at its time limit and enforce retry rules and
+campaign-wide allocation; an accounting check cannot terminate an external process.
 There is no hierarchy aggregating several accounts into a total campaign budget yet.
 
 ## Validation evidence and boundaries
@@ -127,6 +216,11 @@ column prevents reopening. It disposes all ledger connections and drops **only i
 cleanup. It neither creates nor drops delivery tables. PostgreSQL coverage requires
 `TEST_DATABASE_URL` with database-creation privileges; absence is an explicit integration
 skip, not SQLite proof of PostgreSQL behavior. Test outputs never print credentials.
+Mixed model/infrastructure races are exercised on SQLite and the dedicated PostgreSQL
+database: eight reservations cannot collectively exceed the shared ceiling. Repeated concurrent
+infrastructure settlement charges once with zero tokens. Additional tests cover independent
+resource ceilings, unknown duration overruns, immutable input/rate/time bindings, legacy
+account compatibility, and rollback of infrastructure accounting faults.
 
 No historical task, model/provider call or evaluation campaign ran as part of these tests.
 The ledger is groundwork for metered qualification and execution, not proof that a task

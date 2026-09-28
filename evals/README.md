@@ -58,7 +58,7 @@ unmeasured unless real observations exist; no generated human identities or minu
 `evaluation/qualification.py` now provides a bounded offline validator for provenance-bound review
 and execution artifacts; local and hosted contract/service checks have passed. It validates supplied evidence,
 does not invoke qualification agents or create missing receipts, and has not admitted any real task.
-The actual qualifier runner remains missing. [Validation-only preparation](../docs/qualification-preparation.md)
+The integrated qualifier admission controller remains missing. [Validation-only preparation](../docs/qualification-preparation.md)
 now checks trusted configuration/evidence bindings and exact accepted-reference patch application
 before execution; `prepare-qualification` returns explicit non-admission metadata. The
 [separate evaluation ledger](../docs/evaluation-execution-store.md) and
@@ -81,9 +81,18 @@ record contract and trusted-controller boundary. Full dual-agent scoring/campaig
 rights clearance, task eligibility and frozen benchmark execution remain required. The public
 candidate catalog is diagnostic preparation, not assumed-valid capability or productivity evidence.
 
-Qualification reviewers receive the same exact `WorkItem` specification plus six controller-created
+The existing v1 inspection protocol gives qualification reviewers the same `WorkItem` plus six controller-created
 status/evidence summaries, with protected reference/oracle content omitted. Summary text still needs
 trusted sanitization; schema validation cannot prove absence of semantic answer leakage. Allocate
 the two context IDs before hashing the task: `HistoricalTask.reviewers` binds them in qualifier-a/
 qualifier-b order. Reference-patch provenance and the separate full reference snapshot are bound
 independently. These records describe actual agent contexts, not human reviewer names.
+
+[ADR-010](../docs/adr/ADR-010-executable-qualification-stages.md) adds standalone executable
+qualification stages: [metered twelve-run Docker checks](../docs/qualification-runtime.md),
+[protected v2 semantic review](../docs/qualification-v2.md) and
+[executed development calibration](../docs/evaluation-calibration.md). V2 evaluators inspect actual
+authorized source/oracle evidence; initial reviewers never see peers or reference solutions, while
+the adjudicator sees both sealed findings. Calibration expectations remain outside model input.
+These stages all report `admitted=false`; they do not silently upgrade v1 records or complete the
+integrated admission/campaign path. No historical task is qualified by synthetic tests.

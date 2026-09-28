@@ -68,7 +68,7 @@ crash recovery or live-provider reconciliation.
   prerequisites with isolated agent passes and deterministic qualification. The new bounded
   qualification validator and `validate-qualification` CLI are implemented; local contract and Docker receipt checks pass.
   Worker-input export/scoring now validate qualification before snapshot reads or Docker execution.
-  The real qualifier runner remains missing. `human_minutes` is nullable; reported human-time savings
+  The integrated qualifier admission controller remains missing. `human_minutes` is nullable; reported human-time savings
   remain null. No actual agent
   qualification or candidate admission is claimed, and human effort/benefit remains unmeasured.
 - Pinned Compose development PostgreSQL/Temporal services, local CLI/API/worker entry points,
@@ -92,18 +92,29 @@ and [bound model-operation receipts](model-operation-receipts.md) provide durabl
 accounting/provenance and retain immutable failure observations without manufacturing delivery
 workflows. A real bounded synthetic provider probe did not settle: 14465 microdollars remain
 reserved, actual cost/cause unknown, no retry. These are prerequisites for the still-missing
-qualifier/campaign controllers and do not admit any of the 36 historical candidates.
+integrated qualifier/campaign controllers and do not admit any of the 36 historical candidates.
 
-The latest complete local verification on 2026-09-28 passed **941 tests, seven explicit Windows
-skips**, in 261.66 seconds with actual PostgreSQL, Temporal and Docker. The skips cover four POSIX
+[ADR-010](adr/ADR-010-executable-qualification-stages.md) adds independently exercised stages:
+[deterministic qualification runtime](qualification-runtime.md) runs actual preflight and twelve
+clean checks with measured infrastructure accounting; [protected v2 review](qualification-v2.md)
+provides inspectable source/oracle evidence and sealed-output adjudication; [development calibration](evaluation-calibration.md)
+binds frozen cases to actual model-broker executions and recomputed metrics. Controlled transports
+exercise model stages; no new paid calibration or real historical admission has run. Infrastructure
+operations use zero model tokens and share an account ceiling with model calls. All three stages
+remain explicit non-admission results until the integrated controller and protocol migration exist.
+
+The latest complete local verification on 2026-09-28 passed **1056 tests, seven explicit Windows
+skips**, in 356.95 seconds with actual PostgreSQL, Temporal and Docker. The skips cover four POSIX
 FIFO regressions and three unprivileged symlink cases; Linux CI exercises those platform cases.
-Ruff check/format (165 files), mypy (62 source files), locked dependency validation, wheel build,
-clean-wheel imports and evaluation ledger creation passed. Qualification/scoring Docker tests
-use explicitly synthetic agent/rights records and do not admit historical tasks. The attempted
-live provider probe above remains unresolved; no historical benchmark ran. The preceding
-complete checkpoint passed 748 tests with five Windows skips and all four hosted checks at
-[b1dedd7](https://github.com/ahines99/agentic-delivery-os/actions/runs/36443683855).
-Counts from separate full runs are not additive evidence.
+Ruff check/format (175 files), mypy (65 source files), locked dependency validation, wheel build,
+installed-wheel imports and synthetic infrastructure accounting passed. The staged secret scan and
+local links across 53 Markdown documents passed. Qualification/calibration tests use explicitly
+synthetic agent/rights records and controlled model transports; they do not admit historical tasks.
+No new paid provider call or historical benchmark ran. The earlier unresolved probe remains unchanged.
+The preceding complete checkpoint passed 941 tests with seven Windows skips; all four hosted checks
+passed on [379bfa6](https://github.com/ahines99/agentic-delivery-os/actions/runs/36448350261), including
+895 passing tests per Python version and 54 real-service integration tests. Counts from separate
+full runs are not additive evidence.
 
 The earlier complete local verification passed **163 tests** with `TEST_DATABASE_URL`,
 `TEST_TEMPORAL_ADDRESS` and `TEST_SANDBOX_IMAGE` configured against actual Compose PostgreSQL,

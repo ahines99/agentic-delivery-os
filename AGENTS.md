@@ -16,4 +16,9 @@ and the ADRs. Distinguish working features from planned integrations.
 - Do not add placeholder provider implementations that silently report success.
 - Keep changes within the next milestone. Record material architecture changes in ADRs.
 
-No secrets, generated run artifacts, or historical benchmark answers belong in agent context.
+No secrets, private generated run artifacts, or historical benchmark answers belong in
+interactive implementation-agent context or campaign builder/reviewer inputs. The protected
+qualification evaluator may inspect explicitly authorized source and oracle tests under
+[ADR-010](docs/adr/ADR-010-executable-qualification-stages.md); reference solutions remain
+excluded from model inputs. This exception grants no access to the implementation agent
+or permission to tune against sealed campaign cases.

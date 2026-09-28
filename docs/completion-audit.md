@@ -45,7 +45,7 @@ Dated follow-up evidence (2026-09-28) records bounded work after the initial aud
 
 | Ref | Further 2026-09-28 follow-up and boundary |
 | --- | --- |
-| E18 | [ADR-007](adr/ADR-007-automated-benchmark-qualification.md) records the user's explicit hands-off benchmark preference. `evaluation/qualification.py` implements bounded offline validation of dual-agent provenance and deterministic qualification receipts; `validate-qualification` checks all task records against protected artifacts; worker-input export and candidate scoring refuse unverified structural manifests before reading snapshots or starting Docker. Local qualification unit and real Docker receipt checks pass; the real qualifier runner remains missing. A supplied digest or agent name is not authenticated execution. No actual candidate admission or campaign is claimed; all 36 remain UNQUALIFIED. |
+| E18 | [ADR-007](adr/ADR-007-automated-benchmark-qualification.md) records the user's explicit hands-off benchmark preference. `evaluation/qualification.py` implements bounded offline validation of dual-agent provenance and deterministic qualification receipts; `validate-qualification` checks all task records against protected artifacts; worker-input export and candidate scoring refuse unverified structural manifests before reading snapshots or starting Docker. Local qualification unit and real Docker receipt checks pass; the integrated qualifier admission controller remains missing. A supplied digest or agent name is not authenticated execution. No actual candidate admission or campaign is claimed; all 36 remain UNQUALIFIED. |
 | E19 | [Operational export](operations-export.md): actual private PostgreSQL export for workflow `2abb68f2-d32f-4ceb-90e9-5b8f53e9b322`, output SHA-256 `cac7f2b60b5a8def617cbb15939829cf920c82717347005a5472355241758ef6`. Allowlisted correlation/spend/state metadata only; no artifact bytes or secrets. This bounded snapshot is partial M4-03 evidence, not retention/deletion, a metrics service, whole-system recovery or complete telemetry. |
 
 The **163-test** local run remains historical baseline evidence. A follow-up full local suite passed **392 tests, zero skips**, in 107.40 seconds with actual PostgreSQL/Temporal/Docker; Ruff check/format (116 files) and mypy (52 source files) also passed. A subsequent focused run passed 17 tests (10 dispatch-scope and 7 actual Temporal CI/Linear tests, including confirmed and UNKNOWN tracker outcomes); it includes 12 newly added tests. Two focused PostgreSQL tests then passed, including a new concurrent CI inbox/reconciliation-generation test. The collection at that checkpoint was 405, without a complete 405-test local run claimed. A rebuilt wheel installed in an isolated environment and applied packaged migration 0006 successfully. These are dated working-tree results, not a final hosted release revision. Scoped counts above overlap and must not be summed. Earlier hosted CI proves its recorded SHA only. Do not combine historical CI, current source and synthetic demonstrations into one complete production run.
@@ -282,3 +282,37 @@ skips in 261.66 seconds against actual PostgreSQL, Temporal and Docker. Ruff che
 ledger creation and new contract imports passed. These validate prerequisites; no qualifier
 controller, calibration result or historical admission is implied. The real failed probe in E34
 remains unresolved.
+
+E36: [Infrastructure accounting](evaluation-execution-store.md) extends the dedicated ledger without
+schema migration. The 52-case focused suite passed, including a separately created real PostgreSQL
+database, mixed model/infrastructure budget races and immutable concurrent settlement. Infrastructure
+uses zero model tokens and measured duration at a pinned estimated rate; model, infrastructure and
+shared account ceilings include unknown reservations. No campaign-wide allocation or invoice proof.
+
+E37: [Deterministic qualification runtime](qualification-runtime.md) executed actual preflight and
+twelve synthetic Docker checks, then recovered the complete cached result without any repeated
+execution. Thirty controlled tests cover collector faults, authority/expiry, immutable resume,
+lost settlement acknowledgement, retained unknowns, repeated cancellation/cleanup joining,
+read-only complete-chain validation and cross-repository store/ledger exclusion. All results retain
+`admitted=false`; this is not historical oracle qualification or hostile-code attestation.
+
+E38: [Protected review v2](qualification-v2.md) passed 32 focused tests for actual source/oracle
+contexts, complete evidence citations, peer separation, sealed-output adjudication and exact settled
+model-receipt bindings. Reference solutions/raw execution output remain excluded from model contexts.
+Supporting imported prose remains trusted-producer material. No real model judgments or task
+admission are claimed by controlled fixtures; v1 admission is not automatically upgraded.
+
+E39: [Executed calibration](evaluation-calibration.md) passed 35 focused tests using the real
+model broker, controlled HTTP transports and dedicated SQLite accounting. Exact frozen development
+cases, rubric/prompt/schema/model/rates, response identity and ledger checkpoints bind recomputed
+agreement/false-admit/mandatory-failure and usage metrics. Unknown calls cannot retry; lifetime
+deadlines and post-response policy revocation apply. Independent review reproduced and verified
+response-ID reuse rejection. No paid calibration, historical case or campaign ran. The integrated
+qualifier must still combine these stages and migrate admission/export/scoring protocols explicitly.
+
+E40: Complete executable-stage verification passed 1056 tests with seven explicit Windows skips
+in 356.95 seconds against actual PostgreSQL, Temporal and Docker. Ruff check/format (175 files),
+mypy (65 sources), locked dependencies, wheel build, installed-wheel imports/infrastructure accounting,
+53-document local link validation and staged secret scanning passed. No paid calibration, historical
+admission or campaign ran. The previous checkpoint `379bfa6` passed all four hosted checks at
+[run 36448350261](https://github.com/ahines99/agentic-delivery-os/actions/runs/36448350261).

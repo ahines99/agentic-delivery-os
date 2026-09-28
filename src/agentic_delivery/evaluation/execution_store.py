@@ -3,7 +3,7 @@
 import hashlib
 import json
 import re
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
@@ -72,6 +72,10 @@ checkpoints = Table(
     Column("created_at", String(40), nullable=False),
 )
 
+INFRA_TERMS = "evaluation_infrastructure_terms"
+INFRA_RESERVATION = "infrastructure_reservation"
+INFRA_RECEIPT = "infrastructure_receipt"
+
 
 class EvaluationConflict(ValueError):
     pass
@@ -118,6 +122,103 @@ def _with_observation(result: dict[str, Any], stored: Any) -> dict[str, Any]:
         _canonical(observation)
         return {**result, "provider_observation": observation}
     return result
+
+
+def _budget_terms(value: dict[str, Any]) -> tuple[Budget, dict[str, int] | None]:
+    model = dict(value)
+    terms = model.pop(INFRA_TERMS, None)
+    budget = Budget.model_validate(model)
+    if terms is not None:
+        if (
+            not isinstance(terms, dict)
+            or set(terms) != {"schema_version", "infrastructure_microdollars", "total_microdollars"}
+            or type(terms["schema_version"]) is not int
+            or terms["schema_version"] != 1
+        ):
+            raise ValueError("Invalid evaluation infrastructure account terms")
+        _usage(terms["infrastructure_microdollars"], terms["total_microdollars"], 0, positive=False)
+        if terms["total_microdollars"] == 0:
+            raise ValueError("Shared evaluation ceiling must be positive")
+    return budget, terms
+
+
+def _is_infrastructure(operation: Mapping[Any, Any]) -> bool:
+    # Model reservations require strictly positive token bounds; this discriminator
+    # is immutable accounting data, not a caller-controlled output field.
+    return bool(
+        operation["reserved_input_tokens"] == 0 and operation["reserved_output_tokens"] == 0
+    )
+
+
+def _infrastructure_totals(connection: Connection, account_id: str) -> tuple[int, int]:
+    rows = connection.execute(
+        select(
+            operations.c.status,
+            operations.c.reserved_microdollars,
+            operations.c.actual_microdollars,
+        ).where(
+            operations.c.account_id == account_id,
+            operations.c.reserved_input_tokens == 0,
+            operations.c.reserved_output_tokens == 0,
+        )
+    ).mappings()
+    reserved, spent = 0, 0
+    for row in rows:
+        if row["status"] == "RESERVED":
+            reserved += row["reserved_microdollars"]
+        else:
+            spent += row["actual_microdollars"]
+    return reserved, spent
+
+
+def _admit_cost(
+    connection: Connection,
+    account: Mapping[Any, Any],
+    cost: int,
+    *,
+    infrastructure: bool,
+) -> Budget:
+    budget, terms = _budget_terms(account["budget"])
+    if infrastructure and terms is None:
+        raise EvaluationConflict("Account has not opted into infrastructure accounting")
+    reserved, spent = _infrastructure_totals(connection, account["id"])
+    if infrastructure:
+        assert terms is not None
+        resource_total = reserved + spent
+        resource_limit = terms["infrastructure_microdollars"]
+    else:
+        resource_total = (
+            account["spent_microdollars"] + account["reserved_microdollars"] - reserved - spent
+        )
+        resource_limit = budget.model_microdollars
+    total_limit = terms["total_microdollars"] if terms else budget.model_microdollars
+    if (
+        resource_total + cost > resource_limit
+        or account["spent_microdollars"] + account["reserved_microdollars"] + cost > total_limit
+    ):
+        raise EvaluationBudgetExceeded("Evaluation resource or shared budget would be exceeded")
+    return budget
+
+
+def _infrastructure_parameters(
+    max_seconds: int,
+    microdollars_per_second: int,
+    rate_card_version: str,
+    binding_digest: str,
+) -> dict[str, Any]:
+    _usage(max_seconds, microdollars_per_second, 1, positive=True)
+    _usage(max_seconds * microdollars_per_second, 0, 0, positive=False)
+    _identity(rate_card_version)
+    if not isinstance(binding_digest, str) or not re.fullmatch(r"[a-f0-9]{64}", binding_digest):
+        raise ValueError("Infrastructure operation requires an immutable binding digest")
+    return {
+        "schema_version": 1,
+        "kind": "infrastructure",
+        "max_seconds": max_seconds,
+        "microdollars_per_second": microdollars_per_second,
+        "rate_card_version": rate_card_version,
+        "binding_digest": binding_digest,
+    }
 
 
 def _enable_sqlite_foreign_keys(connection: Any, *_: Any) -> None:
@@ -261,11 +362,28 @@ class EvaluationExecutionStore:
                 connection.rollback()
                 raise
 
-    def create_account(self, account_id: str, budget: Budget) -> dict[str, Any]:
+    def create_account(
+        self,
+        account_id: str,
+        budget: Budget,
+        *,
+        infrastructure_microdollars: int | None = None,
+        total_microdollars: int | None = None,
+    ) -> dict[str, Any]:
         _identity(account_id)
         budget = Budget.model_validate(budget.model_dump())
         if max(budget.model_microdollars, budget.input_tokens, budget.output_tokens) > 2**63 - 1:
             raise ValueError("Budget exceeds ledger integer range")
+        if (infrastructure_microdollars is None) != (total_microdollars is None):
+            raise ValueError("Infrastructure and shared ceilings must be configured together")
+        budget_json = budget.model_dump(mode="json")
+        if infrastructure_microdollars is not None:
+            budget_json[INFRA_TERMS] = {
+                "schema_version": 1,
+                "infrastructure_microdollars": infrastructure_microdollars,
+                "total_microdollars": total_microdollars,
+            }
+        _budget_terms(budget_json)
         try:
             with self._transaction() as connection:
                 old = (
@@ -274,13 +392,13 @@ class EvaluationExecutionStore:
                     .first()
                 )
                 if old:
-                    if old["budget"] != budget.model_dump(mode="json"):
+                    if old["budget"] != budget_json:
                         raise EvaluationConflict("Account budget is immutable")
                 else:
                     connection.execute(
                         accounts.insert().values(
                             id=account_id,
-                            budget=budget.model_dump(mode="json"),
+                            budget=budget_json,
                             created_at=datetime.now(UTC).isoformat(),
                             reserved_microdollars=0,
                             spent_microdollars=0,
@@ -289,21 +407,34 @@ class EvaluationExecutionStore:
                         )
                     )
         except IntegrityError:
-            if self.account(account_id)["budget"] != budget.model_dump(mode="json"):
+            if self.account(account_id)["budget"] != budget_json:
                 raise EvaluationConflict("Concurrent incompatible account creation") from None
         return self.account(account_id)
 
     def account(self, account_id: str) -> dict[str, Any]:
         _identity(account_id)
-        with self.engine.connect() as connection:
+        with self._transaction() as connection:
             row = (
-                connection.execute(select(accounts).where(accounts.c.id == account_id))
+                connection.execute(
+                    select(accounts).where(accounts.c.id == account_id).with_for_update()
+                )
                 .mappings()
                 .first()
             )
             if row is None:
                 raise EvaluationConflict("Evaluation account does not exist")
-            return dict(row)
+            result = dict(row)
+            if _budget_terms(row["budget"])[1] is not None:
+                reserved, spent = _infrastructure_totals(connection, account_id)
+                result.update(
+                    {
+                        "infrastructure_reserved_microdollars": reserved,
+                        "infrastructure_spent_microdollars": spent,
+                        "model_reserved_microdollars": row["reserved_microdollars"] - reserved,
+                        "model_spent_microdollars": row["spent_microdollars"] - spent,
+                    }
+                )
+            return result
 
     def reserve(
         self,
@@ -346,11 +477,9 @@ class EvaluationExecutionStore:
                     raise EvaluationConflict(
                         "Prior operation outcome is UNKNOWN; reservation retained"
                     )
-                budget = Budget.model_validate(account["budget"])
+                budget = _admit_cost(connection, account, cost, infrastructure=False)
                 if (
-                    account["spent_microdollars"] + account["reserved_microdollars"] + cost
-                    > budget.model_microdollars
-                    or account["input_tokens"] + input_tokens > budget.input_tokens
+                    account["input_tokens"] + input_tokens > budget.input_tokens
                     or account["output_tokens"] + output_tokens > budget.output_tokens
                 ):
                     raise EvaluationBudgetExceeded("Evaluation account budget would be exceeded")
@@ -380,18 +509,91 @@ class EvaluationExecutionStore:
             ) from None
         return None
 
-    def settle(
+    def reserve_infrastructure(
+        self,
+        account_id: str,
+        operation_id: str,
+        *,
+        max_seconds: int,
+        microdollars_per_second: int,
+        rate_card_version: str,
+        binding_digest: str,
+    ) -> dict[str, Any] | None:
+        _identity(account_id)
+        _identity(operation_id)
+        terms = _infrastructure_parameters(
+            max_seconds, microdollars_per_second, rate_card_version, binding_digest
+        )
+        cost = max_seconds * microdollars_per_second
+        try:
+            with self._transaction() as connection:
+                account = (
+                    connection.execute(
+                        select(accounts).where(accounts.c.id == account_id).with_for_update()
+                    )
+                    .mappings()
+                    .first()
+                )
+                if account is None:
+                    raise EvaluationConflict("Evaluation account does not exist")
+                if _budget_terms(account["budget"])[1] is None:
+                    raise EvaluationConflict("Account has not opted into infrastructure accounting")
+                old = (
+                    connection.execute(select(operations).where(operations.c.id == operation_id))
+                    .mappings()
+                    .first()
+                )
+                if old:
+                    if (
+                        old["account_id"] != account_id
+                        or not _is_infrastructure(old)
+                        or old["reserved_microdollars"] != cost
+                        or old["result"].get(INFRA_RESERVATION) != terms
+                    ):
+                        raise EvaluationConflict(
+                            "Infrastructure operation binding or reservation changed"
+                        )
+                    if old["status"] == "SETTLED":
+                        return dict(old["result"])
+                    raise EvaluationConflict(
+                        "Prior infrastructure outcome is UNKNOWN; reservation retained"
+                    )
+                _admit_cost(connection, account, cost, infrastructure=True)
+                connection.execute(
+                    update(accounts)
+                    .where(accounts.c.id == account_id)
+                    .values(reserved_microdollars=account["reserved_microdollars"] + cost)
+                )
+                connection.execute(
+                    operations.insert().values(
+                        id=operation_id,
+                        account_id=account_id,
+                        status="RESERVED",
+                        created_at=datetime.now(UTC).isoformat(),
+                        reserved_microdollars=cost,
+                        reserved_input_tokens=0,
+                        reserved_output_tokens=0,
+                        result={INFRA_RESERVATION: terms},
+                    )
+                )
+        except IntegrityError:
+            raise EvaluationConflict(
+                "Concurrent operation identity reuse; reservation rolled back"
+            ) from None
+        return None
+
+    def settle_infrastructure(
         self,
         operation_id: str,
         *,
-        cost: int,
-        input_tokens: int,
-        output_tokens: int,
+        elapsed_milliseconds: int,
         result: dict[str, Any],
     ) -> None:
         _identity(operation_id)
-        _usage(cost, input_tokens, output_tokens, positive=False)
+        _usage(elapsed_milliseconds, 0, 0, positive=False)
         _canonical(result)
+        if {INFRA_RESERVATION, INFRA_RECEIPT} & result.keys():
+            raise EvaluationConflict("Infrastructure receipt fields are ledger-owned")
         with self._transaction() as connection:
             account_id = connection.scalar(
                 select(operations.c.account_id).where(operations.c.id == operation_id)
@@ -412,6 +614,107 @@ class EvaluationExecutionStore:
                 .mappings()
                 .one()
             )
+            if not _is_infrastructure(operation):
+                raise EvaluationConflict("Model operation requires model usage settlement")
+            terms = operation["result"][INFRA_RESERVATION]
+            if terms != _infrastructure_parameters(
+                terms["max_seconds"],
+                terms["microdollars_per_second"],
+                terms["rate_card_version"],
+                terms["binding_digest"],
+            ):
+                raise EvaluationConflict("Stored infrastructure reservation is invalid")
+            if elapsed_milliseconds > terms["max_seconds"] * 1000:
+                raise EvaluationBudgetExceeded(
+                    "Measured infrastructure time exceeded reservation; UNKNOWN retained"
+                )
+            cost = (elapsed_milliseconds * terms["microdollars_per_second"] + 999) // 1000
+            receipt = {
+                **terms,
+                "kind": "measured-infrastructure",
+                "elapsed_milliseconds": elapsed_milliseconds,
+                "cost_microdollars": cost,
+            }
+            encoded = _canonical(
+                {
+                    **_with_observation(result, operation["result"]),
+                    INFRA_RESERVATION: terms,
+                    INFRA_RECEIPT: receipt,
+                }
+            )
+            if operation["status"] == "SETTLED":
+                if (
+                    operation["actual_microdollars"] != cost
+                    or operation["actual_input_tokens"] != 0
+                    or operation["actual_output_tokens"] != 0
+                    or _canonical(operation["result"]) != encoded
+                ):
+                    raise EvaluationConflict("Settled infrastructure receipt cannot change")
+                return
+            if cost > operation["reserved_microdollars"]:
+                raise EvaluationBudgetExceeded(
+                    "Infrastructure exceeded reservation; UNKNOWN retained"
+                )
+            connection.execute(
+                update(accounts)
+                .where(accounts.c.id == account_id)
+                .values(
+                    reserved_microdollars=account["reserved_microdollars"]
+                    - operation["reserved_microdollars"],
+                    spent_microdollars=account["spent_microdollars"] + cost,
+                )
+            )
+            connection.execute(
+                update(operations)
+                .where(operations.c.id == operation_id)
+                .values(
+                    status="SETTLED",
+                    actual_microdollars=cost,
+                    actual_input_tokens=0,
+                    actual_output_tokens=0,
+                    result=json.loads(encoded),
+                    settled_at=datetime.now(UTC).isoformat(),
+                )
+            )
+
+    def settle(
+        self,
+        operation_id: str,
+        *,
+        cost: int,
+        input_tokens: int,
+        output_tokens: int,
+        result: dict[str, Any],
+    ) -> None:
+        _identity(operation_id)
+        _usage(cost, input_tokens, output_tokens, positive=False)
+        _canonical(result)
+        if {INFRA_RESERVATION, INFRA_RECEIPT} & result.keys():
+            raise EvaluationConflict("Model result cannot carry infrastructure accounting terms")
+        with self._transaction() as connection:
+            account_id = connection.scalar(
+                select(operations.c.account_id).where(operations.c.id == operation_id)
+            )
+            if account_id is None:
+                raise EvaluationConflict("Evaluation reservation does not exist")
+            account = (
+                connection.execute(
+                    select(accounts).where(accounts.c.id == account_id).with_for_update()
+                )
+                .mappings()
+                .one()
+            )
+            operation = (
+                connection.execute(
+                    select(operations).where(operations.c.id == operation_id).with_for_update()
+                )
+                .mappings()
+                .one()
+            )
+            if _is_infrastructure(operation):
+                raise EvaluationConflict(
+                    "Infrastructure operation requires measured-time settlement"
+                )
             encoded = _canonical(_with_observation(result, operation["result"]))
             if operation["status"] == "SETTLED":
                 if (
@@ -514,6 +817,9 @@ class EvaluationExecutionStore:
                 raise EvaluationConflict("Evaluation operation unavailable in account")
             result = dict(row)
         result["operation_id"] = result.pop("id")
+        if _is_infrastructure(result):
+            result["operation_kind"] = "infrastructure"
+            result[INFRA_RECEIPT] = result["result"].get(INFRA_RECEIPT)
         result["observation"] = (
             result["result"].get("provider_observation")
             if isinstance(result["result"], dict)

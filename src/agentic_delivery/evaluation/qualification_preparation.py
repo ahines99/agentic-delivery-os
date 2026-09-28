@@ -316,8 +316,9 @@ def prepare_qualification(
     )
     digest = qualification_task_digest(task.model_dump(mode="json"))
     repository = settings.repository(task.item.repository)
-    if repository.local_repository is not None:
-        _scopes(protected_artifacts.root, output_root, repository.local_repository)
+    for configured in settings.repositories:
+        if configured.local_repository is not None:
+            _scopes(protected_artifacts.root, output_root, configured.local_repository)
     repo = f"{repository.github_owner}/{repository.github_name}"
     _require(settings.admissions_enabled, "Operator admissions are disabled")
     _require(repository.model_data_authorized, "Repository model data authorization is absent")
