@@ -185,6 +185,8 @@ async def test_linkage_reconstructs_exact_parent_pr_issue_time_and_preserves_bod
         "merged_sha",
         "merged_time",
         "committer_after_merge",
+        "requirements_after_commit",
+        "requirements_equal_commit",
         "issue_kind",
         "issue_id",
         "issue_number",
@@ -196,6 +198,7 @@ async def test_linkage_reconstructs_exact_parent_pr_issue_time_and_preserves_bod
         "closer_commit",
         "duplicate_close",
         "event_extra_private",
+        "unmatched_private_payload",
         "raw_errors",
         "capture_future",
     ],
@@ -239,6 +242,10 @@ async def test_forged_metadata_denied_before_any_write(tmp_path, defect):
         pr["mergedAt"] = "2000-12-31T23:59:59Z"
     elif defect == "committer_after_merge":
         commit["committedDate"] = "2001-01-01T01:00:00Z"
+    elif defect == "requirements_after_commit":
+        commit["committedDate"] = "1999-12-31T23:00:00Z"
+    elif defect == "requirements_equal_commit":
+        commit["committedDate"] = "2000-01-01T00:00:00Z"
     elif defect == "issue_kind":
         value["__typename"] = "PullRequest"
     elif defect == "issue_id":
@@ -262,6 +269,13 @@ async def test_forged_metadata_denied_before_any_write(tmp_path, defect):
         timeline["totalCount"] = 2
     elif defect == "event_extra_private":
         event["actor"] = {"login": "do-not-copy-personal-data"}
+    elif defect == "unmatched_private_payload":
+        other = copy.deepcopy(event)
+        other["id"] = "unmatched"
+        other["closer"]["id"] = "another-pr"
+        other["closer"]["url"] = {"payload": "PRIVATE-CANARY"}
+        timeline["nodes"].append(other)
+        timeline["totalCount"] = 2
     elif defect == "raw_errors":
         altered["errors"] = [{"message": "PRIVATE-CANARY"}]
     elif defect == "capture_future":

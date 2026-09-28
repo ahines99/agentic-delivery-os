@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
@@ -274,6 +275,28 @@ def _reconstruct(
             continue
         if closer.get("__typename") == "PullRequest":
             _require(set(closer) == {"__typename", *pr})
+            _require(
+                isinstance(closer["id"], str)
+                and 0 < len(closer["id"]) <= 256
+                and type(closer["number"]) is int
+                and closer["number"] > 0
+                and isinstance(closer["url"], str)
+                and re.fullmatch(
+                    r"https://github.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/pull/[1-9][0-9]*",
+                    closer["url"],
+                )
+                is not None
+                and type(closer["merged"]) is bool
+            )
+            if closer["mergedAt"] is not None:
+                _time(closer["mergedAt"])
+            if closer["mergeCommit"] is not None:
+                TypeAdapter(CommitSHA).validate_python(_keys(closer["mergeCommit"], {"oid"})["oid"])
+            _require(
+                not closer["merged"]
+                or closer["mergedAt"] is not None
+                and closer["mergeCommit"] is not None
+            )
             if closer["id"] == pr["id"]:
                 _require({key: closer[key] for key in pr} == pr)
                 matched.append(closed_at)
@@ -284,7 +307,8 @@ def _reconstruct(
     _require(evidence.query_digest == hashlib.sha256(LINKAGE_QUERY.encode()).hexdigest())
     _require(
         capture.issue_created_at <= capture.requirements_as_of < accepted_at == capture.accepted_at
-        and committed_at
+        and capture.requirements_as_of
+        < committed_at
         <= accepted_at
         <= matched[0]
         <= evidence.first_captured_at

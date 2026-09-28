@@ -24,8 +24,11 @@ commit-only closers, merge commits with multiple parents, redirects represented 
 changed identities, or inconsistent captures are unsupported and refuse the profile.
 
 Acceptance time is the PR's `mergedAt`. The commit's `committedDate` must be no later,
-but is not substituted for acceptance time. Requirements creation/edit time must precede
-acceptance, the closing event must be no earlier than merge, and all capture times must
+but is not substituted for acceptance time. Requirements creation/edit time must strictly
+precede that solution commit timestamp as well as merge; equality or later edits refuse
+the profile. Git timestamps/provider history still do not establish the earliest public
+solution disclosure or archival truth. The closing event must be no earlier than merge,
+and all capture times must
 be no later than current trusted time. Full baseline/accepted acquisitions are read and
 reconstructed through the derivation; neither snapshot capture alone asserts a parent
 or acceptance timestamp.
