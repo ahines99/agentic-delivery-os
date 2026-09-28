@@ -53,9 +53,16 @@ async def integrated(frozen, synthetic, monkeypatch):  # noqa: F811
             ledger=case["ledger"],
             model=StructuredModel(case["config"], case["ledger"], client=client),
         )
+        preparation_time = datetime.now(UTC)
         preparation, arguments, document = synthetic(
             task_changes={"qualification_mode": "independent-agents-v2", "image": image},
             repository_changes={"sandbox_image": image},
+            # This fixture executes against the real clock. The preparation-only
+            # fixture's fixed calendar window can expire during later consumption.
+            authorization_changes={
+                "issued_at": (preparation_time - timedelta(days=1)).isoformat(),
+                "expires_at": (preparation_time + timedelta(days=1)).isoformat(),
+            },
             oracle={
                 "tests/test_behavior.py": (
                     "from app import VALUE\ndef test_value():\n    assert VALUE == 2\n"
