@@ -17,7 +17,11 @@ from agentic_delivery.agents.pipeline import diff_files
 from agentic_delivery.config import CommandProfile, ModelConfig, RepositoryConfig, Settings
 from agentic_delivery.domain.models import CommitSHA, Contract, NonEmpty, VerificationType, WorkItem
 from agentic_delivery.execution.files import protected, safe_path, validate_files
-from agentic_delivery.execution.verification import pytest_selectors, report_verdict
+from agentic_delivery.execution.verification import (
+    pytest_import_options,
+    pytest_selectors,
+    report_verdict,
+)
 from agentic_delivery.policy.changes import check_candidate
 from agentic_delivery.policy.engine import POLICY_VERSION, evaluate_intake
 from agentic_delivery.repository.impact import impact_report
@@ -230,6 +234,7 @@ def validate_manifest(
         or manifest.policy_version != POLICY_VERSION
     ):
         raise EvidenceFailure("Manifest identity, policy or execution configuration is stale")
+    import_options = pytest_import_options(repository.commands)
     original = WorkItem.model_validate(_json(artifacts, manifest.input_spec_artifact))
     assessed = WorkItem.model_validate(_json(artifacts, manifest.assessed_item_artifact))
     approved = ApprovedPlan.model_validate(_json(artifacts, manifest.approved_plan_digest))
@@ -345,6 +350,8 @@ def validate_manifest(
         ):
             raise EvidenceFailure("Criterion tests are missing from the final candidate")
         profile = CommandProfile(id=criterion, argv=receipt.argv, expected_tests=len(selected))
+        if pytest_import_options((profile,)) != import_options:
+            raise EvidenceFailure("Criterion import profile differs from operator configuration")
         _verification(
             summary,
             (profile,),

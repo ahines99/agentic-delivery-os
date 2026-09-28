@@ -234,6 +234,72 @@ def test_complete_reference_chain_passes_structural_publication_admission(tmp_pa
     assert candidate["app.py"] == "def value(): return 2\n"
 
 
+@pytest.mark.parametrize("configured_src", [False, True])
+def test_rehashed_criterion_cannot_add_or_remove_operator_import_profile(
+    tmp_path: Path, configured_src: bool
+) -> None:
+    """Fabricated unit receipts prove binding rejection, not real execution."""
+    settings, repository, manifest = manifest_fixture(tmp_path)
+    artifacts = ArtifactStore(tmp_path)
+
+    def rewrite(summary: dict, src: bool) -> None:
+        result = summary["commands"][0]
+        receipt = json.loads(artifacts.get(result["artifact_digest"]))
+        argv = [arg for arg in receipt["argv"] if arg not in {"-o", "pythonpath=src"}]
+        if src:
+            argv.extend(("-o", "pythonpath=src"))
+        receipt["argv"] = argv
+        command = CommandProfile(id=receipt["command_id"], argv=tuple(argv))
+        binding = {
+            **receipt["verification_binding"],
+            "argv": argv,
+            "command_digest": digest_json(command.model_dump(mode="json")),
+        }
+        receipt["verification_binding"] = binding
+        receipt["verification_report"]["binding"] = binding
+        result["artifact_digest"] = put(artifacts, receipt)
+
+    if configured_src:
+        repository = repository.model_copy(
+            update={
+                "commands": tuple(
+                    command.model_copy(update={"argv": (*command.argv, "-o", "pythonpath=src")})
+                    for command in repository.commands
+                )
+            }
+        )
+        settings = settings.model_copy(update={"repositories": (repository,)})
+        manifest["configuration_digest"] = settings.execution_digest(repository.id)
+        rewrite(manifest["baseline"], True)
+        rewrite(manifest["attempts"][0]["validation"], True)
+        rewrite(manifest["attempts"][0]["criteria"]["AC-1"], True)
+    # Establish a consistent synthetic chain first, then alter only its criterion
+    # import policy and rehash the full receipt/binding/manifest chain.
+    validate_manifest(settings, repository, "run-1", put(artifacts, manifest))
+    rewrite(manifest["attempts"][0]["criteria"]["AC-1"], not configured_src)
+    with pytest.raises(ValueError, match="Criterion import profile"):
+        validate_manifest(settings, repository, "run-1", put(artifacts, manifest))
+
+
+def test_manifest_rejects_mixed_operator_import_profiles(tmp_path: Path) -> None:
+    settings, repository, manifest = manifest_fixture(tmp_path)
+    original = repository.commands[0]
+    repository = repository.model_copy(
+        update={
+            "commands": (
+                original,
+                original.model_copy(
+                    update={"id": "src", "argv": (*original.argv, "-o", "pythonpath=src")}
+                ),
+            )
+        }
+    )
+    settings = settings.model_copy(update={"repositories": (repository,)})
+    manifest["configuration_digest"] = settings.execution_digest(repository.id)
+    with pytest.raises(ValueError, match="inconsistent import profiles"):
+        validate_manifest(settings, repository, "run-1", put(ArtifactStore(tmp_path), manifest))
+
+
 @pytest.mark.parametrize(
     "defect",
     [
@@ -396,13 +462,15 @@ def test_rehashed_candidate_cannot_modify_protected_existing_tests(tmp_path: Pat
 
 
 @pytest.mark.integration
+@pytest.mark.parametrize("layout", ["flat", "src"])
 async def test_actual_pipeline_produces_compatible_receipt_reference_chain(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, layout: str
 ) -> None:
     """Real Docker receipts with controlled model fixtures; no live model/review claim."""
-    image = os.environ.get("TEST_SANDBOX_IMAGE")
+    image_variable = "TEST_SRC_SANDBOX_IMAGE" if layout == "src" else "TEST_SANDBOX_IMAGE"
+    image = os.environ.get(image_variable)
     if not image:
-        pytest.skip("TEST_SANDBOX_IMAGE is not configured")
+        pytest.skip(f"{image_variable} is not configured")
     settings, repository, template = manifest_fixture(tmp_path / "artifacts")
     repository = repository.model_copy(update={"sandbox_image": image})
     settings = settings.model_copy(update={"repositories": (repository,)})
@@ -412,6 +480,22 @@ async def test_actual_pipeline_produces_compatible_receipt_reference_chain(
     plan = ImplementationPlan.model_validate(approved["plan"])
     base = json.loads(artifacts.get(approved["snapshot_digest"]))
     candidate = json.loads(artifacts.get(template["candidate_artifact"]))
+    if layout == "src":
+        base["src/app.py"] = base.pop("app.py")
+        candidate["src/app.py"] = candidate.pop("app.py")
+        plan = plan.model_copy(update={"files": ("src/app.py", "tests/test_new.py")})
+        approved["plan"] = plan.model_dump(mode="json")
+        approved["snapshot_digest"] = put(artifacts, base)
+        template["approved_plan_digest"] = put(artifacts, approved)
+        repository = repository.model_copy(
+            update={
+                "commands": tuple(
+                    command.model_copy(update={"argv": (*command.argv, "-o", "pythonpath=src")})
+                    for command in repository.commands
+                )
+            }
+        )
+        settings = settings.model_copy(update={"repositories": (repository,)})
     review = ReviewResult.model_validate_json(artifacts.get(template["review_artifact"]))
     engine = create_database(f"sqlite+pysqlite:///{tmp_path / 'pipeline.db'}")
     Base.metadata.create_all(engine)
@@ -458,3 +542,16 @@ async def test_actual_pipeline_produces_compatible_receipt_reference_chain(
     )
     assert manifest["schema_version"] == 1
     assert validated_candidate == candidate
+    criterion = manifest["attempts"][-1]["criteria"]["AC-1"]["commands"][0]
+    receipt = json.loads(artifacts.get(criterion["artifact_digest"]))
+    assert receipt["argv"] == [
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        *(["-o", "pythonpath=src"] if layout == "src" else []),
+        "tests/test_new.py::test_new",
+    ]
+    assert receipt["verification_binding"]["argv"] == receipt["argv"]

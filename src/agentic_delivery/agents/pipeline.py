@@ -10,7 +10,7 @@ from agentic_delivery.config import RepositoryConfig, Settings
 from agentic_delivery.domain.models import VerificationType, WorkItem
 from agentic_delivery.execution.docker import DockerRunner
 from agentic_delivery.execution.files import apply_edits, safe_path, validate_files
-from agentic_delivery.execution.verification import verify
+from agentic_delivery.execution.verification import pytest_import_options, verify
 from agentic_delivery.integrations.model import StructuredModel
 from agentic_delivery.policy.changes import check_candidate
 from agentic_delivery.policy.engine import POLICY_VERSION, evaluate_intake
@@ -80,6 +80,7 @@ async def build_and_review(
         raise ValueError("Execution is not configured for this repository")
     if not evaluate_intake(item).allowed:
         raise ValueError("Execution policy denied the assessed work item")
+    import_options = pytest_import_options(repository.commands)
     runner = DockerRunner(repository.sandbox_image)
     preflight = await runner.preflight()
     artifacts = ArtifactStore(settings.artifact_root)
@@ -164,7 +165,16 @@ async def build_and_review(
                 (
                     CommandProfile(
                         id=criterion,
-                        argv=("python", "-m", "pytest", "-q", "-p", "no:cacheprovider", *tests),
+                        argv=(
+                            "python",
+                            "-m",
+                            "pytest",
+                            "-q",
+                            "-p",
+                            "no:cacheprovider",
+                            *import_options,
+                            *tests,
+                        ),
                         expected_tests=len(tests),
                     ),
                 ),

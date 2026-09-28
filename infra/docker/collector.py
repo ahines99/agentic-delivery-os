@@ -10,6 +10,7 @@ import json
 import os
 import re
 import sys
+from importlib.machinery import PathFinder
 from pathlib import Path
 
 # Python -I excludes the workspace and PYTHONPATH while trusted modules are imported.
@@ -23,6 +24,7 @@ def selectors(argv):
     if argv[:3] != ["python", "-m", "pytest"]:
         raise ValueError("Only the configured pytest profile is supported")
     result = []
+    src_layout = False
     index = 3
     while index < len(argv):
         value = argv[index]
@@ -32,14 +34,30 @@ def selectors(argv):
         if value == "-p" and argv[index + 1 : index + 2] == ["no:cacheprovider"]:
             index += 2
             continue
+        if value == "-o" and argv[index + 1 : index + 2] == ["pythonpath=src"]:
+            if src_layout:
+                raise ValueError("Repeated src-layout directive")
+            src_layout = True
+            index += 2
+            continue
         if value.startswith("-") or not value or len(value) > 2048:
             raise ValueError("Unsupported pytest argument")
         path = value.split("::", 1)[0]
         if (
             path.startswith("/")
             or "\\" in path
+            or ":" in path
             or any(part in {"", ".", ".."} for part in path.split("/"))
-            or not (Path("/workspace") / path).resolve().is_relative_to("/workspace")
+            or any(ord(char) < 32 for char in path)
+            or any(part.lower() == ".git" for part in path.split("/"))
+            or any(part.endswith((" ", ".")) for part in path.split("/"))
+            or any(
+                re.fullmatch(r"(?i)(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?", part)
+                for part in path.split("/")
+            )
+            or not (Path("/workspace") / path)
+            .resolve()
+            .is_relative_to(Path("/workspace").resolve())
         ):
             raise ValueError("Unsafe pytest selector")
         result.append(value)
@@ -47,6 +65,59 @@ def selectors(argv):
     if len(result) != len(set(result)):
         raise ValueError("Duplicate pytest selectors")
     return result
+
+
+def src_import_path(workspace):
+    """Check source origins without importing repository modules or processing .pth files.
+
+    Called before repository paths enter sys.path. Append-only precedence keeps trusted
+    imports ahead of source; collisions must therefore refuse, never test an installed copy.
+    This checks initial resolution, not hostile code mutating imports during test execution.
+    """
+    root = workspace / "src"
+    if (
+        workspace.is_symlink()
+        or root.is_symlink()
+        or not root.is_dir()
+        or root.resolve() != workspace.resolve() / "src"
+    ):
+        raise ValueError("Missing or unsafe src import root")
+    # The normal snapshot transfer supports only regular files. Refuse links even for
+    # direct collector use, including namespace/package children.
+    if any(path.is_symlink() for path in root.rglob("*")):
+        raise ValueError("Links are not supported in the src import root")
+    names = []
+    for path in root.iterdir():
+        if path.is_file() and path.suffix == ".py":
+            name = path.stem
+        elif path.is_dir():
+            name = path.name
+        else:
+            continue
+        if name.isidentifier():
+            names.append(name)
+    if not names or len(names) != len(set(names)):
+        raise ValueError("Missing or ambiguous src modules")
+    for name in names:
+        if (
+            name in sys.modules
+            or name in sys.stdlib_module_names
+            or name in sys.builtin_module_names
+            or PathFinder.find_spec(name) is not None
+            or PathFinder.find_spec(name, [str(workspace)]) is not None
+        ):
+            raise ValueError("Src module collides with an existing import")
+        spec = PathFinder.find_spec(name, [str(root)])
+        if spec is None:
+            raise ValueError("Src module cannot be resolved")
+        locations = list(spec.submodule_search_locations or ())
+        if spec.origin is not None:
+            locations.append(spec.origin)
+        if not locations or any(
+            not Path(location).resolve().is_relative_to(root.resolve()) for location in locations
+        ):
+            raise ValueError("Src module origin is outside the supplied root")
+    return str(root)
 
 
 class Collector:
@@ -125,6 +196,10 @@ def main():
     os.environ["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
     os.environ.pop("PYTEST_ADDOPTS", None)
     os.environ.pop("PYTEST_PLUGINS", None)
+    # The only supported override is interpreted here, never forwarded to pytest.
+    # Validate origins while sys.path still contains trusted image locations only.
+    if "-o" in binding["argv"]:
+        sys.path.append(src_import_path(Path("/workspace")))
     # Application modules remain importable, after standard-library/site-packages.
     sys.path.append("/workspace")
     collector = Collector(binding)

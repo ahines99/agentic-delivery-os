@@ -17,6 +17,7 @@ def pytest_selectors(argv: tuple[str, ...]) -> tuple[str, ...]:
     if argv[:3] != ("python", "-m", "pytest"):
         raise ValueError("Verification requires the supported python -m pytest command profile")
     selectors: list[str] = []
+    src_layout = False
     index = 3
     while index < len(argv):
         value = argv[index]
@@ -24,6 +25,12 @@ def pytest_selectors(argv: tuple[str, ...]) -> tuple[str, ...]:
             index += 1
             continue
         if value == "-p" and argv[index + 1 : index + 2] == ("no:cacheprovider",):
+            index += 2
+            continue
+        if value == "-o" and argv[index + 1 : index + 2] == ("pythonpath=src",):
+            if src_layout:
+                raise ValueError("Repeated src-layout directive in verification profile")
+            src_layout = True
             index += 2
             continue
         if not value or value.startswith("-") or len(value) > 2048:
@@ -34,6 +41,19 @@ def pytest_selectors(argv: tuple[str, ...]) -> tuple[str, ...]:
     if len(selectors) != len(set(selectors)):
         raise ValueError("Duplicate pytest selectors")
     return tuple(selectors)
+
+
+def pytest_import_options(commands: tuple[CommandProfile, ...]) -> tuple[str, ...]:
+    """Preserve only a consistent, validated operator-owned import directive."""
+    if not commands:
+        raise ValueError("Repository has no approved verification commands")
+    layouts = set()
+    for command in commands:
+        pytest_selectors(command.argv)
+        layouts.add("-o" in command.argv)
+    if len(layouts) != 1:
+        raise ValueError("Verification commands have inconsistent import profiles")
+    return ("-o", "pythonpath=src") if True in layouts else ()
 
 
 def report_verdict(
