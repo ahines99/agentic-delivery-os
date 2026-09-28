@@ -440,3 +440,23 @@ $0.363880; infrastructure estimates added 26 microdollars. All operations settle
 cached recovery added no effects or charges, and no managed container remained.
 Historical qualification is still zero. This closes the development demonstration
 of the complete qualification path, not the historical evaluation or pilot gates.
+
+E55: [Protected public baseline acquisition](historical-acquisition.md) now validates
+fixed-origin public metadata, complete Git trees and every blob before writing protected
+artifacts. The final acquisition/import regression passed 103 tests; independent security
+review passed the preceding 61 acquisition cases. The separate whole offline worktree
+suite passed 1420 tests with 62 service/Windows skips before the final cleanup-error guard
+and its additional test; the final 62 acquisition tests cover that last change. Ruff/format
+(218 files), mypy (76 sources) and commit secret scanning passed. A real credential-free
+cachetools run acquired 43 files/230,124 source bytes in 46 reads, with zero repository
+execution or model use. Cached validation added no network requests. It remains baseline-only,
+unimported, unauthorized for execution and unqualified; no historical gate was closed.
+
+E56: The integrated acquisition revision passed all **56 actual PostgreSQL, Temporal
+and Docker integration tests** in 213.08 seconds. Its source/tests/scripts/runtime files
+match the isolated implementation byte-for-byte; final focused coverage remains 103
+passing acquisition/import tests, including the cleanup-error guard. Locked dependencies,
+rebuilt wheel and fresh installed-wheel acquisition/import/reconciliation imports passed.
+These split validation results are recorded separately from the earlier 1414-test full
+service-enabled suite and from the pre-final-guard offline suite; counts are not added
+into an invented single full-run total.

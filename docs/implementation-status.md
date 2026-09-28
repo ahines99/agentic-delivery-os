@@ -12,6 +12,13 @@ crash recovery or live-provider reconciliation.
 
 ## Implemented and exercised
 
+The latest acquisition-only extension passed 103 focused acquisition/import tests and
+56 actual service integration tests (213.08 seconds), plus Ruff/format, mypy, locked
+dependencies and fresh wheel installation. Its isolated offline whole suite passed
+1420 tests with 62 service/Windows skips before the final cleanup guard and extra test;
+the final focused run covers that last change. The earlier complete service-enabled
+verification below remains recorded separately. See [E55–E56](completion-audit.md).
+
 - Validated operator/repository configuration; hashed bearer credentials, repository/role checks,
   bounded intake bodies, pause flag, idempotency keys and queued commands.
 - SQLAlchemy tables and Alembic migrations on actual PostgreSQL; transactional inbox/outbox,
@@ -251,6 +258,12 @@ bundles. It preserves original bytes and runs current preparation checks before
 freezing metadata. Protected live acquisition, real historical qualification and
 campaign execution remain separate unfinished work; no catalog candidate was imported
 by these synthetic tests.
+
+A subsequent [protected public baseline acquisition](historical-acquisition.md#recorded-public-baseline-acquisition)
+captured one replacement lead: 43 cachetools files, 230,124 source bytes, with complete
+tree/blob verification and no code execution or model call. This advances baseline
+acquisition only. It does not supply the requirements, rights, accepted reference or
+oracle necessary for historical import and qualification.
 
 1. Configure a GitHub App installation/private key for only the target repository, set branch
    protections without bot bypass, and exercise actual publication/head-change reconciliation.

@@ -46,6 +46,11 @@ validation. Cached recovery added no calls or charges. Synthetic fixtures remain
 from historical admission, worker export, scoring and campaign use. See the
 [recorded qualification](docs/evaluation-calibration.md#completed-synthetic-qualification).
 
+Protected public GitHub acquisition has also captured one real replacement baseline,
+with all 43 files verified against its Git tree and blob hashes. No historical task
+has yet been imported or qualified from it; [baseline acquisition](docs/historical-acquisition.md)
+remains separate from rights, requirements, reference/oracle evidence and admission.
+
 ## Local quickstart
 
 Python 3.12 and [uv](https://docs.astral.sh/uv/getting-started/installation/) are required.
@@ -107,6 +112,7 @@ skip without the runbook's service variables.
 | [docs/synthetic-preparation-runtime.md](docs/synthetic-preparation-runtime.md) | Bounded five-case Docker preparation with no model calls |
 | [docs/synthetic-import.md](docs/synthetic-import.md) | Protected authored-case import and exact data authorization bindings |
 | [docs/historical-import.md](docs/historical-import.md) | Offline protected historical import with complete source inventory checks |
+| [docs/historical-acquisition.md](docs/historical-acquisition.md) | Bounded public GitHub baseline acquisition into protected evaluator storage |
 | [docs/synthetic-calibration-cases.md](docs/synthetic-calibration-cases.md) | Five original development cases with separately frozen expectations |
 | [docs/calibration-subjects.md](docs/calibration-subjects.md) | Inert review subjects separated from safe executed fixtures |
 | [docs/qualification-inputs.md](docs/qualification-inputs.md) | Review inputs reconstructed from completed ledger evidence |

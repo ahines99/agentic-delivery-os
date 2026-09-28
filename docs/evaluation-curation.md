@@ -88,6 +88,13 @@ supported replacements or validate an explicitly extended profile. Silently drop
 large files, slicing repositories or relabeling modified snapshots as complete is not
 allowed. The 30-task, three-repository and held-out requirements remain unchanged.
 
+Metadata research identified smaller replacement leads, and one subsequent protected
+[baseline acquisition](historical-acquisition.md#recorded-public-baseline-acquisition)
+captured all 43 text files of a pinned `tkem/cachetools` tree. No issue body, accepted
+solution or oracle was fetched in that baseline run. Task-base selection, rights,
+pre-solution requirements, reference/oracle mapping and full qualification remain
+unresolved. It has not replaced or promoted any of the 36 original candidates.
+
 ## Offline staging and automated qualification worklist
 
 ```sh

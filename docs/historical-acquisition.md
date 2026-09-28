@@ -83,6 +83,20 @@ headers or credentials. Cancellation propagates and response streams close.
 The new tests use synthetic Git objects and HTTP transports. They cover exact bytes,
 full-tree omission/tampering, unsupported entries, collisions, credentials/default-header
 isolation, redirects, duplicate JSON, response/file/total/request limits, timeouts and
-cancellation. No actual historical GitHub payload was acquired during implementation;
-live compatibility and a complete rights-authorized historical bundle remain subsequent
-work, not a completed benchmark gate.
+cancellation. Those tests fetch no actual historical payload. A complete rights-authorized
+historical bundle and qualification remain separate from both the tests and the recorded
+baseline below.
+
+## Recorded public baseline acquisition
+
+After the focused tests and independent review, a bounded credential-free run acquired
+`tkem/cachetools` at `13bb86a55e36e501cf0b3e4c35db516ed9409fd7`. Its 43 regular files
+contain 230,124 source bytes. All tree/blob checks passed; 46 public read requests
+transferred 347,077 bytes. Source and inventory remain in evaluator-only storage.
+The private cached check verified the same artifacts without a network request.
+
+The run used stricter ceilings than the general profile: 64 requests/files, 64 KiB
+per file, 512 KiB source/individual response, 2 MiB total transfer and 120 seconds.
+No repository code or model ran. Status remains **BASELINE_ONLY_NOT_IMPORTED**:
+this is a replacement lead, not a catalog promotion, rights authorization, verified
+historical task base, oracle/reference reconstruction, imported task or qualification.
