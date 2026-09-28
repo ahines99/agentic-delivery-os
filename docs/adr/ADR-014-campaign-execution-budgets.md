@@ -69,3 +69,10 @@ and immutable allocation/attempt checkpoints. It pins the trusted ledger target 
 original account timestamp without a second accounting system or control account.
 This metadata-only step creates no source export, model execution or phase promotion.
 The preparation reservation remains a ceiling, not an actual-cost reconciliation.
+
+The bounded [candidate adapter](../campaign-candidate.md) connects A/B execution to
+canonical allocations with typed offline Python profiles and a shared finite account.
+It seals candidate evidence before evaluator scoring, uses an identical deterministic
+criteria plan for both arms, and leaves C, final semantic scoring and phase promotion
+outside this route. Its explicit full-source profile refuses insufficient frozen
+context capacity; bounded retrieval requires a separately frozen profile.
