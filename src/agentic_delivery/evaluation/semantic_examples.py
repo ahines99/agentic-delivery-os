@@ -143,9 +143,13 @@ REGRESSION = (
 def author_semantic_examples() -> tuple[AuthoredSemanticExample, ...]:
     """Return five immutable original development examples, without reading or executing files."""
     criteria = (
-        SemanticCriterion(id="batch_order", description="Preserve input order and duplicates."),
         SemanticCriterion(
-            id="batch_retention", description="Retain every element, including a short final batch."
+            id="batch_order",
+            description="Retained elements must remain in their input relative order.",
+        ),
+        SemanticCriterion(
+            id="batch_retention",
+            description="Retain all occurrences, including duplicates and the short final batch.",
         ),
         SemanticCriterion(id="input_preservation", description="Leave the input list unchanged."),
     )

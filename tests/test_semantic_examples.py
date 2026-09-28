@@ -191,3 +191,18 @@ def test_finding_contract_and_unresolved_boundary():
         item.target_id for item in unresolved.expected.findings if item.status == "UNRESOLVED"
     }
     assert "receipt" not in unresolved.subject.requirements
+
+
+def test_order_and_duplicate_retention_are_separate_criteria():
+    cases = author_semantic_examples()
+    for example in cases[1:4]:
+        criteria = {item.id: item.description for item in example.subject.criteria}
+        findings = {item.target_id: item.status for item in example.expected.findings}
+        assert "relative order" in criteria["batch_order"]
+        assert "duplicates" in criteria["batch_retention"]
+        assert findings["batch_order"] == "PASS"
+        assert findings["batch_retention"] == "FAIL"
+        result = owned_module(example.subject.candidate_source, under_pytest=False).batch_items(
+            [7, 7, 7], 2
+        )
+        assert sum(len(batch) for batch in result) < 3
