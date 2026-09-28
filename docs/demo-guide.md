@@ -49,8 +49,9 @@ The GitHub App publisher and Linear adapters are implemented, but live App/priva
 
 Run `uv run --no-sync python -m pytest` for unit/contract checks. PostgreSQL, Temporal and Docker integration tests require the environment in the runbook; unconfigured integration tests explicitly skip. Preserve which checks actually ran.
 
-The latest configured local run passed 133 tests, including actual Docker memory/PID/disk
-exhaustion and hostile PEP 517 hooks. Hosted CI results are pending. These probes demonstrate
+The latest configured local run passed 163 tests, including actual Docker memory/PID/disk
+exhaustion and hostile PEP 517 hooks. [Hosted CI passed](https://github.com/ahines99/agentic-delivery-os/actions/runs/36374850293).
+These probes demonstrate
 specific controls, not arbitrary-code or multi-tenant escape resistance.
 
 `uv run delivery-eval --help` exposes schema, manifest-validation and trial-report commands.

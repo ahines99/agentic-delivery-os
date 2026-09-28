@@ -8,7 +8,7 @@ from agentic_delivery.agents.contracts import BuildProposal, ImplementationPlan,
 from agentic_delivery.config import RepositoryConfig, Settings
 from agentic_delivery.domain.models import VerificationType, WorkItem
 from agentic_delivery.execution.docker import DockerRunner
-from agentic_delivery.execution.files import apply_edits, validate_files
+from agentic_delivery.execution.files import apply_edits, safe_path, validate_files
 from agentic_delivery.execution.verification import verify
 from agentic_delivery.integrations.model import StructuredModel
 from agentic_delivery.policy.changes import check_candidate
@@ -57,6 +57,8 @@ async def build_and_review(
     settings: Settings,
     store: Store,
     repository: RepositoryConfig,
+    *,
+    approved_plan_digest: str | None = None,
 ) -> dict[str, Any]:
     import hashlib
 
@@ -142,6 +144,8 @@ async def build_and_review(
                 not test or test.startswith("-") or ".." in test or "\\" in test for test in tests
             ):
                 raise ValueError("Invalid criterion test identifier")
+            if any(safe_path(test.split("::", 1)[0]) not in candidate for test in tests):
+                raise ValueError("Criterion test must belong to the verified candidate snapshot")
             from agentic_delivery.config import CommandProfile
 
             criterion_receipts[criterion] = await verify(
@@ -201,6 +205,10 @@ async def build_and_review(
                 "candidate_digest": digest_json(candidate),
                 "spec_digest": digest_json(item.model_dump(mode="json")),
                 "plan_digest": digest_json(plan.model_dump(mode="json")),
+                "approved_plan_digest": approved_plan_digest,
+                "input_spec_digest": store.workflow(workflow_id)["spec_digest"],
+                "configuration_digest": settings.execution_digest(repository.id),
+                "model_configuration": settings.model.model_dump(mode="json"),
                 "policy_version": "mvp-1",
                 "baseline": baseline,
                 "attempts": attempts,

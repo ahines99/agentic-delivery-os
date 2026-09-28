@@ -8,7 +8,7 @@ Refer to [implementation status](implementation-status.md) for recorded evidence
 
 | Milestone | Implemented/exercised progress | Acceptance still outstanding |
 | --- | --- | --- |
-| M0 | Package, contracts, fixtures, documentation and quality/integration CI configuration | Ongoing regression checks; CI configuration alone is not a hosted run result |
+| M0 | Package, contracts, fixtures, documentation; hosted quality/integration/secret-scan CI passed | Ongoing regression checks |
 | M1 | Authenticated local intake/commands, real PostgreSQL and Temporal, model-assisted plans, plan approval, usage ledger; Linear signed-fixture tests | Actual Linear workspace onboarding and delivery/replay/status checks; complete identity, approval expiry/revocation and operational hardening |
 | M2 | Real synthetic build, fixed Docker runner, baseline/candidate/criterion tests and immutable artifacts | Broader dependency/resource/escape probes and granular execution recovery |
 | M3 | Fresh independent model review and `LOCAL_REVIEW_READY`; GitHub App publishing/observation contracts and Linear adapter | Live App credentials, actual draft PR/head-change reconciliation, independent check-run ingestion; publication remains disabled |
@@ -26,7 +26,7 @@ Each implementation issue must identify its owner, dependencies, criterion IDs, 
 | --- | --- | --- | --- |
 | M0-01 | Accepted product, architecture, security, evaluation and ADR baseline | None | Working/planned boundaries are explicit; five research reviews are traceable; original handoff is historical input |
 | M0-02 | Python package, contracts, lifecycle and policy predicates | M0-01 | Unknown fields/schema and illegal transitions rejected; missing/stale/failing evidence and builder self-review cannot pass tested structural gates |
-| M0-03 | Offline fixtures, health API, lockfile, checks and contribution assets | M0-02 | Three fixture outcomes reproducible; lint/format/types/tests pass locally; CI configured for 3.12/3.13; hosted CI remains unverified until a remote run |
+| M0-03 | Offline fixtures, health API, lockfile, checks and contribution assets | M0-02 | Three fixture outcomes reproducible; lint/format/types/tests pass locally; hosted CI passed for 3.12/3.13 and actual service integrations |
 
 Gate: a clean checkout reproduces the foundation and documents its limitations. No live provider or isolation claim is made.
 

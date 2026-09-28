@@ -24,14 +24,21 @@ class LinearClient:
                 json={"query": query, "variables": variables},
             )
             response.raise_for_status()
-            result = response.json()
-            if result.get("errors") or not isinstance(result.get("data"), dict):
+            try:
+                result = response.json()
+            except ValueError:
+                raise ValueError("Linear returned an invalid GraphQL result") from None
+            if (
+                not isinstance(result, dict)
+                or result.get("errors")
+                or not isinstance(result.get("data"), dict)
+            ):
                 raise ValueError("Linear returned an invalid GraphQL result")
             return dict(result["data"])
-        except httpx.HTTPError as exc:
+        except httpx.HTTPError:
             raise ValueError(
                 "Linear provider unavailable; operation requires reconciliation"
-            ) from exc
+            ) from None
         finally:
             if self.client is None:
                 await client.aclose()
@@ -46,12 +53,53 @@ class LinearClient:
             raise ValueError("Linear issue not found")
         return dict(result["issue"])
 
+    @staticmethod
+    def validate_issue(
+        issue: dict[str, Any],
+        *,
+        team_id: str,
+        assignee_id: str,
+        expected_title: str | None = None,
+        expected_description: str | None = None,
+    ) -> None:
+        """Bind live assignment and supplied ticket semantics before any external handoff."""
+        team, assignee = issue.get("team"), issue.get("assignee")
+        if (
+            not isinstance(team, dict)
+            or team.get("id") != team_id
+            or not isinstance(assignee, dict)
+            or assignee.get("id") != assignee_id
+        ):
+            raise ValueError("Issue assignment changed; status update denied")
+        title = issue.get("title")
+        description = issue.get("description") or title
+        for actual, expected in (
+            (title, expected_title),
+            (description, expected_description),
+        ):
+            if expected is not None and (
+                not isinstance(actual, str) or actual.strip() != expected.strip()
+            ):
+                raise ValueError("Issue specification changed; handoff denied")
+
     async def set_review_state(
-        self, identity: str, state_id: str, *, team_id: str, assignee_id: str
+        self,
+        identity: str,
+        state_id: str,
+        *,
+        team_id: str,
+        assignee_id: str,
+        expected_title: str | None = None,
+        expected_description: str | None = None,
     ) -> None:
         issue = await self.issue(identity)
-        if issue["team"]["id"] != team_id or (issue.get("assignee") or {}).get("id") != assignee_id:
-            raise ValueError("Issue assignment changed; status update denied")
+        self.validate_issue(
+            issue,
+            team_id=team_id,
+            assignee_id=assignee_id,
+            expected_title=expected_title,
+            expected_description=expected_description,
+        )
         if issue["state"]["id"] == state_id:
             return
         result = await self.query(

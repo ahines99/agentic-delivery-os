@@ -197,6 +197,7 @@ class Activities:
                     self.settings,
                     self.store,
                     repository,
+                    approved_plan_digest=request["assessment"]["plan_digest"],
                 )
         finally:
             heartbeat_task.cancel()
@@ -214,11 +215,8 @@ class Activities:
             ArtifactStore(self.settings.artifact_root).get(request["manifest_digest"])
         )
         repository = self.settings.repository(manifest["repository"])
-        publication = await GitHubPublisher(self.settings, repository).publish(
-            request["workflow_id"], request["manifest_digest"]
-        )
-        self.store.save_publication(request["workflow_id"], repository.id, publication)
         item = WorkItem.model_validate(self.store.workflow(request["workflow_id"])["work_item"])
+        linear = None
         if item.source_system == "linear":
             if not (
                 repository.linear_review_state_id
@@ -226,10 +224,27 @@ class Activities:
                 and repository.linear_assignee_id
             ):
                 raise ValueError("Linear review-status mapping missing; handoff is incomplete")
-            await LinearClient().set_review_state(
+            linear = LinearClient()
+            linear.validate_issue(
+                await linear.issue(item.id),
+                team_id=repository.linear_team_id,
+                assignee_id=repository.linear_assignee_id,
+                expected_title=item.title,
+                expected_description=item.description,
+            )
+        publication = await GitHubPublisher(self.settings, repository).publish(
+            request["workflow_id"], request["manifest_digest"]
+        )
+        self.store.save_publication(request["workflow_id"], repository.id, publication)
+        if linear is not None:
+            assert repository.linear_review_state_id and repository.linear_team_id
+            assert repository.linear_assignee_id
+            await linear.set_review_state(
                 item.id,
                 repository.linear_review_state_id,
                 team_id=repository.linear_team_id,
                 assignee_id=repository.linear_assignee_id,
+                expected_title=item.title,
+                expected_description=item.description,
             )
         return {"status": "PUBLISHED", **publication}

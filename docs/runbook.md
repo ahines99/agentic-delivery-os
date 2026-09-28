@@ -99,17 +99,17 @@ hashes establish identity, not test adequacy or absence of defects.
 
 Do not manually rewrite audit history or workflow states. Use the explicit rerun endpoint rather
 than resetting state or spending. Granular build recovery, production retention/deletion and
-complete backup/restore drills remain recorded gaps in
+cross-system recovery drills remain recorded gaps in
 [implementation status](implementation-status.md).
 
 ## Validate
 
 Run lint, format, types and tests as in the README. Integration tests require
 `TEST_DATABASE_URL`, `TEST_TEMPORAL_ADDRESS` and `TEST_SANDBOX_IMAGE`; unconfigured tests report
-explicit skips. The latest local run passed 125 tests with all three configured against actual
+explicit skips. The latest local run passed 163 tests with all three configured against actual
 Compose PostgreSQL/Temporal and Docker, including memory/PID/disk limits and hostile PEP 517 hooks.
-Hosted CI is configured to provide disposable services without provider credentials; its results
-are pending and must be checked independently.
+Hosted CI passed on Python 3.12/3.13 and disposable PostgreSQL/Temporal/Docker services without
+provider credentials, plus secret scanning. Check the PR's current revision before merging.
 The two `scripts/live_*_check.py` scripts are operator-invoked development checks that spend model
 tokens; they require explicit environment-file and image inputs and were exercised against the
 recorded local services. They are not an unattended benchmark campaign.
@@ -117,3 +117,8 @@ recorded local services. They are not an unattended benchmark campaign.
 For offline evaluation tooling, `uv run delivery-eval --help` lists schema export, manifest
 validation and deterministic reporting. Follow [evals/README.md](../evals/README.md); structural
 validation does not verify artifact provenance or human qualification of historical tasks.
+
+The [local backup drill](local-backup.md) was exercised against the Compose database and artifacts.
+Stop all writers before invoking it; the script only restores into a newly created disposable
+database. It does not restore Temporal or provider state. Follow [provider onboarding](provider-onboarding.md)
+to supply the live integration inputs and keep publication disabled until they are verified.
