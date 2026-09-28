@@ -52,6 +52,30 @@ This closes the missing deliberately failing **local baseline** evidence for P-1
 and part of M2-02. The explicit failure is suitable for operator triage; the production
 workflow routes a non-ready candidate result to `FAILED` with its reason and evidence.
 This particular drill does not run Temporal or prove a human received, understood or
-resolved that failure. End-to-end human-triage routing and broader dependency/runtime
-qualification remain open. The same-interpreter collector limitations also remain;
+resolved that failure. At that checkpoint, end-to-end operator routing had not been
+exercised; the follow-up below addresses that gap. Broader dependency/runtime
+qualification and the same-interpreter collector limitations remain;
 this is an owned failure fixture, not hostile-code isolation qualification.
+
+## Durable operator routing follow-up
+
+`tests/test_baseline_triage.py` subsequently exercised a deliberately failing owned
+baseline through actual PostgreSQL, Temporal, Docker and loopback HTTP. A frozen
+planner fixture supplies the plan; an authenticated test operator submits the item
+and approves its exact plan through the production API. This is test-role execution,
+not an invented human approval or a live Linear ticket.
+
+The production candidate activity runs the real pipeline and collector. The workflow
+reaches durable `FAILED` with `Baseline verification failed` and its execution receipt.
+Authenticated workflow detail, the operator worklist and audit events expose the
+failure for triage; unauthenticated detail is denied. No candidate, readiness state,
+publication, model call or model reservation occurs. The actual server history replays
+successfully, and no container labelled for that run remains.
+
+The first recorded check passed **1 test in 6.35 seconds** on 2026-09-28, with baseline
+receipt `c7b24e4c5e9014a39720f01a76b83efdaa0f9406aad2d9e85f86bbabc6b6bbe6`.
+Private evidence is retained under `.local/baseline-triage-v14-a/`. The test subsequently
+gained bounded cancellation cleanup inside the worker context for its error path.
+This proves technical routing to the authenticated operator surface for the owned
+local task. It does not measure a human reading/resolving it or prove live tracker
+onboarding; those are different observations and integration gates.

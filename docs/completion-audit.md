@@ -203,7 +203,7 @@ Every stable backlog ID appears below. Dependencies continue to apply even where
 | P-08 stop/budget | partial | E14/E25: finite reservations/CI deadlines, separate tracker gate and actual active Docker parent/child cancellation in 15.359s with durable CANCELLED, APPLIED command and no remaining labelled container. Cleanup uncertainty fails; approval expiry stops execution. | Extend to paid-model uncertainty, worker/daemon loss and complete no-post-ack effect/budget matrix; one bounded drill is not a general timing guarantee. |
 | P-09 injection/secrets | partial | Real malicious dependency hook cannot read broker canary, Docker socket or external endpoints; protected paths and risk heuristics exist. | Repository/ticket/log injection and malicious tests cannot expand capabilities, forge readiness or access withheld artifacts; actual runtime evidence. |
 | P-10 external outcome | external prerequisite | Signed observation code and fabricated merged/closed/stale tests exist. | Actual authorized product PR close/merge observation retained separately from agent status; no invented deployment status. |
-| P-11 baseline | partial | E58: actual assertion/collection baseline failures retain receipts and stop before model calls, reservations, candidate or readiness. | End-to-end Temporal/operator triage routing remains unexercised; local failure evidence is not proof of human receipt or resolution. |
+| P-11 baseline | proved — controlled local route | E58/E65: actual failed baselines stop model/candidate work; Temporal persists failure and actual receipts, exposed through authenticated operator detail/worklist/audit. | Owned fixtures and automated test-role approval; no human receipt/resolution metric or live Linear onboarding is claimed. |
 | P-12 provider fault | partial | E30: actual PostgreSQL with controlled 429/503/lost-response/cancellation retains unknown reservations and refuses a duplicate request; committed settlement recovers cached output after lost acknowledgement. | Extend integrated Temporal/provider recovery and actual billing reconciliation; controlled responses are not real outages or invoice evidence. |
 
 No complete product gate is closed merely because its unit predicate passes. Some can be proved locally with controlled fault providers, but the integrated P-01/P-04/P-10 provider claims need actual onboarded systems.
@@ -518,3 +518,12 @@ and the final wheel rebuilt and passed installed-package imports including the d
 API. All 291 local links across 73 inspected documents resolved, and no managed
 container remained. The 1535-test service-enabled run and later 187-test acquisition
 run remain separate recorded scopes; no larger full local run is inferred from them.
+
+E65: [Durable baseline triage](baseline-failure.md#durable-operator-routing-follow-up)
+passed one actual PostgreSQL/Temporal/Docker/loopback-HTTP test in 6.35 seconds.
+A frozen planner fixture and authenticated test-role approval reach the real candidate
+activity. Its failing baseline produces durable `FAILED`, preserved collector evidence,
+operator worklist/detail/audit visibility and successful history replay. Unauthenticated
+detail is denied; no model call/reservation, candidate, readiness or publication occurs,
+and no container for the run remains. This proves the technical local routing required
+by P-11, not actual human observation, live tracker onboarding or broader pilot completion.
