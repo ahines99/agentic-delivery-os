@@ -121,6 +121,18 @@ class ReferenceProvenanceV2(Contract):
     derivation_authorization_artifact: Digest
 
 
+def validate_derived_requirements(
+    task: HistoricalTask, linkage: "HistoricalLinkageEvidence", artifacts: ArtifactStore
+) -> None:
+    """Require the captured pre-acceptance body and neutral title on every derived route."""
+    _require(
+        task.item.title == f"Historical issue #{linkage.issue_number}"
+        and task.item.description
+        == artifacts.get(linkage.requirements_artifact).decode("utf-8").strip(),
+        "Derived task wording differs from captured issue requirements",
+    )
+
+
 def parse_reference_provenance(document: Any) -> ReferenceProvenance | ReferenceProvenanceV2:
     if isinstance(document, dict) and document.get("schema_version") == 2:
         return ReferenceProvenanceV2.model_validate(document)
@@ -218,6 +230,26 @@ def parse_usage_authorization(document: Any) -> UsageAuthorization | SyntheticUs
     if isinstance(document, dict) and "kind" in document:
         return SyntheticUsageAuthorization.model_validate(document)
     return UsageAuthorization.model_validate(document)
+
+
+def prepared_rights_expiry(request: "PreparationRequest", artifacts: ArtifactStore) -> datetime:
+    """Read frozen deadlines only after full current preparation has validated both pins.
+
+    This helper grants no authority. Active guards also retain the exact request and
+    policy/configuration digests that were validated at the effect boundary.
+    """
+    provenance = parse_provenance(_read(artifacts, request.provenance_artifact))
+    parent = parse_usage_authorization(_read(artifacts, provenance.usage_authorization_artifact))
+    document = _read(artifacts, request.reference_provenance_artifact)
+    if not isinstance(document, dict) or document.get("schema_version") != 2:
+        return parent.expires_at
+    from agentic_delivery.evaluation.historical_authorization import DerivedReferenceAuthorization
+
+    reference = ReferenceProvenanceV2.model_validate(document)
+    derived = DerivedReferenceAuthorization.model_validate(
+        _read(artifacts, reference.derivation_authorization_artifact)
+    )
+    return min(parent.expires_at, derived.expires_at)
 
 
 def _require(condition: bool, reason: str) -> None:
@@ -515,7 +547,7 @@ def prepare_qualification(
                 task.qualification_mode == "independent-agents-v2",
                 "Derived references require current qualification protocol",
             )
-            derivation, _ = validate_derived_reference_provenance(
+            derivation, linkage = validate_derived_reference_provenance(
                 reference,
                 protected_artifacts=protected_artifacts,
                 worker_roots=(
@@ -525,6 +557,7 @@ def prepare_qualification(
                 protected_paths=repository.protected_paths,
                 now=now,
             )
+            validate_derived_requirements(task, linkage, protected_artifacts)
             _require(
                 pytest_selectors(task.acceptance_commands[0].argv)
                 == derivation.acceptance_selectors,

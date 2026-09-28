@@ -21,6 +21,7 @@ from agentic_delivery.evaluation.qualification_preparation import (
     parse_reference_provenance,
     parse_task,
     validate_derived_reference_provenance,
+    validate_derived_requirements,
 )
 from agentic_delivery.execution.verification import pytest_selectors
 from agentic_delivery.storage.artifacts import ArtifactStore
@@ -125,6 +126,7 @@ def _resolve(
     derivation, linkage = validate_derived_reference_provenance(
         reference, protected_artifacts=artifacts
     )
+    validate_derived_requirements(task, linkage, artifacts)
     from agentic_delivery.evaluation.historical_authorization import (
         validate_derived_authorization,
     )
@@ -163,6 +165,11 @@ def _resolve(
         raise ValueError("Regression must select original source tests")
     # Compute the closure from validated typed records, never a submitted allow/deny list.
     from agentic_delivery.evaluation.historical_acquisition import BaselineAcquisition
+    from agentic_delivery.evaluation.historical_requirements import IssueRequirementsCapture
+
+    requirements_capture = IssueRequirementsCapture.model_validate(
+        _read(artifacts, linkage.requirements_capture_artifact)
+    )
 
     captures = tuple(
         BaselineAcquisition.model_validate(_read(artifacts, digest))
@@ -187,6 +194,8 @@ def _resolve(
             derivation.oracle_artifact,
             linkage.provider_evidence_artifact,
             linkage.requirements_capture_artifact,
+            requirements_capture.evidence_artifact,
+            requirements_capture.title_artifact,
             *(capture.inventory_artifact for capture in captures),
             *(entry.content_sha256 for entry in captures[1].source_inventory),
             *(entry.baseline_content_artifact for entry in derivation.relocations),

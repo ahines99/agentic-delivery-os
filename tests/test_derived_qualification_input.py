@@ -1,5 +1,6 @@
 """Owned reconstructed Git/linkage fixtures; no historical inputs or live execution."""
 
+import asyncio
 import hashlib
 import json
 from datetime import UTC, datetime, timedelta
@@ -11,9 +12,12 @@ from test_qualification_preparation import IMAGE, LICENSE
 
 from agentic_delivery.config import CommandProfile, RepositoryConfig, Settings
 from agentic_delivery.domain.models import WorkItem
+from agentic_delivery.evaluation import qualification_runtime as runtime
+from agentic_delivery.evaluation.execution_store import EvaluationExecutionStore
 from agentic_delivery.evaluation.harness import HistoricalTask
 from agentic_delivery.evaluation.historical_authorization import DerivedReferenceAuthorization
 from agentic_delivery.evaluation.qualification import (
+    EvidenceSummary,
     QualificationInput,
     qualification_task_digest,
 )
@@ -21,6 +25,7 @@ from agentic_delivery.evaluation.qualification_input_resolution import (
     DerivedQualificationInput,
     resolve_qualification_input,
 )
+from agentic_delivery.evaluation.qualification_inputs import materialize_qualification_input
 from agentic_delivery.evaluation.qualification_preparation import (
     PreparationPolicy,
     PreparationRequest,
@@ -28,10 +33,19 @@ from agentic_delivery.evaluation.qualification_preparation import (
     ReferenceProvenanceV2,
     prepare_qualification,
 )
+from agentic_delivery.evaluation.qualification_runtime import (
+    DeterministicRequest,
+    RuntimeAuthorization,
+    RuntimeFailure,
+    run_deterministic_qualification,
+)
 from agentic_delivery.evaluation.qualification_v2 import (
     ELIGIBILITY,
     assemble_review_context,
 )
+from agentic_delivery.execution.docker import ExecutionResult
+from agentic_delivery.execution.verification import pytest_selectors
+from agentic_delivery.storage.artifacts import ArtifactStore
 from agentic_delivery.storage.store import digest_json
 
 
@@ -39,7 +53,7 @@ def put(store, document):
     return store.put(json.dumps(document, sort_keys=True).encode())
 
 
-async def derived_case(tmp_path):
+async def derived_case(tmp_path, *, item_changes=None, rights_lifetime=timedelta(hours=1)):
     """Reusable complete owned proofs, with independently reconstructable metadata."""
     source = {
         "src/subject.py": "def answer():\n    return 1\n",
@@ -87,14 +101,14 @@ async def derived_case(tmp_path):
         license_id="MIT",
         item=WorkItem(
             id="owned-issue",
-            title="Owned derived qualification fixture",
-            description="Require answer() to return two while preserving positive values.",
+            title=f"Historical issue #{linkage.issue_number}",
+            description=store.get(linkage.requirements_artifact).decode("utf-8").strip(),
             repository=derived.repository,
             risk_tier=1,
             acceptance_criteria=(
                 {"id": "AC-1", "description": "Returns two", "verification_type": "unit_test"},
             ),
-        ),
+        ).model_copy(update=item_changes or {}),
         snapshot_artifact=derived.source_snapshot_artifact,
         oracle_artifact=derived.oracle_artifact,
         reference_snapshot_artifact=derived.executable_reference_artifact,
@@ -171,7 +185,7 @@ async def derived_case(tmp_path):
         production_patch_artifact=derived.production_patch_artifact,
         executable_reference_artifact=derived.executable_reference_artifact,
         issued_at=now - timedelta(hours=1),
-        expires_at=now + timedelta(hours=1),
+        expires_at=now + rights_lifetime,
         rationale="Owned derived synthetic data attestation; no real historical data rights.",
     )
     derived_authorization_ref = put(store, derived_authorization.model_dump(mode="json"))
@@ -393,6 +407,27 @@ async def test_scope_overlap_still_denies_preparation(derived):
         prepare_qualification(derived["request"], **args)
 
 
+@pytest.mark.parametrize("field", ["title", "description"])
+async def test_rehashed_unbound_requirements_fail_shared_preparation_and_review(tmp_path, field):
+    case = await derived_case(tmp_path, item_changes={field: "Unbound post-acceptance wording"})
+    # All task/provenance/rights digests are coherently recomputed by the fixture.
+    # The trusted capture, not the presence of valid self-consistent pins, is decisive.
+    with pytest.raises(ValueError, match="wording"):
+        prepare_qualification(case["request"], **case["args"])
+    wrapper = wrapper_for(case)
+    outer = put(case["store"], wrapper.model_dump(mode="json"))
+    with pytest.raises(ValueError, match="Protected qualification input"):
+        resolve_qualification_input(case["store"], outer, expected_preparation=case["request"])
+    with pytest.raises(ValueError):
+        assemble_review_context(
+            case["store"],
+            outer,
+            rubric_artifact=case["store"].put(b"Owned review rubric."),
+            stage="qualifier_a",
+            context_id="owned-review-a",
+        )
+
+
 async def test_wrapper_stripping_and_alternate_preparation_refs_fail_closed(derived):
     wrapper = wrapper_for(derived)
     store, request = derived["store"], derived["request"]
@@ -451,3 +486,230 @@ async def test_entire_computed_closure_is_forbidden_as_support_and_rubric(derive
                 stage="qualifier_a",
                 context_id="owned-review-a",
             )
+
+
+@pytest.mark.parametrize(
+    "kind",
+    [
+        "derived-historical-acquisition",
+        "derived-historical-import",
+        "imported-derived-historical-task",
+        "provider-reported-merged-pr-linkage-v1",
+    ],
+)
+async def test_derived_aggregate_aliases_cannot_be_supporting_text_or_rubric(derived, kind):
+    store = derived["store"]
+    aggregate = put(store, {"schema_version": 2, "kind": kind, "untrusted": "opaque"})
+    wrapper = wrapper_for(derived)
+    outer = put(store, wrapper.model_dump(mode="json"))
+    with pytest.raises(ValueError):
+        assemble_review_context(
+            store,
+            outer,
+            rubric_artifact=aggregate,
+            stage="qualifier_a",
+            context_id="owned-review-a",
+        )
+    changed = wrapper.model_dump(mode="json")
+    changed["qualification_input"]["check_evidence"]["family"] = aggregate
+    with pytest.raises(ValueError):
+        assemble_review_context(
+            store,
+            put(store, changed),
+            rubric_artifact=store.put(b"Owned rubric"),
+            stage="qualifier_a",
+            context_id="owned-review-a",
+        )
+
+
+class OwnedDerivedRunner:
+    """Controlled report transport only; never claims real sandbox execution."""
+
+    calls = 0
+    hook = None
+    cancelled = False
+
+    def __init__(self, image):
+        self.image = image
+
+    async def preflight(self):
+        return {"image": self.image, "checks": dict.fromkeys(runtime.PREFLIGHT_CHECKS, True)}
+
+    async def run(self, files, argv, *, verification_binding, **kwargs):
+        type(self).calls += 1
+        nodes = pytest_selectors(argv)
+        failed = (
+            nodes[0] != "tests/test_subject.py::test_original"
+            and files["src/subject.py"] == "def answer():\n    return 1\n"
+        )
+        report = {
+            "collector_version": 1,
+            "binding": verification_binding,
+            "session_started": True,
+            "session_finished": True,
+            "main_returned": True,
+            "exit_code": int(failed),
+            "collected": list(nodes),
+            "collection_errors": [],
+            "deselected": [],
+            "phases": [
+                {
+                    "nodeid": node,
+                    "when": phase,
+                    "outcome": "failed" if failed and phase == "call" else "passed",
+                    "wasxfail": False,
+                }
+                for node in nodes
+                for phase in ("setup", "call", "teardown")
+            ],
+        }
+        if type(self).hook is not None:
+            try:
+                await type(self).hook()
+            except asyncio.CancelledError:
+                type(self).cancelled = True
+                raise
+        return ExecutionResult(
+            int(failed),
+            "owned controlled fixture",
+            "",
+            0.01,
+            self.image,
+            verification_report=report,
+        )
+
+
+@pytest.fixture
+def derived_runtime(derived, monkeypatch, tmp_path):
+    args = derived["args"]
+    now = datetime.now(UTC)
+    request = DeterministicRequest(
+        preparation=derived["request"],
+        behavior_nodes=derived["derived"].acceptance_selectors,
+        regression_nodes=("tests/test_subject.py::test_original",),
+    )
+    grant = RuntimeAuthorization(
+        account_id="owned-derived-runtime",
+        request_digest=digest_json(request.model_dump(mode="json")),
+        execution_config_digest=args["settings"].execution_digest(derived["task"].item.repository),
+        preparation_policy_digest=digest_json(args["policy"].model_dump(mode="json")),
+        budget=derived["task"].budget,
+        infrastructure_microdollars=100_000,
+        total_microdollars=5_100_000,
+        microdollars_per_second=1,
+        rate_card_version="owned-controlled-1",
+        issued_at=now,
+        expires_at=now + timedelta(minutes=30),
+    )
+    ledger = EvaluationExecutionStore(
+        f"sqlite+pysqlite:///{tmp_path / 'delivery_eval_derived_runtime.db'}"
+    )
+    state = {"now": None}
+    OwnedDerivedRunner.calls = 0
+    OwnedDerivedRunner.hook = None
+    OwnedDerivedRunner.cancelled = False
+    monkeypatch.setattr(runtime, "DockerRunner", OwnedDerivedRunner)
+    monkeypatch.setattr(runtime, "POLL_SECONDS", 0.01)
+    options = {
+        "settings_provider": lambda: args["settings"],
+        "policy_provider": lambda: args["policy"],
+        "authorization_provider": lambda: grant,
+        "protected_artifacts": derived["store"],
+        "output_artifacts": ArtifactStore(args["output_root"]),
+        "worker_root": args["worker_root"],
+        "ledger": ledger,
+        "clock": lambda: state["now"] or datetime.now(UTC),
+    }
+    yield request, grant, options, state
+    ledger.engine.dispose()
+
+
+async def test_materialization_checkpoints_outer_wrapper_and_resumes_without_calls(
+    derived, derived_runtime
+):
+    request, grant, options, _ = derived_runtime
+    result = await run_deterministic_qualification(request, **options)
+    store = derived["store"]
+    support = store.put(b"Owned preliminary qualification findings.")
+    arguments = {
+        key: options[key]
+        for key in ("protected_artifacts", "output_artifacts", "worker_root", "ledger")
+    }
+    arguments.update(
+        authorization=grant,
+        settings=derived["args"]["settings"],
+        policy=derived["args"]["policy"],
+        now=datetime.now(UTC),
+        check_evidence=dict.fromkeys(ELIGIBILITY, support),
+        findings=tuple(
+            EvidenceSummary(
+                check=check,
+                status="PENDING",
+                summary="Owned controlled preliminary finding.",
+                evidence_refs=(support,),
+            )
+            for check in sorted(ELIGIBILITY)
+        ),
+    )
+    outer = materialize_qualification_input(request, result["evidence_artifact"], **arguments)
+    wrapper = DerivedQualificationInput.model_validate_json(store.get(outer))
+    assert (
+        wrapper.reference_provenance_artifact == request.preparation.reference_provenance_artifact
+    )
+    assert (
+        options["ledger"].checkpoint_receipt(grant.account_id, "runtime-review-input-v1")[
+            "artifact_digest"
+        ]
+        == outer
+    )
+    assert (
+        materialize_qualification_input(request, result["evidence_artifact"], **arguments) == outer
+    )
+    assert await run_deterministic_qualification(request, **options) == result
+    assert OwnedDerivedRunner.calls == 12
+
+
+async def test_shorter_derived_rights_expiry_cancels_active_batch(derived, derived_runtime):
+    request, grant, options, state = derived_runtime
+    # Keep the parent and runtime grants live; only derived-data authorization expires.
+    store = derived["store"]
+    reference = derived["reference"]
+    record = json.loads(store.get(reference.derivation_authorization_artifact))
+    record["expires_at"] = (grant.issued_at + timedelta(seconds=5)).isoformat()
+    new_rights = put(store, record)
+    new_reference = reference.model_copy(update={"derivation_authorization_artifact": new_rights})
+    preparation = request.preparation.model_copy(
+        update={"reference_provenance_artifact": put(store, new_reference.model_dump(mode="json"))}
+    )
+    request = request.model_copy(update={"preparation": preparation})
+    policy = derived["args"]["policy"].model_copy(
+        update={
+            "approved_authorization_artifacts": (
+                derived["provenance"]["usage_authorization_artifact"],
+                new_rights,
+            )
+        }
+    )
+    grant = grant.model_copy(
+        update={
+            "request_digest": digest_json(request.model_dump(mode="json")),
+            "preparation_policy_digest": digest_json(policy.model_dump(mode="json")),
+        }
+    )
+    options["authorization_provider"] = lambda: grant
+    options["policy_provider"] = lambda: policy
+
+    async def expire():
+        state["now"] = grant.issued_at + timedelta(seconds=6)
+        await asyncio.Event().wait()
+
+    OwnedDerivedRunner.hook = expire
+    with pytest.raises(RuntimeFailure):
+        await asyncio.wait_for(run_deterministic_qualification(request, **options), timeout=10)
+    assert OwnedDerivedRunner.calls == 1 and OwnedDerivedRunner.cancelled
+    assert (
+        options["ledger"].checkpoint_receipt(grant.account_id, "deterministic-complete-v1") is None
+    )
+    with pytest.raises(RuntimeFailure):
+        await run_deterministic_qualification(request, **options)
+    assert OwnedDerivedRunner.calls == 1

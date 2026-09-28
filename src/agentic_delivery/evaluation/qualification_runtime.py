@@ -33,6 +33,7 @@ from agentic_delivery.evaluation.qualification_preparation import (
     parse_task,
     parse_usage_authorization,
     prepare_qualification,
+    prepared_rights_expiry,
 )
 from agentic_delivery.execution.docker import DockerRunner
 from agentic_delivery.execution.files import safe_path
@@ -552,6 +553,7 @@ async def _run(
     rights = parse_usage_authorization(
         _read(protected_artifacts, provenance.usage_authorization_artifact)
     )
+    rights_expiry = prepared_rights_expiry(request.preparation, protected_artifacts)
     _require(
         grant.request_digest == digest_json(request.model_dump(mode="json"))
         and grant.execution_config_digest == prepared.execution_config_digest
@@ -575,7 +577,7 @@ async def _run(
         _require(
             current.tzinfo is not None
             and grant.issued_at <= current < deadline
-            and rights.issued_at <= current < rights.expires_at,
+            and rights.issued_at <= current < rights_expiry,
             "Execution/data authorization expired or is not yet valid",
         )
         live = settings_provider()

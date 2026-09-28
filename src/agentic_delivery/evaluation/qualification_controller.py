@@ -31,8 +31,7 @@ from agentic_delivery.evaluation.qualification_preparation import (
     PreparationPolicy,
     _read,
     _scopes,
-    parse_provenance,
-    parse_usage_authorization,
+    prepared_rights_expiry,
 )
 from agentic_delivery.evaluation.qualification_runtime import (
     _guarded,
@@ -149,11 +148,8 @@ async def _run(
 
     validated = inputs()
     task = validated.task
-    provenance = parse_provenance(
-        _read(protected_artifacts, request.deterministic_request.preparation.provenance_artifact)
-    )
-    data_authority = parse_usage_authorization(
-        _read(protected_artifacts, provenance.usage_authorization_artifact)
+    data_expiry = prepared_rights_expiry(
+        request.deterministic_request.preparation, protected_artifacts
     )
     calibration_plan = CalibrationPlan.model_validate(
         _read(protected_artifacts, validated.calibration.plan_artifact)
@@ -219,7 +215,7 @@ async def _run(
         _require(
             runtime.issued_at
             <= clock()
-            < min(plan.execution_deadline, data_authority.expires_at, calibration_plan.expires_at)
+            < min(plan.execution_deadline, data_expiry, calibration_plan.expires_at)
             and live.admissions_enabled
             and live.repository(task.item.repository).model_data_authorized
             and live.execution_digest(task.item.repository) == runtime.execution_config_digest
