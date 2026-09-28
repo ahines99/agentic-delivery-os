@@ -15,10 +15,10 @@ Linear -> Requirements -> Risk policy -> Plan -> Isolated build
 Implemented and exercised locally: authenticated intake and plan approval, PostgreSQL
 inbox/outbox and audit storage, Temporal workflows, real Anthropic planning/build/review,
 bounded Docker execution, independent test runs, and digest-verified candidate artifacts.
-The local suite passed 1324 tests with actual PostgreSQL, Temporal and Docker, including
+The local suite passed 1328 tests with actual PostgreSQL, Temporal and Docker, including
 structured test-evidence validation, CI races, projection recovery, resource exhaustion and
 hostile dependency hooks; seven POSIX/symlink cases explicitly skipped on Windows.
-[The preceding revision's hosted CI passed](https://github.com/ahines99/agentic-delivery-os/actions/runs/36455635541)
+[The preceding revision's hosted CI passed](https://github.com/ahines99/agentic-delivery-os/actions/runs/36463724349)
 on Python 3.12/3.13, real service integration and secret scanning.
 A synthetic customer task reached `LOCAL_REVIEW_READY`; its durable workflow stopped at
 `POLICY_BLOCKED` because publication was disabled. No PR, merge, or deployment is implied.

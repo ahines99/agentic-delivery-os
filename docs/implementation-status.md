@@ -114,18 +114,18 @@ The actual Docker integration exercises the full qualification, source-only expo
 and cached resume using controlled model responses and synthetic task records. This is software
 verification, not live calibration or qualification of a historical candidate.
 
-The latest complete local verification on 2026-09-28 passed **1324 tests, seven explicit Windows
-skips**, in 601.71 seconds with actual PostgreSQL, Temporal and Docker. The skips cover four POSIX
+The latest complete local verification on 2026-09-28 passed **1328 tests, seven explicit Windows
+skips**, in 634.54 seconds with actual PostgreSQL, Temporal and Docker. The skips cover four POSIX
 FIFO regressions and three unprivileged symlink cases; Linux CI exercises those platform cases.
-Ruff check/format (207 files), mypy (73 source files), locked dependency validation, wheel build
+Ruff check/format (209 files), mypy (73 source files), locked dependency validation, wheel build
 and installed-wheel imports passed. The staged secret scan and
 253 local links across 64 Markdown documents passed. Qualification/calibration tests use explicitly
 synthetic agent/rights records and controlled model transports; they do not admit historical tasks.
-Five subsequent paid development calibration calls are recorded below; no historical benchmark ran.
+Ten subsequent paid development calibration calls across two stages are recorded below; no historical benchmark ran.
 The earlier unresolved probe remains unchanged.
-The preceding complete checkpoint passed 1155 tests with seven Windows skips; all four hosted checks
-passed on [f3a5895](https://github.com/ahines99/agentic-delivery-os/actions/runs/36455635541), including
-1108 passing tests per Python version and 55 real-service integration tests. Counts from separate
+The preceding complete checkpoint passed 1324 tests with seven Windows skips; all four hosted checks
+passed on [474b4c6](https://github.com/ahines99/agentic-delivery-os/actions/runs/36463724349), including
+1277 passing tests per Python version and 55 real-service integration tests. Counts from separate
 full runs are not additive evidence.
 
 The earlier complete local verification passed **163 tests** with `TEST_DATABASE_URL`,
@@ -184,15 +184,15 @@ Further scoped operational evidence on 2026-09-28:
   inventory; it never authorizes or performs deletion. Ruff/format and targeted mypy passed.
 
 These counts overlap existing scopes and remain separate from historical full-suite results.
-The complete 1324-test verification above includes these changes. Scoped counts are not additive.
+The complete 1328-test verification above includes these changes. Scoped counts are not additive.
 
 ## Recorded live development runs
 
-[Live development calibration](evaluation-calibration.md#recorded-live-development-calibration)
-completed five paid calls after 65 actual Docker preparation operations. It failed the complete
-evidence gate: one of five responses was valid, despite matching verdicts and finding statuses.
-Recorded cost was $0.735425; cached resume added no calls or spend. No full synthetic qualification
-or historical task admission followed. Passing calibration remains a release prerequisite.
+[Live development calibration](evaluation-calibration.md#revised-prompt-passing-development-calibration)
+now passes all five original development cases with complete evidence and unchanged expected
+findings. The revised prompt cost $0.760480; the earlier failed stage and its $0.735425 cost
+remain retained. Both cached resumes added no calls or spending. This small reused development
+set does not measure historical benchmark performance or admit any catalog task.
 
 The owned synthetic calibration bootstrap now has typed project-owned provenance, a protected
 five-case importer, runtime-verified review-input materialization and inert review subjects.
@@ -227,6 +227,14 @@ Raw artifacts stay under ignored `.local/artifacts`; no sensitive artifacts are 
 The successful candidate result is `LOCAL_REVIEW_READY`, not a merged or deployed outcome.
 
 ## Remaining release gates
+
+The revised qualifier prompt passed all five original development calibration cases
+with complete evidence, at $0.760480 in configured model cost. The earlier failed
+calibration remains retained; neither run measures held-out benchmark accuracy. A
+subsequent synthetic qualification completed 13 Docker operations, then stopped when
+its first model review hit the 5,000-token output limit. Its 234,400-microdollar
+reservation remains unsettled at this checkpoint. No second review, adjudication,
+qualified task or campaign followed. See the [calibration execution record](evaluation-calibration.md#subsequent-qualification-stopped-at-a-truncated-review).
 
 1. Configure a GitHub App installation/private key for only the target repository, set branch
    protections without bot bypass, and exercise actual publication/head-change reconciliation.

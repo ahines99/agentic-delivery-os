@@ -151,3 +151,35 @@ of the original unused identity/deadline are documented in the
 [preparation record](synthetic-preparation-runtime.md#recorded-execution). Future prompt
 revisions require new frozen specifications and separately metered calibration; this failed
 run remains part of the development record.
+
+
+## Revised prompt: passing development calibration
+
+The `b9b8391` prompt revision makes the existing finding IDs and citation requirements explicit;
+validators, schema and expected decisions are unchanged. On 2026-09-28 a new finite five-call
+stage used the same frozen development cases and actual Docker evidence. All five responses
+were valid and matched every expected finding and verdict: **CALIBRATED**, zero false admits
+and zero mandatory failures. Recorded usage was 48,566 input and 20,706 output tokens, costing
+**760,480 microdollars ($0.760480)**, below the exact $1.235935 reservation ceiling and $5 cap.
+Cached resume returned the same evidence and accounting without another provider call.
+
+The previous failed stage remains retained. Combined model cost for these two calibration
+stages is **$1.495905** across ten calls. Reusing development cases to correct output-contract
+instructions does not measure held-out judge accuracy or historical benchmark performance.
+This pass authorizes only subsequent work allowed by the current calibration policy and the
+separate qualification/spending gates; it does not admit a historical task.
+
+## Subsequent qualification stopped at a truncated review
+
+A fresh synthetic qualification completed its preflight and twelve repeated Docker
+checks (13 settled infrastructure operations; 26 microdollars of local estimates).
+Its first independent model review returned HTTP 200 with `max_tokens`: 8,683 input
+and 5,000 output tokens were reported, but no complete review was accepted. The
+operation retained its **234,400-microdollar reservation**, with actual ledger cost
+unsettled. The second reviewer and adjudicator did not run. No qualification record,
+admission, worker export, scoring or campaign authority resulted.
+
+The private driver stopped without retrying or aliasing the operation. Reported
+usage alone is not a successful review receipt; explicit failed-call reconciliation
+is separate work. This does not alter the preceding five-case calibration result.
+Its current-use grant must still be valid for any later qualification attempt.

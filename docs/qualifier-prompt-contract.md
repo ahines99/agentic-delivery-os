@@ -25,11 +25,12 @@ constructor merely because the rubric, output schema or expected outcomes are
 unchanged. Completed earlier results and their accounting remain immutable, but
 are not reinterpreted as current calibration.
 
-The prior v8 live calibration remains a failed calibration. This prompt-only
-revision has not itself demonstrated improved live results. Any future live stage
+The prior v8 live calibration remains a failed calibration. A separate live development stage with this prompt passed all five original cases,
+with complete citations and unchanged expected findings. This is a small reused development
+set, not evidence of general or held-out judge accuracy. Any future live stage
 needs a newly frozen prompt/specification, current allowlist, distinct authorized
-account and finite budget. Prior failures and costs remain retained. Hosted checks
-for an earlier commit do not cover this revision.
+account and finite budget. Prior failures and costs remain retained. See [calibration records](evaluation-calibration.md#revised-prompt-passing-development-calibration)
+for exact usage and retained earlier failures.
 
 The targeted tests use the real structured broker and evaluation ledger with
 controlled HTTP transports for both supported providers. They verify the actual

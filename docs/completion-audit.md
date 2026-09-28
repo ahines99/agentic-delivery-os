@@ -375,3 +375,21 @@ and Docker. The separate 136-test calibration/subject/v2/controller regression a
 (one actual Docker test deselected there and included in the full suite). Ruff, formatting,
 mypy, rebuilt installed-wheel prompt checks and locked dependencies passed. This software
 verification does not override E45's failed live calibration or close historical/pilot gates.
+
+
+E47: Explicit [target/citation guidance](qualifier-prompt-contract.md) preserves validators and
+frozen expected decisions. A fresh five-call live calibration passed all five development cases
+with zero false admits/mandatory failures, at $0.760480. Cached resume added no effects or cost.
+The failed E45 stage remains retained; combined calibration cost is $1.495905 for ten calls.
+This reused development set does not measure held-out accuracy or qualify a historical task.
+Full local verification passed **1328 tests, seven Windows skips**, in 634.54 seconds with real
+PostgreSQL, Temporal and Docker. Ruff/format (209 files), mypy (73 sources), locked dependencies,
+wheel build and fresh installed-wheel imports passed.
+
+E48: Subsequent synthetic qualification completed 13 actual Docker operations at
+26 microdollars of local infrastructure estimates. The first model review returned
+HTTP 200 with `max_tokens`, reporting 8,683 input and 5,000 output tokens. Its
+234,400-microdollar reservation remains unresolved at this checkpoint; no complete
+review was accepted. No second review, adjudication or qualification result followed,
+and the operation was not retried or aliased. Cost-only failure reconciliation remains
+separate from successful model evidence. Historical qualification remains at zero.
