@@ -1,12 +1,18 @@
 # Historical candidate curation preparation
 
-Status: **36 real source metadata candidates, zero qualified tasks, zero scored tasks**.
+Original catalog status: **36 real source metadata candidates, zero qualified or scored tasks**.
 Prepared 2026-09-28; protocol revised the same day under
 [ADR-007](adr/ADR-007-automated-benchmark-qualification.md) following the user's hands-off, fully agentic
 benchmark preference. This advances M1-08/M5-01 preparation; it does not pass qualification or benchmark gates. The [evaluation methodology](evaluation-methodology.md)
 remains normative: target 36/minimum 30, three repositories, grouped equal splits, a repository
 reserved for sealed test, at least 24 behavioral tasks, and two independently executed agent qualification passes per admitted task,
 with a distinct adjudicator for disagreements and unresolved findings failing closed. Baseline and accepted-solution checks each require three repetitions.
+
+Two separately acquired development candidates have since reached actual protected
+import and execution. Their [retained attempts](historical-development-attempts.md)
+include one deterministic rejection and one completed qualification with two agreeing
+independent reviews. That admitted development task has not been scored and does not
+replace an original catalog entry or reduce the required corpus.
 
 ## Candidate sources and rights
 
@@ -97,8 +103,8 @@ unresolved. It has not replaced or promoted any of the 36 original candidates.
 
 The subsequent [protected derivation observations](historical-reference-derivation.md#subsequent-protected-development-observations)
 retain a refusal for that cachetools candidate and a successful standalone derivation
-for one `dbader/schedule` development lead. The latter remains unimported and
-unauthorized for execution; no original candidate or split has been replaced.
+for one `dbader/schedule` development lead. Later separately authorized imports and
+execution are recorded above; no original candidate or split has been replaced.
 
 ## Offline staging and automated qualification worklist
 

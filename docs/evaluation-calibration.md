@@ -228,3 +228,20 @@ Synthetic classification was explicitly checked against every consumer: historic
 admission, worker export, scoring and campaign use remained denied. This is an executed
 development validation of the complete machinery, not an admitted historical task or a
 benchmark score. The earlier truncated qualification remains a separate failed record.
+
+## Historical review capacity calibration
+
+After the first PR 404 historical review hit the 8,000-token output limit and its
+financial accounting was closed, a new five-call stage changed only the model's
+output limit to 20,000 tokens and timeout to 300 seconds. The original fixture
+artifacts, expected findings, decisions, rubric, prompt and schema were unchanged.
+The controller froze exact forecasts, a $20 cap and a 30-minute execution deadline.
+
+All five outputs were valid and matched the frozen expectations: **CALIBRATED**,
+zero false admits and zero mandatory failures. Usage was 48,575 input and 20,867
+output tokens, costing **764,550 microdollars ($0.764550)**, below the exact
+$3.110960 reservation ceiling. All five operations settled with zero reservation.
+Across the four retained calibration stages, configured model cost is **$2.987990**
+for twenty calls. These reused development cases do not measure held-out accuracy.
+The new calibration does not itself admit the historical candidate or erase its
+[earlier failed review](historical-development-attempts.md#pr-404-outcomes).

@@ -288,9 +288,23 @@ derivation with two frozen acceptance selectors. The explicit v2 importer and
 [derived qualification-input path](derived-qualification-inputs.md) now bind the
 captured requirements, both current data authorizations and protected reference exclusions.
 Owned controller tests cover both outer checkpoints, current admission, resume and
-shorter-grant expiry. Current rights for the actual lead, historical runtime checks
-and independent semantic reviews remain separate.
-No historical task is yet imported or qualified.
+shorter-grant expiry. The first lead subsequently received finite data authorizations
+and reached actual v2 import and runtime. Its [recorded attempts](historical-development-attempts.md)
+retained a missing dependency, then stopped after the corrected environment collected
+both frozen acceptance nodes and observed one passing on the baseline. The protocol
+requires both to fail. No reference run or model review followed for that candidate.
+The second lead, PR 404 / issue 304, passed all thirteen deterministic operations:
+three acceptance nodes discriminated baseline/reference and 26 original regressions
+passed on both variants, each across three repetitions. Its first model review hit
+the 8,000 output-token limit; exact usage reconciliation settled 540,575 model
+microdollars plus 26 infrastructure microdollars, with zero remaining reservation.
+No valid review or admission resulted from that attempt. After separate calibration of
+a larger output allowance on unchanged owned fixtures, a fresh attempt passed all
+thirteen deterministic operations and two agreeing independent reviews. Current
+authority validation admitted PR 404 as one historical development task. Its successful
+attempt cost 1,165,501 microdollars including estimated infrastructure, with zero
+reservation; all earlier failures remain retained. No historical task has been scored
+or used in a campaign.
 
 Two [actual failing-baseline checks](baseline-failure.md) now preserve assertion and
 collection failures while proving the delivery pipeline makes no model call,

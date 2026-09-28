@@ -117,6 +117,9 @@ pre-commit requirements/merge/capture chronology. Full trees, derived tests and
 requirements remained in protected storage; see the retained
 [development observations](historical-reference-derivation.md#subsequent-protected-development-observations).
 
-This capture grants no processing rights and imports no task. There are still zero
-actual historical imports or qualifications from these observations. Current data
-authorization, runtime and independent qualification gates remain open.
+This capture itself grants no processing rights and imports no task. Subsequently,
+separate finite controller authorizations allowed this candidate's first actual v2
+import and bounded runtime. Its [development attempts](historical-development-attempts.md)
+retained an environment failure, then stopped at a non-discriminating baseline node
+under the unchanged frozen protocol. It remains unqualified; no model review or
+historical score is claimed.

@@ -18,7 +18,7 @@ bounded Docker execution, independent test runs, and digest-verified candidate a
 The recorded local suite at `f669d72` passed 1675 tests with actual PostgreSQL, Temporal and Docker, including
 structured test-evidence validation, CI races, projection recovery, resource exhaustion and
 hostile dependency hooks; ten POSIX/symlink cases explicitly skipped on Windows.
-[A recorded hosted CI run passed](https://github.com/ahines99/agentic-delivery-os/actions/runs/36476000928)
+[A recorded hosted CI run passed](https://github.com/ahines99/agentic-delivery-os/actions/runs/36483021300)
 on Python 3.12/3.13, real service integration and secret scanning.
 A synthetic customer task reached `LOCAL_REVIEW_READY`; its durable workflow stopped at
 `POLICY_BLOCKED` because publication was disabled. No PR, merge, or deployment is implied.
@@ -46,10 +46,12 @@ validation. Cached recovery added no calls or charges. Synthetic fixtures remain
 from historical admission, worker export, scoring and campaign use. See the
 [recorded qualification](docs/evaluation-calibration.md#completed-synthetic-qualification).
 
-Protected public GitHub acquisition has also captured one real replacement baseline,
-with all 43 files verified against its Git tree and blob hashes. No historical task
-has yet been imported or qualified from it; [baseline acquisition](docs/historical-acquisition.md)
-remains separate from rights, requirements, reference/oracle evidence and admission.
+Protected acquisition and v2 import have now reached actual execution for two historical
+development candidates. The [recorded attempts](docs/historical-development-attempts.md)
+retain a deterministic rejection and a truncated model review whose cost was reconciled.
+After separate capacity calibration, the second candidate passed all deterministic checks,
+two independent model reviews and current authority validation. One development task is
+qualified; no historical task has been scored or used in a campaign.
 
 ## Local quickstart
 

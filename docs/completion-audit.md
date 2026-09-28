@@ -570,3 +570,55 @@ merged PR's issue-closing event. Cached revalidation against integrated source a
 no network calls. These provider assertions do not establish cryptographic authenticity,
 rights, historical runtime success or admission. Actual historical imports and qualified
 tasks remain zero; no new model spend or historical code execution occurred.
+
+E71: At implementation `31788de`, schedule PR 463 / issue 175 received exact finite
+parent/derived data authorizations and completed actual protected v2 import. The
+controller retained four public-attribution markers and a separate purpose-limited
+decision, rather than declaring no personal data or exhaustive rights clearance.
+Current core validation reused the existing five-case calibration and copied only
+its 124 validated artifact dependencies; zero new calibration/model calls occurred.
+This advances actual historical import, not historical admission.
+
+E72: The first [historical runtime attempts](historical-development-attempts.md)
+preserved a missing `mock` dependency failure, then performed a separately authorized
+environment correction with a pinned wheel/image. All source, tests, commands and
+selectors remained unchanged. The second baseline acceptance run collected both
+frozen nodes and observed one passing and one failing, so the all-fail qualification
+gate stopped it. Four infrastructure operations across both attempts settled for
+8 microdollars at the configured local duration estimate, with no unknown reservation
+or model call. Reference and regression suites were not reached; the task remains
+unqualified. Image preparation is separately recorded and not included in that ledger
+cost. The original 36 candidates, minimum corpus and release criteria remain unchanged.
+
+E73: Schedule PR 404 / issue 304 completed a separate protected import with exact
+finite data authorizations and all thirteen deterministic operations. Three frozen
+acceptance nodes failed on the baseline and passed on the reference; 26 original
+regressions passed on both variants, across three repetitions. The first protected
+model review then hit its 8,000 output-token limit. Provider usage metadata supported
+financial-only reconciliation: 68,115 input and 8,000 output tokens, 540,575 model
+microdollars plus 26 estimated infrastructure microdollars, zero remaining reservation.
+No valid review checkpoint, second review, adjudication, admission, export or scoring
+resulted. The failed call remains recorded and its partial output was not inspected
+by implementation agents. This is deterministic qualification evidence, not builder
+performance or a completed historical benchmark.
+
+E74: A separate five-call calibration increased only output capacity to 20,000 tokens
+and timeout to 300 seconds. Original fixture artifacts, expected findings, prompt,
+rubric and schema remained unchanged. All five valid outputs matched their frozen
+expectations, with zero false admits or mandatory failures. Usage was 48,575 input
+and 20,867 output tokens, costing 764,550 microdollars; all five operations settled
+with zero reservation. The four retained calibration stages total 2,987,990 model
+microdollars across twenty calls. This is reused development calibration, not held-out
+accuracy or historical admission.
+
+E75: A fresh PR 404 attempt used the newly calibrated output/timeout limits with all
+historical source, tests, commands and selectors unchanged. All thirteen deterministic
+operations passed again, followed by two agreeing independent model reviews. The
+record passed current historical qualification authority validation: one admitted
+development task. Model usage was 136,240 input and 19,371 output tokens, costing
+1,165,475 microdollars; 26 estimated infrastructure microdollars brought this attempt
+to 1,165,501. All fifteen operations settled with zero reservation. The earlier failed
+attempt remains retained, so combined PR 404 qualification cost is 1,706,102
+microdollars, excluding separate calibration/environment preparation. No worker export,
+scoring or campaign authority resulted. The original 36 metadata candidates and full
+30+ task corpus gate remain unchanged.

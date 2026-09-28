@@ -78,8 +78,11 @@ the [backlog](backlog.md) annotates progress without treating code presence as r
 The five original research reviews and the full milestone plan remain retained as design history.
 The automated evaluation path now uses [ADR-011](adr/ADR-011-current-qualification-authority.md):
 executed v2 qualification with current consumption authority and separate metered scoring grants.
-Legacy records allow inspection only. Live calibration, historical qualification and full campaign
-execution remain open; synthetic contract tests do not satisfy those release gates.
+Legacy records allow inspection only. Live development calibration and synthetic qualification
+have completed, and one historical development task is qualified. Qualification of the
+required corpus and full campaign execution remain open. See the
+[calibration record](evaluation-calibration.md) and
+[historical attempts](historical-development-attempts.md) for outcomes and their limits.
 
 ## Milestones and dependency gates
 
