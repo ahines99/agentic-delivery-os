@@ -61,3 +61,11 @@ corpus or a completed campaign.
 Actual campaign execution still requires the controller, independent semantic-scoring
 calibration and complete qualified corpus. Until those
 exist, the new record remains `PREREGISTERED_NOT_EXECUTED` with spending unauthorized.
+
+
+The first [canonical allocator](../campaign-allocation.md) now uses one existing-ledger
+account per exact campaign digest/ordinal, current per-ordinal policy and authorization,
+and immutable allocation/attempt checkpoints. It pins the trusted ledger target and
+original account timestamp without a second accounting system or control account.
+This metadata-only step creates no source export, model execution or phase promotion.
+The preparation reservation remains a ceiling, not an actual-cost reconciliation.
