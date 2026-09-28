@@ -308,7 +308,8 @@ cases, rubric/prompt/schema/model/rates, response identity and ledger checkpoint
 agreement/false-admit/mandatory-failure and usage metrics. Unknown calls cannot retry; lifetime
 deadlines and post-response policy revocation apply. Independent review reproduced and verified
 response-ID reuse rejection. No paid calibration, historical case or campaign ran. The integrated
-qualifier must still combine these stages and migrate admission/export/scoring protocols explicitly.
+qualifier and protocol migration were still pending at this checkpoint; E41 records their subsequent
+bounded implementation without claiming live historical admission.
 
 E40: Complete executable-stage verification passed 1056 tests with seven explicit Windows skips
 in 356.95 seconds against actual PostgreSQL, Temporal and Docker. Ruff check/format (175 files),
@@ -316,3 +317,30 @@ mypy (65 sources), locked dependencies, wheel build, installed-wheel imports/inf
 53-document local link validation and staged secret scanning passed. No paid calibration, historical
 admission or campaign ran. The previous checkpoint `379bfa6` passed all four hosted checks at
 [run 36448350261](https://github.com/ahines99/agentic-delivery-os/actions/runs/36448350261).
+
+E41: [ADR-011](adr/ADR-011-current-qualification-authority.md), the [complete controller](qualification-controller.md)
+and [current authority](qualification-admission.md) connect preparation, executed calibration,
+thirteen runtime effects, independent reviews, conditional adjudication and exact closed accounting.
+Current export/scoring/campaign preparation require reconstructed v2 evidence and current action
+permission; legacy records allow explicit inspection only. Twenty-four admission regressions use
+genuine controlled-transport execution chains and cover chronology, current authority, exact caps,
+unknown retention, synthetic refusal and export boundaries. An actual Docker integration exercises
+qualification, admission, source-only export, a candidate score and cached resume. Model responses
+and task provenance are synthetic fixtures; no historical catalog task is admitted. The earlier
+E18/E39 statements that this controller was missing describe their prior checkpoints.
+
+E42: [Separate scoring execution](scoring-execution.md) binds a distinct grant/account to the
+qualification, task, candidate, configuration, policy, rate and lifetime deadline. Its 21 focused
+tests cover per-stage metering, caps, current revocation, cancellation/cleanup, settled resume and
+unknown retry refusal. Consumer migration passed 197 focused regressions; primitive tests use
+explicit controlled authority fixtures, while E41 supplies complete-chain actual Docker evidence.
+These counts are scoped runs, not additive coverage or calibrated scoring efficacy. Campaign-wide
+allocation, live calibration, historical qualification and campaign execution remain open.
+
+E43: Complete v2 controller/admission/consumer verification passed **1155 tests, seven explicit
+Windows skips**, in 610.65 seconds against actual PostgreSQL, Temporal and Docker. Ruff check/format
+(186 files), mypy (68 sources), locked dependencies, wheel build, installed-wheel imports,
+57-document local link validation and staged secret scanning passed. No managed test container
+remained after the full run. No paid provider call, historical qualification or campaign ran.
+The previous `e2f94e9` checkpoint passed all four hosted checks at
+[run 36451443398](https://github.com/ahines99/agentic-delivery-os/actions/runs/36451443398).

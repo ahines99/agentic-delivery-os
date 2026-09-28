@@ -2,7 +2,7 @@
 
 import json
 from collections import Counter
-from typing import Annotated, Any, Literal
+from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from pydantic import AwareDatetime, Field
 
@@ -12,6 +12,9 @@ from agentic_delivery.evaluation.harness import HistoricalTask
 from agentic_delivery.evaluation.qualification import qualification_task_digest
 from agentic_delivery.storage.artifacts import ArtifactStore
 from agentic_delivery.storage.store import digest_json
+
+if TYPE_CHECKING:
+    from agentic_delivery.evaluation.qualification_admission import QualificationAuthority
 
 Digest = Annotated[str, Field(pattern=r"^[a-f0-9]{64}$", strict=True)]
 Arm = Literal["A", "B", "C"]
@@ -72,7 +75,7 @@ class CampaignSpecification(Contract):
 
 
 class CalibrationEvidence(Contract):
-    """Controller-owned development-only records; no synthetic fixture promotion."""
+    """Legacy reference-only metadata; never current executed-calibration evidence."""
 
     schema_version: Literal[1]
     rubric_artifact: Digest
@@ -103,11 +106,9 @@ class ScheduledAttempt(Contract):
     seed: int = Field(strict=True, ge=0, le=2**32 - 1)
 
 
-class FrozenCampaign(Contract):
-    schema_version: Literal[1] = 1
+class CampaignArtifact(Contract):
     status: Literal["PREREGISTERED_NOT_EXECUTED"] = "PREREGISTERED_NOT_EXECUTED"
     spend_authorized: Literal[False] = False
-    calibration_verified: Literal[False] = False
     specification: CampaignSpecification
     tasks: tuple[FrozenTask, ...]
     manifest_digest: Digest
@@ -118,6 +119,33 @@ class FrozenCampaign(Contract):
     stability_attempts: int = Field(strict=True, ge=24)
     attempt_cost_ceiling_microdollars: int = Field(strict=True, gt=0)
     worst_case_microdollars: int = Field(strict=True, gt=0)
+
+
+class LegacyFrozenCampaign(CampaignArtifact):
+    schema_version: Literal[1] = 1
+    calibration_verified: Literal[False] = False
+
+
+class FrozenCampaign(CampaignArtifact):
+    schema_version: Literal[2] = 2
+    calibration_verified: Literal[True] = True
+    qualification_mode: Literal["independent-agents-v2"] = "independent-agents-v2"
+
+
+def inspect_legacy_campaign(store: ArtifactStore, artifact_digest: str) -> dict[str, Any]:
+    """Read a saved v1 artifact as historical metadata, without current authority or spend."""
+    legacy = LegacyFrozenCampaign.model_validate(_read(store, artifact_digest))
+    return {
+        "kind": "historical-campaign-inspection",
+        "artifact_digest": artifact_digest,
+        "campaign_id": legacy.specification.campaign_id,
+        "tasks": len(legacy.tasks),
+        "primary_attempts": legacy.primary_attempts,
+        "stability_attempts": legacy.stability_attempts,
+        "current_qualification_verified": False,
+        "calibration_verified": False,
+        "spend_authorized": False,
+    }
 
 
 def _require(condition: bool, reason: str) -> None:
@@ -194,6 +222,8 @@ def freeze_campaign(
     specification: CampaignSpecification,
     protected_artifacts: ArtifactStore,
     output_artifacts: ArtifactStore,
+    *,
+    authority: "QualificationAuthority | None" = None,
 ) -> tuple[FrozenCampaign, str]:
     """Validate everything, then atomically store one metadata-only frozen artifact.
 
@@ -202,19 +232,28 @@ def freeze_campaign(
     sealed-set access, campaign uniqueness and live ledger admission before any run.
     """
     try:
+        from agentic_delivery.evaluation.qualification_admission import QualificationAuthority
+
+        _require(
+            isinstance(authority, QualificationAuthority),
+            "Concrete current qualification authority is required to freeze a campaign",
+        )
+        assert authority is not None
         normalized_spec = CampaignSpecification.model_validate(
             specification.model_dump(mode="json")
         )
         normalized_tasks = tuple(
             HistoricalTask.model_validate(t.model_dump(mode="json")) for t in tasks
         )
-        result = _freeze(normalized_tasks, normalized_spec, protected_artifacts, output_artifacts)
+        result = _freeze(
+            normalized_tasks, normalized_spec, protected_artifacts, output_artifacts, authority
+        )
         digest = output_artifacts.put(result.model_dump_json().encode())
         return result, digest
     except CampaignFailure:
         raise
-    except (ValueError, OSError, KeyError, TypeError) as exc:
-        raise CampaignFailure("Invalid or missing campaign prerequisite") from exc
+    except (ValueError, OSError, KeyError, TypeError):
+        raise CampaignFailure("Invalid or missing campaign prerequisite") from None
 
 
 def _freeze(
@@ -222,6 +261,7 @@ def _freeze(
     spec: CampaignSpecification,
     store: ArtifactStore,
     output: ArtifactStore,
+    authority: "QualificationAuthority",
 ) -> FrozenCampaign:
     _require(
         not output.root.is_relative_to(store.root) and not store.root.is_relative_to(output.root),
@@ -316,26 +356,11 @@ def _freeze(
             configurations[1].review_prompt_digest == configurations[2].review_prompt_digest,
             "C must retain B's independent review configuration",
         )
-    calibration = CalibrationEvidence.model_validate(_read(store, spec.calibration_artifact))
-    calibration_refs = (
-        *calibration.known_pass_receipts,
-        *calibration.known_fail_receipts,
-        *calibration.tamper_receipts,
+    # Opaque legacy calibration booleans/receipt references cannot satisfy this gate.
+    authority.validate_calibration_reference(
+        tasks[0], artifact_digest=spec.calibration_artifact, rubric_artifact=spec.rubric_artifact
     )
-    _require(
-        len(set(calibration_refs)) == len(calibration_refs),
-        "Calibration receipt identities must be unique across all outcome roles",
-    )
-    _require(
-        calibration.rubric_artifact == spec.rubric_artifact, "Calibration is for a different rubric"
-    )
-    for digest in (
-        spec.rubric_artifact,
-        spec.selection_ledger_artifact,
-        *calibration.known_pass_receipts,
-        *calibration.known_fail_receipts,
-        *calibration.tamper_receipts,
-    ):
+    for digest in (spec.rubric_artifact, spec.selection_ledger_artifact):
         _require(bool(store.get(digest)), "Missing calibration or selection provenance")
     primary_count = len(tasks) * len(configurations)
     stability_count = 6 * 2 * len(configurations)
@@ -346,15 +371,32 @@ def _freeze(
     _require(
         total <= spec.cap_microdollars, "Worst-case campaign plus preparation exceeds explicit cap"
     )
-    # Existing v1 qualification supports executable behavior only; documentation
+    # Current qualification supports executable behavior only; documentation
     # strata remain unsupported rather than weakening the >=24 executable minimum.
+    qualifier_configuration = None
     for task in tasks:
         task_budget = task.budget.model_dump()
         _require(
             all(task_budget[key] == getattr(common.limits, key) for key in task_budget),
             "Task resource ceilings differ from equal-cap arm configuration",
         )
-        task.validate_qualification(store)
+        admitted = task.validate_qualification(store, authority=authority, purpose="campaign")
+        if qualifier_configuration is None:
+            qualifier_configuration = (
+                admitted.model_configuration,
+                admitted.calibration_spec_artifact,
+            )
+        _require(
+            admitted.calibration_evidence_artifact == spec.calibration_artifact
+            and admitted.rubric_artifact == spec.rubric_artifact
+            and (admitted.model_configuration, admitted.calibration_spec_artifact)
+            == qualifier_configuration,
+            "Task qualification calibration, rubric or model differs from campaign configuration",
+        )
+    # Recheck after all immutable reads before producing the current frozen record.
+    authority.validate_calibration_reference(
+        tasks[0], artifact_digest=spec.calibration_artifact, rubric_artifact=spec.rubric_artifact
+    )
     frozen_tasks = tuple(
         FrozenTask(
             task_id=t.id,

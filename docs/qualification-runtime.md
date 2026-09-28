@@ -58,9 +58,29 @@ work. Only the final complete, validated matrix produces a completion checkpoint
 `validate_deterministic_evidence` API rechecks that checkpoint, preparation, current authority,
 all thirteen ledger settlements, measured rate arithmetic and the complete collector matrix.
 This stage validator requires the original execution grant to remain within its wall deadline.
-A future durable admission gate needs a separate historical-execution check at the trusted
-completion-checkpoint time, plus current rights/configuration/calibration/admission checks; it
-must not obtain historical acceptance by substituting an arbitrary past clock.
+For later consumption, `validate_completed_deterministic_evidence` separately verifies
+historical execution and current data authority. It takes the same request, artifact,
+original trusted runtime grant, settings, preparation policy, stores, worker root and
+ledger, plus the trusted caller's actual current `now`. It returns `DeterministicEvidence`
+and never executes work, renews a grant, writes a checkpoint or admits a task.
+
+Historical time comes from `created_at` on the actual immutable
+`deterministic-complete-v1` ledger checkpoint. The validator rejects a future completion,
+completion outside the original grant or wall deadline, and mismatched checkpoint identity.
+Every operation must be settled: its creation and settlement timestamps must follow the
+binding checkpoint, remain in the controller's canonical sequence, and precede completion.
+Missing, naive, reversed and out-of-order timestamps fail closed. The existing complete-chain
+validator then rechecks the collector and accounting evidence at that recorded completion
+time. The caller cannot supply a separate historical time override.
+
+Preparation also runs at current `now`: data-use rights must still be valid, admission and
+repository data permissions enabled, and current execution configuration and preparation
+policy must still match the completed evidence. Both artifact stores and the SQLite ledger
+remain excluded from worker scopes. An expired short-lived execution grant can therefore
+support later evidence consumption while conferring no new execution authority. The durable
+admission gate must separately verify current calibration, independent review and admission
+authorization. Ledger writers and the caller's current clock remain trusted; checkpoint
+timestamps are local control-plane records, not external time attestations.
 
 All detailed execution receipts, stdout/stderr, source, oracle and reference material
 remain evaluator-only. The return value contains only status, account and artifact
@@ -69,10 +89,14 @@ writer remain part of the control-plane boundary; hashes are not external attest
 
 ## Recorded verification
 
-Thirty controlled tests passed for the full matrix, exact cache reuse, provider-style
+Controlled tests cover the full matrix, exact cache reuse, provider-style
 lost settlement acknowledgement, malformed collector evidence, changed authority,
 expiry, repeated cancellation, cleanup failure, retained unknown reservations, read-only complete-chain
 validation and cross-repository scope rejection.
+Historical-consumption tests use grants aligned with the real UTC ledger clock. They verify
+delayed consumption after the original execution window, fresh rights/configuration/policy
+checks, future or premature completion, grant/deadline violations, reversed or missing
+operation timestamps, unknown state, exposed ledgers and absence of writes or re-execution.
 An actual Docker test passed all twelve synthetic checks and the preflight in 20.95
 seconds, verified execution/accounting references, and verified that resume performed
 no new Docker execution. These synthetic fixtures do not establish historical rights,

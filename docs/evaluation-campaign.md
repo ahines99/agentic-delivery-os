@@ -7,36 +7,57 @@ claim that any real task has qualified. No populated campaign is shipped.
 
 ## Contract and use
 
-The controller supplies qualified `HistoricalTask` objects, a strict
-`CampaignSpecification`, a protected `ArtifactStore`, and a separate output store:
+The controller supplies current `independent-agents-v2` tasks, a strict
+`CampaignSpecification`, a protected `ArtifactStore`, a separate output store,
+and the concrete in-process `QualificationAuthority`:
 
 ```python
 frozen, artifact_digest = freeze_campaign(
-    tasks, specification, protected_artifacts, output_artifacts
+    tasks,
+    specification,
+    protected_artifacts,
+    output_artifacts,
+    authority=authority,
 )
 ```
 
-The CLI exports schemas with `delivery-eval schema --kind campaign`, `--kind arm-configuration`
-or `--kind calibration`, each with `--output FILE`. Once protected inputs and both separate
-artifact directories exist, the same preregistration is available as:
+The authority revalidates each task's complete evidence chain and current `campaign`
+use grant. It also revalidates the executed development calibration, including
+ledger/model receipts, rather than accepting legacy receipt references or boolean
+claims. All tasks must bind the same qualification model configuration, calibration
+specification/evidence and rubric. The qualification model is a separate role from
+the A/B/C implementation model and need not be the same model.
+
+Every prerequisite is checked before one content-addressed schema-2 `FrozenCampaign`
+is written. Failure raises `CampaignFailure`; no partial campaign is written. The
+artifact says `PREREGISTERED_NOT_EXECUTED`, `spend_authorized: false`, and
+`calibration_verified: true`. That calibration flag records successful validation at
+freeze time; the artifact is not a current authorization capability or proof that any
+campaign attempt ran. Current grants and calibration expiry must be checked again
+by any future campaign executor.
+
+Task entries contain IDs, split/family/repository metadata and manifest/qualification
+digests. They omit source snapshots, oracle paths/test IDs, reference solutions,
+model responses and private review findings. Never give workers access to the
+protected store behind these opaque references.
+
+The offline CLI has no trusted authority loader. `freeze-campaign` therefore refuses
+current registration, and `validate-qualification` refuses current admission. These
+commands cannot be enabled by supplying an artifact that claims authorization.
+`delivery-eval schema --kind campaign` and `--kind arm-configuration` remain available.
+The `--kind calibration` schema is the legacy reference-only contract; the executed
+calibration API is documented in [development calibration](evaluation-calibration.md).
+
+Existing schema-1 campaign artifacts remain inspectable without spending:
 
 ```sh
-uv run delivery-eval freeze-campaign --manifest /private/tasks.jsonl --specification /private/campaign.json --artifacts /private/qualification-artifacts --output-artifacts /private/frozen-artifacts --output /private/freeze-summary.json
+uv run delivery-eval inspect-legacy-campaign --artifacts /private/frozen-artifacts --campaign-artifact SHA256 --output /private/history-summary.json
 ```
 
-The summary must be outside both artifact directories and cannot replace either input. It records
-source-file hashes and the frozen artifact digest, with spending unauthorized and calibration
-unverified. No ready-to-run historical manifest or campaign is bundled with this repository.
-
-Every prerequisite is checked before the output store receives one content-addressed
-`FrozenCampaign`. Failure raises `CampaignFailure`; no partial campaign is written.
-The artifact says `PREREGISTERED_NOT_EXECUTED` and `spend_authorized: false`.
-It also says `calibration_verified: false`: the metadata/reference validation below
-does not certify fixture outcomes and cannot satisfy an execution calibration gate.
-Its task entries contain IDs, split/family/repository metadata and manifest/qualification
-digests. It contains no source snapshots, oracle paths or test IDs, reference solutions,
-model responses, or private review findings. Treat opaque references as metadata;
-never grant workers access to the protected store behind them.
+The output must be outside protected storage. The summary explicitly reports
+`current_qualification_verified: false`, `calibration_verified: false`, and
+`spend_authorized: false`. Historical readability never upgrades a legacy record.
+No qualified historical manifest or completed campaign is bundled with this repository.
 
 Required input fields include the campaign/dataset version, protocol
 `agentic-historical-v1`, scoring code commit, rubric/calibration/selection-ledger
@@ -50,10 +71,10 @@ No human curator identity or human admission vote is required.
   ten. The same issue/repository cannot count as multiple tasks at different bases.
 - At least three repositories and at least one repository appearing only in the
   sealed test split. Related families cannot span splits.
-- Every task passes the existing agent qualification validator against its current
-  fully normalized manifest. That validator binds two actual agent receipt contexts
-  and executed oracle evidence; a reviewer label or a `passed` flag is insufficient.
-- This v1 module accepts the executable-behavior qualification profile only. Thus
+- Every task passes the current concrete v2 authority against its fully normalized
+  manifest, current action grant and actual private ledger evidence. Legacy v1
+  structural evidence, reviewer labels and serialized `passed` flags are insufficient.
+- This bounded module accepts the executable-behavior qualification profile only. Thus
   all admitted tasks exceed the methodology's minimum of 24 executable tasks. A
   documentation-only rubric stratum is unsupported and must not be approximated by
   trivial executable tests.
@@ -108,13 +129,13 @@ preregistration before execution, never removal of expensive observed failures.
 
 ## Evidence and remaining limits
 
-`CalibrationEvidence` binds the rubric and development-only known-pass, known-fail,
-and tampering receipt references, plus mandatory safety/false-ready completion
-claims. Every receipt must exist and have a distinct digest, including across outcome
-roles. This module verifies the controller-owned contract and reference integrity;
-it does **not** rerun those fixtures or semantically certify arbitrary receipt bytes.
-The calibration producer and its store remain trusted. Tests use explicitly labeled
-synthetic fixtures; passing those tests does not qualify a historical task or rubric.
+The current calibration gate calls the executed validator through the concrete
+qualification authority. It checks current allowlists/expiry and measured decisions
+against frozen development fixtures, with actual operation receipts and configured
+rubric/model bindings. It does not establish unbiased real-world judge accuracy or
+human benefit. Primitive campaign tests explicitly patch the authority boundary to
+exercise scheduling, caps and denominator rules; those fixtures are not qualification
+or calibration evidence. Real chain validation is tested separately.
 
 The timestamp and `execution_started: false` assertion cannot prove a campaign has
 never run. This pure module does not maintain a run registry, authenticate artifact

@@ -15,10 +15,10 @@ Linear -> Requirements -> Risk policy -> Plan -> Isolated build
 Implemented and exercised locally: authenticated intake and plan approval, PostgreSQL
 inbox/outbox and audit storage, Temporal workflows, real Anthropic planning/build/review,
 bounded Docker execution, independent test runs, and digest-verified candidate artifacts.
-The local suite passed 1056 tests with actual PostgreSQL, Temporal and Docker, including
+The local suite passed 1155 tests with actual PostgreSQL, Temporal and Docker, including
 structured test-evidence validation, CI races, projection recovery, resource exhaustion and
 hostile dependency hooks; seven POSIX/symlink cases explicitly skipped on Windows.
-[The preceding revision's hosted CI passed](https://github.com/ahines99/agentic-delivery-os/actions/runs/36448350261)
+[The preceding revision's hosted CI passed](https://github.com/ahines99/agentic-delivery-os/actions/runs/36451443398)
 on Python 3.12/3.13, real service integration and secret scanning.
 A synthetic customer task reached `LOCAL_REVIEW_READY`; its durable workflow stopped at
 `POLICY_BLOCKED` because publication was disabled. No PR, merge, or deployment is implied.
@@ -36,7 +36,8 @@ product gate and research recommendation. The [historical candidate catalog](doc
 contains 36 real metadata-only candidates; none is represented as a qualified or scored task.
 Benchmark qualification and scoring now follow the user's hands-off preference through
 [independent agent reviews and executable checks](docs/adr/ADR-007-automated-benchmark-qualification.md).
-The worker and scorer require verified qualification records; absent human observations remain
+The worker and scorer require current authority over executed v2 qualification records; scoring
+also requires its own metered spending grant. Legacy records allow inspection only. Absent human observations remain
 unmeasured. This does not change human plan approval, merge authority or pilot signoff.
 
 ## Local quickstart
@@ -67,8 +68,9 @@ uv run --no-sync python -m mypy
 uv run --no-sync python -m pytest
 ```
 
-`delivery-eval` provides offline schema export, structural and qualification-record validation,
-campaign preregistration and paired trial reporting; see [the evaluation workspace](evals/README.md).
+`delivery-eval` provides offline schema export, structural validation, legacy record inspection
+and paired trial reporting; see [the evaluation workspace](evals/README.md). Current qualification
+and campaign APIs require a trusted authority; the offline CLI cannot supply it.
 These commands do not execute a benchmark or authorize spending. Integration tests explicitly
 skip without the runbook's service variables.
 
@@ -89,6 +91,9 @@ skip without the runbook's service variables.
 | [docs/operator-rotation.md](docs/operator-rotation.md) | Restart-based HTTP token rotation and paused-admission rehearsal |
 | [docs/artifact-retention.md](docs/artifact-retention.md) | Read-only artifact reachability planning and required scope |
 | [docs/qualification-runtime.md](docs/qualification-runtime.md) | Metered preflight and twelve-run deterministic checks with safe resume |
+| [docs/qualification-controller.md](docs/qualification-controller.md) | Complete private qualification execution, independent reviews and resume |
+| [docs/qualification-admission.md](docs/qualification-admission.md) | Executed evidence, current consumption authority and legacy inspection |
+| [docs/scoring-execution.md](docs/scoring-execution.md) | Separate candidate scoring grants, accounting and revocation |
 | [docs/qualification-v2.md](docs/qualification-v2.md) | Protected semantic evidence, independent reviews and adjudication |
 | [docs/evaluation-calibration.md](docs/evaluation-calibration.md) | Executed development cases and recomputed calibration metrics |
 | [docs/qualification-preparation.md](docs/qualification-preparation.md) | Offline evidence preparation without admission or spending |

@@ -113,10 +113,10 @@ failures are sanitized so exception text does not expose protected reference cod
 Both stores remain evaluator-only: their underlying imported material must never become model
 context merely because the result contains a digest. Preparation does not prove semantic
 nonleakage of task descriptions, filesystem confidentiality, or protection against a concurrent
-privileged filesystem replacement. The future execution controller must revalidate the current
-policy, authorization expiry, filesystem scopes and immutable artifacts before effects; reserve
-and account for actual costs; run the twelve baseline/reference checks; execute calibrated,
-independent agent reviews; and call the existing admission validator. Prepared metadata cannot
+privileged filesystem replacement. The [execution controller](qualification-controller.md) revalidates current
+policy, authorization expiry, filesystem scopes and immutable artifacts before effects, reserves
+and accounts for actual costs, runs the twelve baseline/reference checks and executes calibrated,
+independent agent reviews. Current consumption requires the complete admission validator. Prepared metadata cannot
 replace any of those gates or authorize sealed-test access or spending.
 
 The focused tests use explicitly synthetic source, references, identity claims and controller

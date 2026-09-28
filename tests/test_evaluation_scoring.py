@@ -1,17 +1,32 @@
 """Synthetic scoring boundary regressions; no historical or provider execution claims."""
 
-import os
+from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
+from test_evaluation_authority import scoring_execution_boundary as scoring_execution_fixture
 from test_qualification import get, historical_task, put
 from test_qualification import records as records_fixture
 
-from agentic_delivery.evaluation.harness import score_candidate
+from agentic_delivery.evaluation.harness import HistoricalTask, score_candidate
+from agentic_delivery.evaluation.qualification import QualificationInput
 from agentic_delivery.storage.artifacts import ArtifactStore
 from agentic_delivery.storage.store import digest_json
 
 records = records_fixture
+scoring_execution_boundary = scoring_execution_fixture
+
+
+@pytest.fixture
+def admitted_scoring_boundary(records, monkeypatch, scoring_execution_boundary):
+    """Only exercise scoring primitives; this is deliberately not current admission proof."""
+
+    def validate(task, artifacts, **kwargs):
+        task.inspect_legacy_qualification(artifacts)
+        return SimpleNamespace(qualification_input=QualificationInput.model_validate(records[2]))
+
+    monkeypatch.setattr(HistoricalTask, "validate_qualification", validate)
+    return object(), scoring_execution_boundary
 
 
 def add_source_files(records, additions):
@@ -47,7 +62,7 @@ def add_source_files(records, additions):
     ],
 )
 async def test_candidate_cannot_change_original_tests_or_control_files(
-    records, tmp_path_factory, monkeypatch, path, action
+    records, tmp_path_factory, monkeypatch, path, action, admitted_scoring_boundary
 ):
     source = add_source_files(records, {} if action == "add" else {path: "# original\n"})
     task = historical_task(records)
@@ -63,13 +78,18 @@ async def test_candidate_cannot_change_original_tests_or_control_files(
     monkeypatch.setattr("agentic_delivery.evaluation.harness.DockerRunner", forbidden_runner)
     with pytest.raises(ValueError):
         await score_candidate(
-            task, candidate, records[0], ArtifactStore(tmp_path_factory.mktemp("scoring"))
+            task,
+            candidate,
+            records[0],
+            ArtifactStore(tmp_path_factory.mktemp("scoring")),
+            authority=admitted_scoring_boundary[0],
+            execution=admitted_scoring_boundary[1],
         )
 
 
 @pytest.mark.parametrize("candidate", [{"app.py": "VALUE = 1\n"}, {"app.py": "eval('2')\n"}])
 async def test_no_change_or_risk_escalation_stops_before_execution(
-    records, tmp_path_factory, monkeypatch, candidate
+    records, tmp_path_factory, monkeypatch, candidate, admitted_scoring_boundary
 ):
     task = historical_task(records)
 
@@ -79,7 +99,12 @@ async def test_no_change_or_risk_escalation_stops_before_execution(
     monkeypatch.setattr("agentic_delivery.evaluation.harness.DockerRunner", forbidden_runner)
     with pytest.raises(ValueError):
         await score_candidate(
-            task, candidate, records[0], ArtifactStore(tmp_path_factory.mktemp("scoring"))
+            task,
+            candidate,
+            records[0],
+            ArtifactStore(tmp_path_factory.mktemp("scoring")),
+            authority=admitted_scoring_boundary[0],
+            execution=admitted_scoring_boundary[1],
         )
 
 
@@ -94,11 +119,12 @@ async def test_no_change_or_risk_escalation_stops_before_execution(
         "stale_snapshot",
         "wrong_image",
         "wrong_command",
+        "wrong_operation",
         "timeout",
     ],
 )
 async def test_final_score_uses_frozen_nodes_and_receipt_not_summary(
-    records, tmp_path_factory, monkeypatch, defect
+    records, tmp_path_factory, monkeypatch, defect, admitted_scoring_boundary
 ):
     task = historical_task(records)
     store, _, spec = records
@@ -155,6 +181,8 @@ async def test_final_score_uses_frozen_nodes_and_receipt_not_summary(
                 receipt["image"] = "sha256:" + "1" * 64
             elif defect == "wrong_command":
                 receipt["command_id"] = "unrelated-suite"
+            elif defect == "wrong_operation":
+                receipt["workflow_id"] = "stale-operation"
             elif defect == "timeout":
                 receipt["timed_out"] = True
         artifact = put(artifacts, receipt)
@@ -180,56 +208,54 @@ async def test_final_score_uses_frozen_nodes_and_receipt_not_summary(
     monkeypatch.setattr("agentic_delivery.evaluation.harness.DockerRunner", ControlledRunner)
     monkeypatch.setattr("agentic_delivery.evaluation.harness.verify", controlled_verify)
     if defect is None:
-        result = await score_candidate(task, candidate, store, output)
+        result = await score_candidate(
+            task,
+            candidate,
+            store,
+            output,
+            authority=admitted_scoring_boundary[0],
+            execution=admitted_scoring_boundary[1],
+        )
         assert result["passed"] is True
     elif defect == "missing_receipt":
         with pytest.raises((ValueError, OSError)):
-            await score_candidate(task, candidate, store, output)
+            await score_candidate(
+                task,
+                candidate,
+                store,
+                output,
+                authority=admitted_scoring_boundary[0],
+                execution=admitted_scoring_boundary[1],
+            )
     else:
-        result = await score_candidate(task, candidate, store, output)
+        result = await score_candidate(
+            task,
+            candidate,
+            store,
+            output,
+            authority=admitted_scoring_boundary[0],
+            execution=admitted_scoring_boundary[1],
+        )
         assert result["passed"] is False
 
 
-@pytest.mark.integration
-async def test_actual_docker_scoring_with_explicitly_synthetic_qualification(
-    records, tmp_path_factory
+async def test_legacy_synthetic_qualification_cannot_authorize_docker_scoring(
+    records, tmp_path_factory, monkeypatch
 ):
-    """Actual scoring only; qualification agent/rights/execution records are fabricated."""
-    image = os.environ.get("TEST_SANDBOX_IMAGE")
-    if not image:
-        pytest.skip("TEST_SANDBOX_IMAGE is not configured")
-    store, _, spec = records
-    source = {"app.py": "VALUE = 1\n"}
-    oracle = {
-        "tests/test_behavior.py": "from app import VALUE\ndef test_value(): assert VALUE == 2\n",
-        "tests/test_regression.py": (
-            "from app import VALUE\ndef test_existing(): assert VALUE > 0\n"
-        ),
-    }
-    snapshots = {
-        "baseline": {**source, **oracle},
-        "reference": {**source, **oracle, "app.py": "VALUE = 2\n"},
-    }
-    spec["image"] = image
-    spec["oracle_artifact"] = put(store, oracle)
-    spec["provenance"]["source_snapshot_artifact"] = put(store, source)
-    for variant, files in snapshots.items():
-        spec[f"{variant}_snapshot_artifact"] = put(store, files)
-    for execution in spec["executions"]:
-        receipt = get(store, execution["receipt_artifact"])
-        receipt["image"] = image
-        snapshot_digest = digest_json(snapshots[execution["variant"]])
-        receipt["snapshot_digest"] = snapshot_digest
-        receipt["verification_binding"]["snapshot_digest"] = snapshot_digest
-        receipt["verification_report"]["binding"]["snapshot_digest"] = snapshot_digest
-        execution["receipt_artifact"] = put(store, receipt)
+    """Legacy inspection remains available; scoring is denied before Docker construction.
+
+    The real 12-run collector regression remains in test_qualification.py; current
+    admission-to-Docker coverage uses the separate v7 end-to-end fixture.
+    """
+    store, _, _ = records
     task = historical_task(records)
-    output = ArtifactStore(tmp_path_factory.mktemp("actual-scoring"))
-    passing = await score_candidate(task, {"app.py": "VALUE = 2\n"}, store, output)
-    failing = await score_candidate(task, {"app.py": "VALUE = 0\n"}, store, output)
-    assert passing["passed"] is True
-    assert passing["frozen_acceptance_collection"] is True
-    assert passing["frozen_regression_collection"] is True
-    assert failing["passed"] is False
-    assert failing["acceptance"]["passed"] is False
-    assert failing["regression"]["passed"] is False
+    task.inspect_legacy_qualification(store)
+
+    def forbidden_runner(*args, **kwargs):
+        pytest.fail("Legacy evidence reached Docker")
+
+    monkeypatch.setattr("agentic_delivery.evaluation.harness.DockerRunner", forbidden_runner)
+    output = ArtifactStore(tmp_path_factory.mktemp("denied-scoring"))
+    with pytest.raises(ValueError, match="independent-agents-v2"):
+        await score_candidate(task, {"app.py": "VALUE = 2\n"}, store, output)
+    assert not list(output.root.rglob("*"))

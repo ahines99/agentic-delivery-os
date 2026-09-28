@@ -632,7 +632,7 @@ def write_tasks(path, *tasks):
 def qualification_cli(store, manifest, output):
     return evaluation_main(
         [
-            "validate-qualification",
+            "inspect-legacy-qualification",
             "--manifest",
             str(manifest),
             "--artifacts",
@@ -643,7 +643,7 @@ def qualification_cli(store, manifest, output):
     )
 
 
-def test_qualified_historical_task_roundtrip_and_cli_export_safe_worker_context(
+def test_legacy_historical_task_roundtrip_and_inspection_never_authorize_export(
     records, tmp_path_factory
 ):
     store, record, spec = records
@@ -659,10 +659,9 @@ def test_qualified_historical_task_roundtrip_and_cli_export_safe_worker_context(
         qualification_task_digest(reloaded.model_dump(mode="json"))
         == record["task_manifest_digest"]
     )
-    worker = reloaded.worker_input(store)
-    assert set(worker) == {"task_id", "item", "base_sha", "files", "budget"}
-    assert worker["files"] == {"app.py": "VALUE = 1\n"}
-    serialized = json.dumps(worker, sort_keys=True)
+    reloaded.inspect_legacy_qualification(store)
+    with pytest.raises(ValueError, match="independent-agents-v2"):
+        reloaded.worker_input(store)
     prohibited = [
         spec["oracle_artifact"],
         spec["reference_snapshot_artifact"],
@@ -678,10 +677,11 @@ def test_qualified_historical_task_roundtrip_and_cli_export_safe_worker_context(
         "tests/test_regression.py",
         *task.reviewers,
     ]
-    assert all(secret not in serialized for secret in prohibited)
     assert qualification_cli(store, manifest, output) == 0
     result = json.loads(output.read_text(encoding="utf-8"))
-    assert result["qualification_verified"] is True
+    assert result["qualification_verified"] is False
+    assert result["execution_authorized"] is False
+    assert result["historical_evidence_inspected"] is True
     assert result["qualification_mode"] == "independent-agents-v1"
     assert result["tasks"] == 1
     assert all(secret not in json.dumps(result) for secret in prohibited)
@@ -704,6 +704,8 @@ def test_qualified_historical_task_mismatch_and_legacy_fail_before_export(
     else:
         document["reference_snapshot_artifact"] = None
     changed = HistoricalTask.model_validate(document)
+    with pytest.raises(ValueError):
+        changed.inspect_legacy_qualification(store)
     with pytest.raises(ValueError):
         changed.worker_input(store)
     manifest, output = export_paths(tmp_path_factory)
@@ -758,7 +760,17 @@ def test_qualification_cli_cannot_overwrite_protected_evidence_or_manifest(
 
 
 @pytest.mark.parametrize("location", ["same", "nested", "parent"])
-async def test_scoring_rejects_overlapping_protected_and_result_stores(records, location):
+async def test_scoring_rejects_overlapping_protected_and_result_stores(
+    records, location, monkeypatch
+):
+    from types import SimpleNamespace
+
+    # Unit boundary only: retain the separate store-isolation invariant after current admission.
+    monkeypatch.setattr(
+        HistoricalTask,
+        "validate_qualification",
+        lambda *args, **kwargs: SimpleNamespace(qualification_input=None),
+    )
     store, _, _ = records
     task = historical_task(records)
     target = {"same": store.root, "nested": store.root / "results", "parent": store.root.parent}[

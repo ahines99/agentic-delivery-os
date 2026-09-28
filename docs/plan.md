@@ -76,6 +76,10 @@ of 30+ historical tasks under ADR-007. Actual human benefit remains unmeasured. 
 The [implementation status](implementation-status.md) is the current capability record;
 the [backlog](backlog.md) annotates progress without treating code presence as release acceptance.
 The five original research reviews and the full milestone plan remain retained as design history.
+The automated evaluation path now uses [ADR-011](adr/ADR-011-current-qualification-authority.md):
+executed v2 qualification with current consumption authority and separate metered scoring grants.
+Legacy records allow inspection only. Live calibration, historical qualification and full campaign
+execution remain open; synthetic contract tests do not satisfy those release gates.
 
 ## Milestones and dependency gates
 

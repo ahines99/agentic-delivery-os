@@ -310,7 +310,7 @@ def prepare_qualification(
     )
     _require(
         task.qualification_artifact == "0" * 64
-        and task.qualification_mode == "independent-agents-v1"
+        and task.qualification_mode in {"independent-agents-v1", "independent-agents-v2"}
         and len(task.reviewers) == 2,
         "Preparation requires a pending agent-mode draft with two reserved context IDs",
     )

@@ -4,7 +4,7 @@ import asyncio
 import json
 import os
 import shutil
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from test_qualification_preparation import IMAGE, NOW, synthetic  # noqa: F401
@@ -17,6 +17,7 @@ from agentic_delivery.evaluation.qualification_runtime import (
     RuntimeAuthorization,
     RuntimeFailure,
     run_deterministic_qualification,
+    validate_completed_deterministic_evidence,
     validate_deterministic_evidence,
 )
 from agentic_delivery.execution.docker import DockerRunner, ExecutionResult
@@ -78,7 +79,8 @@ class ControlledRunner:
 def setup(synthetic, tmp_path):  # noqa: F811
     stores = []
 
-    def make(image=IMAGE):
+    def make(image=IMAGE, *, actual_clock=False):
+        issued_at = datetime.now(UTC) if actual_clock else NOW
         preparation, arguments, task = synthetic(
             oracle={
                 "tests/test_behavior.py": (
@@ -87,6 +89,10 @@ def setup(synthetic, tmp_path):  # noqa: F811
             },
             task_changes={"image": image},
             repository_changes={"sandbox_image": image},
+            authorization_changes={
+                "issued_at": (issued_at - timedelta(days=1)).isoformat(),
+                "expires_at": (issued_at + timedelta(days=1)).isoformat(),
+            },
         )
         request = DeterministicRequest(
             preparation=preparation,
@@ -104,10 +110,15 @@ def setup(synthetic, tmp_path):  # noqa: F811
             total_microdollars=5_100_000,
             microdollars_per_second=1,
             rate_card_version="synthetic-local-estimate-1",
-            issued_at=NOW,
-            expires_at=NOW + timedelta(minutes=30),
+            issued_at=issued_at,
+            expires_at=issued_at + timedelta(minutes=30),
         )
-        state = {"settings": settings, "policy": policy, "authorization": authorization, "now": NOW}
+        state = {
+            "settings": settings,
+            "policy": policy,
+            "authorization": authorization,
+            "now": issued_at,
+        }
         ledger = EvaluationExecutionStore(
             f"sqlite+pysqlite:///{tmp_path / 'delivery_eval_runtime.db'}"
         )
@@ -203,6 +214,136 @@ async def test_readonly_complete_chain_validator(setup, controlled, monkeypatch,
         with pytest.raises(RuntimeFailure):
             validate_deterministic_evidence(request, result["evidence_artifact"], **options)
     assert controlled.calls == 12
+
+
+@pytest.mark.parametrize(
+    "fault",
+    [
+        None,
+        "rights_expired",
+        "config_changed",
+        "policy_changed",
+        "completion_future",
+        "completion_before_operations",
+        "completion_after_deadline",
+        "creation_before_grant",
+        "settlement_before_creation",
+        "settlement_after_completion",
+        "operations_reordered",
+        "unknown",
+        "missing_settlement",
+        "naive_timestamp",
+        "exposed_ledger",
+    ],
+)
+async def test_completed_history_uses_ledger_time_and_current_authority(
+    setup, controlled, monkeypatch, fault
+):
+    # The ledger uses real UTC. This grant shares that clock, rather than the
+    # older frozen NOW used by controlled execution-only fixtures above.
+    request, kwargs, state = setup(actual_clock=True)
+    result = await run_deterministic_qualification(request, **kwargs)
+    ledger = kwargs["ledger"]
+    grant = state["authorization"]
+    original_checkpoint = ledger.checkpoint_receipt
+    original_operation = ledger.operation_receipt
+    complete = original_checkpoint(grant.account_id, "deterministic-complete-v1")
+    completed_at = datetime.fromisoformat(complete["created_at"])
+    now = grant.issued_at + timedelta(hours=1)
+    if fault == "rights_expired":
+        now = grant.issued_at + timedelta(days=2)
+    elif fault == "completion_future":
+        now = completed_at
+
+    def checkpoint(account_id, stage):
+        value = original_checkpoint(account_id, stage)
+        if stage == "deterministic-complete-v1":
+            if fault == "completion_future":
+                value["created_at"] = (now + timedelta(seconds=1)).isoformat()
+            elif fault == "completion_before_operations":
+                value["created_at"] = grant.issued_at.isoformat()
+            elif fault == "completion_after_deadline":
+                value["created_at"] = grant.expires_at.isoformat()
+        return value
+
+    def operation(account_id, operation_id):
+        value = original_operation(account_id, operation_id)
+        if operation_id.endswith("baseline-acceptance-1"):
+            if fault == "creation_before_grant":
+                value["created_at"] = (grant.issued_at - timedelta(seconds=1)).isoformat()
+            elif fault == "settlement_before_creation":
+                value["settled_at"] = (
+                    datetime.fromisoformat(value["created_at"]) - timedelta(microseconds=1)
+                ).isoformat()
+            elif fault == "settlement_after_completion":
+                value["settled_at"] = (completed_at + timedelta(seconds=1)).isoformat()
+            elif fault == "operations_reordered":
+                value["created_at"] = original_operation(account_id, account_id + ":preflight")[
+                    "created_at"
+                ]
+            elif fault == "unknown":
+                value["status"] = "RESERVED"
+            elif fault == "missing_settlement":
+                value["settled_at"] = None
+            elif fault == "naive_timestamp":
+                value["created_at"] = (
+                    datetime.fromisoformat(value["created_at"]).replace(tzinfo=None).isoformat()
+                )
+        return value
+
+    monkeypatch.setattr(ledger, "checkpoint_receipt", checkpoint)
+    monkeypatch.setattr(ledger, "operation_receipt", operation)
+    options = {
+        key: kwargs[key]
+        for key in ("ledger", "protected_artifacts", "output_artifacts", "worker_root")
+    }
+    options.update(
+        authorization=grant,
+        settings=state["settings"].model_copy(update={"publication_enabled": True})
+        if fault == "config_changed"
+        else state["settings"],
+        policy=state["policy"].model_copy(
+            update={"authorized_issuers": (*state["policy"].authorized_issuers, "changed")}
+        )
+        if fault == "policy_changed"
+        else state["policy"],
+        now=now,
+    )
+    exposed = None
+    if fault == "exposed_ledger":
+        ledger.engine.dispose()
+        target = kwargs["worker_root"] / "delivery_eval_exposed.db"
+        shutil.copy2(str(ledger.engine.url.database), target)
+        exposed = EvaluationExecutionStore(f"sqlite+pysqlite:///{target}")
+        options["ledger"] = exposed
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Historical validation must not write or execute")
+
+    monkeypatch.setattr(ledger, "checkpoint", forbidden)
+    monkeypatch.setattr(ledger, "reserve_infrastructure", forbidden)
+    monkeypatch.setattr(kwargs["output_artifacts"], "put", forbidden)
+    monkeypatch.setattr(controlled, "run", forbidden)
+    before = ledger.account(grant.account_id)
+    try:
+        if fault is None:
+            # The old stage validator correctly cannot renew expired runtime authority.
+            with pytest.raises(RuntimeFailure):
+                validate_deterministic_evidence(request, result["evidence_artifact"], **options)
+            evidence = validate_completed_deterministic_evidence(
+                request, result["evidence_artifact"], **options
+            )
+            assert evidence.admitted is False and len(evidence.executions) == 12
+        else:
+            with pytest.raises(RuntimeFailure):
+                validate_completed_deterministic_evidence(
+                    request, result["evidence_artifact"], **options
+                )
+        assert ledger.account(grant.account_id) == before
+        assert controlled.calls == 12 and controlled.preflights == 1
+    finally:
+        if exposed is not None:
+            exposed.engine.dispose()
 
 
 @pytest.mark.parametrize(

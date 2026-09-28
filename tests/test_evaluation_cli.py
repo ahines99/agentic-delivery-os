@@ -207,9 +207,9 @@ async def test_unqualified_tasks_cannot_export_source_or_score(tmp_path: Path) -
     task = HistoricalTask.model_validate(synthetic_task("one"))
     artifacts = ArtifactStore(tmp_path / "protected")
     # No artifact exists: qualification must reject before touching source or Docker.
-    with pytest.raises(ValueError, match="have not passed agent qualification"):
+    with pytest.raises(ValueError, match="independent-agents-v2"):
         task.worker_input(artifacts)
-    with pytest.raises(ValueError, match="have not passed agent qualification"):
+    with pytest.raises(ValueError, match="independent-agents-v2"):
         await score_candidate(task, {}, artifacts, artifacts)
 
 

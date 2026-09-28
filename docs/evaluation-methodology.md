@@ -2,6 +2,14 @@
 
 Status: accepted protocol, revised 2026-09-28 under [ADR-007](adr/ADR-007-automated-benchmark-qualification.md). Partial manifest/scoring/curation tooling and a 36-candidate metadata catalog exist; no task is yet qualified and no historical campaign has run. This is the full protocol, not a claim that partial tooling implements it. This protocol owns evaluation choices; [the security model](security-model.md) owns execution controls.
 
+Current consumer contract: historical export, scoring and campaign freeze require
+`independent-agents-v2` evidence and a concrete in-process current qualification
+authority with an action-specific grant. V1 records remain historical inspection
+only. Candidate scoring also requires a separately metered execution account;
+qualification alone grants no spending authority. Synthetic-purpose records cannot
+authorize historical consumers. These implemented gates do not constitute a
+qualified corpus, a completed historical campaign or measured human benefit.
+
 ## Questions and scope
 
 Measure whether a bounded Python ticket produces a correct, reviewable candidate within budget; whether independent review catches defects; and whether conservative repository context helps. Do not treat a PR, passing builder tests, or a model's approval as success. Every MVP merge remains human.

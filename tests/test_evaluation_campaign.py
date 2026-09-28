@@ -2,6 +2,7 @@
 
 import copy
 import json
+from types import SimpleNamespace
 
 import pytest
 from test_qualification import (
@@ -17,10 +18,15 @@ from agentic_delivery.evaluation.campaign import (
     ArmConfiguration,
     CampaignFailure,
     CampaignSpecification,
-    freeze_campaign,
+    inspect_legacy_campaign,
     select_stability_tasks,
 )
+from agentic_delivery.evaluation.campaign import (
+    freeze_campaign as current_freeze_campaign,
+)
 from agentic_delivery.evaluation.cli import main as evaluation_main
+from agentic_delivery.evaluation.harness import HistoricalTask
+from agentic_delivery.evaluation.qualification_admission import QualificationAuthority
 from agentic_delivery.storage.artifacts import ArtifactStore
 
 
@@ -114,9 +120,36 @@ def corpus_seed(tmp_path_factory):
 
 
 @pytest.fixture
-def corpus(corpus_seed, tmp_path):
+def corpus(corpus_seed, tmp_path, monkeypatch):
+    """Explicit unit-only authority boundary; not executed calibration/admission evidence."""
     tasks, spec, store, _ = corpus_seed
+    authority = object.__new__(QualificationAuthority)
+
+    def validate(task, artifacts, **kwargs):
+        task.inspect_legacy_qualification(artifacts)
+        return SimpleNamespace(
+            calibration_evidence_artifact=spec.calibration_artifact,
+            calibration_spec_artifact="1" * 64,
+            rubric_artifact=spec.rubric_artifact,
+            model_configuration="independent synthetic qualifier configuration",
+        )
+
+    def calibration(self, task, *, artifact_digest, rubric_artifact):
+        if artifact_digest != spec.calibration_artifact or rubric_artifact != spec.rubric_artifact:
+            raise ValueError("Changed calibration binding")
+        store.get(artifact_digest)
+
+    monkeypatch.setattr(HistoricalTask, "validate_qualification", validate)
+    monkeypatch.setattr(QualificationAuthority, "validate_calibration_reference", calibration)
+    monkeypatch.setattr(store, "_test_campaign_authority", authority, raising=False)
     return tasks, spec, store, ArtifactStore(tmp_path / "frozen")
+
+
+def freeze_campaign(tasks, specification, protected, output):
+    """Test-only injection keeps schedule/budget/shape regressions independent of v7 controller."""
+    return current_freeze_campaign(
+        tasks, specification, protected, output, authority=protected._test_campaign_authority
+    )
 
 
 def update_spec(corpus, **updates):
@@ -153,7 +186,8 @@ def test_freeze_is_deterministic_paired_and_contains_no_protected_answers(corpus
     assert len(frozen.schedule) == 84
     assert frozen.worst_case_microdollars == 604_000_000
     assert frozen.spend_authorized is False
-    assert frozen.calibration_verified is False
+    assert frozen.calibration_verified is True
+    assert frozen.schema_version == 2
     assert frozen.heldout_repositories == ("https://github.com/fixture/test",)
     split_rank = {"development": 0, "validation": 1, "test": 2}
     phases = [split_rank[entry.split] for entry in frozen.schedule]
@@ -418,17 +452,32 @@ def cli_freeze(corpus, manifest, specification, summary):
     )
 
 
-def test_cli_freezes_synthetic_corpus_without_claiming_execution(corpus, tmp_path):
+def test_offline_cli_cannot_freeze_without_current_authority(corpus, tmp_path):
     manifest, specification, summary = cli_inputs(corpus, tmp_path)
-    assert cli_freeze(corpus, manifest, specification, summary) == 0
-    result = json.loads(summary.read_text(encoding="utf-8"))
-    assert result["status"] == "PREREGISTERED_NOT_EXECUTED"
-    assert result["spend_authorized"] is False
-    assert result["calibration_verified"] is False
-    frozen = json.loads(corpus[3].get(result["campaign_artifact"]))
-    assert len(frozen["tasks"]) == 30
-    assert len(frozen["schedule"]) == 84
-    assert "VALUE =" not in json.dumps(result)
+    with pytest.raises(SystemExit) as failure:
+        cli_freeze(corpus, manifest, specification, summary)
+    assert failure.value.code == 2
+    assert not summary.exists()
+    assert_no_output(corpus)
+
+
+def test_legacy_campaign_inspection_is_explicitly_non_authorizing(corpus):
+    frozen, _ = freeze_campaign(*corpus)
+    document = frozen.model_dump(mode="json")
+    document.pop("qualification_mode")
+    document.update(schema_version=1, calibration_verified=False)
+    digest = put(corpus[3], document)
+    summary = inspect_legacy_campaign(corpus[3], digest)
+    assert summary["calibration_verified"] is False
+    assert summary["current_qualification_verified"] is False
+    assert summary["spend_authorized"] is False
+    assert "VALUE =" not in json.dumps(summary)
+
+
+def test_no_authority_or_opaque_calibration_can_freeze_current_campaign(corpus):
+    with pytest.raises(CampaignFailure, match="authority"):
+        current_freeze_campaign(*corpus)
+    assert_no_output(corpus)
 
 
 @pytest.mark.parametrize("location", ["protected", "frozen", "manifest", "specification"])

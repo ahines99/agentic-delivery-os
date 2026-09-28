@@ -68,7 +68,7 @@ unresolved. Review judgments cannot override failed or pending deterministic eli
 ## Exact broker and storage bindings
 
 `qualifier_prompt(rubric_text)` constructs the same rubric-bound prompt for review and calibration.
-The future executor stores complete normalized `context.model_dump(mode="json")` and
+The [qualification controller](qualification-controller.md) stores complete normalized `context.model_dump(mode="json")` and
 `output.model_dump(mode="json")` documents in protected artifacts. `ReviewRecordV2` binds their
 artifact identities to the account and operation ID.
 
@@ -91,12 +91,12 @@ client-created `ValidatedReviewV2` values. Hashes bind records but do not authen
 
 ## Integration boundary and compatibility
 
-This standalone module does not change `HistoricalTask`, v1 qualification records, preparation,
-CLI admission or campaign freezing. V1 outputs cannot be parsed as v2 by adding default fields.
-The complete future controller must require current preparation authorization, actual runtime
-receipts bound to the execution ledger, executed calibration for these exact prompt/schema/model
-settings, active policy, cost accounting, fresh protected reviews and an explicit versioned
-admission record. These review contracts alone cannot mark v1 tasks newly qualified.
+These standalone review contracts confer no admission. The integrated controller and
+[current authority](qualification-admission.md) require current preparation authorization, actual
+runtime receipts bound to the execution ledger, executed calibration for these exact
+prompt/schema/model settings, active policy, cost accounting, fresh protected reviews and an
+explicit versioned admission record. V1 records remain inspectable but cannot authorize current
+export, scoring or campaign preparation. Adding default fields cannot upgrade their evidence.
 
 The tests use explicitly synthetic task/rights/runtime records and synthetic model settlements
 written to a real SQLite ledger. They test evidence/citation binding, reference/log exclusion,

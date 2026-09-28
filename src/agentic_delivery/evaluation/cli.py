@@ -18,7 +18,7 @@ from agentic_delivery.evaluation.campaign import (
     ArmConfiguration,
     CalibrationEvidence,
     CampaignSpecification,
-    freeze_campaign,
+    inspect_legacy_campaign,
 )
 from agentic_delivery.evaluation.comparison import ArmAssignment, compare_trials
 from agentic_delivery.evaluation.harness import HistoricalTask, Trial, load_manifest, report
@@ -101,11 +101,23 @@ def main(argv: list[str] | None = None) -> int:
     validate.add_argument("--manifest", type=Path, required=True)
     validate.add_argument("--output", type=Path, required=True)
     admission = commands.add_parser(
-        "validate-qualification", help="Verify protected evidence for every task; no model calls"
+        "validate-qualification",
+        help="Current admission requires an in-process trusted authority; offline use is denied",
     )
     admission.add_argument("--manifest", type=Path, required=True)
     admission.add_argument("--artifacts", type=Path, required=True)
     admission.add_argument("--output", type=Path, required=True)
+    legacy = commands.add_parser(
+        "inspect-legacy-qualification", help="Inspect historical v1 evidence; never authorize use"
+    )
+    for argument in ("manifest", "artifacts", "output"):
+        legacy.add_argument("--" + argument, type=Path, required=True)
+    history = commands.add_parser(
+        "inspect-legacy-campaign", help="Inspect schema-1 campaign metadata only"
+    )
+    history.add_argument("--artifacts", type=Path, required=True)
+    history.add_argument("--campaign-artifact", required=True)
+    history.add_argument("--output", type=Path, required=True)
     preparation = commands.add_parser(
         "prepare-qualification", help="Check protected inputs and patch binding; never execute"
     )
@@ -154,7 +166,8 @@ def main(argv: list[str] | None = None) -> int:
     compare.add_argument("--synthetic", action="store_true")
     compare.add_argument("--output", type=Path, required=True)
     freeze = commands.add_parser(
-        "freeze-campaign", help="Preregister qualified tasks; never execute"
+        "freeze-campaign",
+        help="Current freeze requires an in-process trusted authority; offline use is denied",
     )
     freeze.add_argument("--manifest", type=Path, required=True)
     freeze.add_argument("--specification", type=Path, required=True)
@@ -163,7 +176,19 @@ def main(argv: list[str] | None = None) -> int:
     freeze.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
     try:
-        if args.command == "schema":
+        if args.command in {"validate-qualification", "freeze-campaign"}:
+            raise ValueError(
+                "Current use requires an in-process trusted QualificationAuthority; "
+                "this offline CLI cannot load one"
+            )
+        if args.command == "inspect-legacy-campaign":
+            if not args.artifacts.is_dir() or args.output.resolve().is_relative_to(
+                args.artifacts.resolve()
+            ):
+                raise ValueError("Historical output must remain outside existing protected storage")
+            summary = inspect_legacy_campaign(ArtifactStore(args.artifacts), args.campaign_artifact)
+            write_json(args.output, summary)
+        elif args.command == "schema":
             contracts: dict[str, type[BaseModel]] = {
                 "historical-task": HistoricalTask,
                 "trial": Trial,
@@ -214,44 +239,8 @@ def main(argv: list[str] | None = None) -> int:
         else:
             tasks = load_manifest(args.manifest)
             manifest_digest = file_digest(args.manifest)
-            if args.command == "freeze-campaign":
-                if not args.artifacts.is_dir() or not args.output_artifacts.is_dir():
-                    raise ValueError("Both artifact directories must already exist")
-                destination = args.output.resolve()
-                if (
-                    destination.is_relative_to(args.artifacts.resolve())
-                    or destination.is_relative_to(args.output_artifacts.resolve())
-                    or destination in {args.manifest.resolve(), args.specification.resolve()}
-                ):
-                    raise ValueError("Summary must remain outside inputs and artifact stores")
-                specification = CampaignSpecification.model_validate_json(
-                    args.specification.read_bytes()
-                )
-                campaign, digest = freeze_campaign(
-                    tasks,
-                    specification,
-                    ArtifactStore(args.artifacts),
-                    ArtifactStore(args.output_artifacts),
-                )
-                write_json(
-                    args.output,
-                    {
-                        "format_version": 1,
-                        "kind": "campaign-preregistration",
-                        "manifest_sha256": manifest_digest,
-                        "specification_sha256": file_digest(args.specification),
-                        "campaign_artifact": digest,
-                        "status": campaign.status,
-                        "spend_authorized": False,
-                        "calibration_verified": False,
-                        "primary_attempts": campaign.primary_attempts,
-                        "stability_attempts": campaign.stability_attempts,
-                        "worst_case_microdollars": campaign.worst_case_microdollars,
-                    },
-                    (args.manifest, args.specification),
-                )
-            elif args.command in {"validate-manifest", "validate-qualification"}:
-                qualified = args.command == "validate-qualification"
+            if args.command in {"validate-manifest", "inspect-legacy-qualification"}:
+                qualified = args.command == "inspect-legacy-qualification"
                 if qualified:
                     if not args.artifacts.is_dir():
                         raise ValueError("Protected artifact directory must already exist")
@@ -260,13 +249,13 @@ def main(argv: list[str] | None = None) -> int:
                         raise ValueError("Output must remain outside protected artifact storage")
                     artifacts = ArtifactStore(artifact_root)
                     for task in tasks:
-                        task.validate_qualification(artifacts)
+                        task.inspect_legacy_qualification(artifacts)
                 write_json(
                     args.output,
                     {
                         "format_version": 1,
                         "kind": (
-                            "agent-qualification-validation"
+                            "historical-qualification-inspection"
                             if qualified
                             else "manifest-structural-validation"
                         ),
@@ -274,7 +263,9 @@ def main(argv: list[str] | None = None) -> int:
                         "tasks": len(tasks),
                         "families": len({task.family for task in tasks}),
                         "split_counts": dict(Counter(task.split for task in tasks)),
-                        "qualification_verified": qualified,
+                        "qualification_verified": False,
+                        "execution_authorized": False,
+                        "historical_evidence_inspected": qualified,
                         "qualification_mode": "independent-agents-v1" if qualified else None,
                     },
                     (args.manifest,),
@@ -335,6 +326,8 @@ def main(argv: list[str] | None = None) -> int:
     except (OSError, ValueError, RecursionError) as exc:
         if args.command == "prepare-qualification":
             parser.error("Qualification preparation refused; inspect protected inputs privately")
+        if args.command.startswith("inspect-legacy"):
+            parser.error("Historical inspection refused; inspect protected inputs privately")
         parser.error(str(exc))
     print(f"Wrote {args.output}")
     return 0

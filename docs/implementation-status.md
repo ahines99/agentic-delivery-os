@@ -65,20 +65,21 @@ crash recovery or live-provider reconciliation.
   [Curation preparation](evaluation-curation.md) now contains 36 pinned metadata candidates, all
   UNQUALIFIED, zero qualified/scored; proposed groups do not constitute frozen eligible splits.
   [ADR-007](adr/ADR-007-automated-benchmark-qualification.md) replaces human benchmark curator/scorer
-  prerequisites with isolated agent passes and deterministic qualification. The new bounded
-  qualification validator and `validate-qualification` CLI are implemented; local contract and Docker receipt checks pass.
-  Worker-input export/scoring now validate qualification before snapshot reads or Docker execution.
-  The integrated qualifier admission controller remains missing. `human_minutes` is nullable; reported human-time savings
-  remain null. No actual agent
-  qualification or candidate admission is claimed, and human effort/benefit remains unmeasured.
+  prerequisites with isolated agent passes and deterministic qualification. The integrated v2
+  controller and current admission authority now connect the executed stages; export, scoring and
+  campaign preparation require this authority. Legacy qualification/campaign records allow only
+  explicit inspection. The offline CLI has no trusted authority loader and refuses current admission.
+  `human_minutes` is nullable; reported human-time savings remain null. No live historical agent
+  qualification or catalog admission is claimed, and human effort/benefit remains unmeasured.
 - Pinned Compose development PostgreSQL/Temporal services, local CLI/API/worker entry points,
   tests and GitHub Actions quality/integration jobs.
 - `/readyz` checks database readiness; authenticated `/operations` exposes repository-scoped
   workflow states, spending, and pending/exhausted dispatch summaries.
 
-The offline evaluation CLI also exposes [paired comparison](evaluation-comparison.md) and
-[campaign preregistration](evaluation-campaign.md). These preserve missing-task denominators,
-unmeasured human benefit, phase ordering and matched budgets; neither executes a campaign.
+The offline evaluation CLI exposes [paired comparison](evaluation-comparison.md); the current
+[campaign preregistration API](evaluation-campaign.md) requires concrete admission authority.
+These preserve missing-task denominators, unmeasured human benefit, phase ordering and matched
+budgets; neither executes a campaign.
 The standalone [coverage importer/ranker](coverage-contexts.md) binds hints to exact measurement
 inputs and always requires full regression execution. Its real coverage JSON smoke uses synthetic
 local code and does not establish a qualified historical measurement or C-arm result.
@@ -91,8 +92,8 @@ Its offline CLI exports only PREPARED_NOT_QUALIFIED metadata. The [separate eval
 and [bound model-operation receipts](model-operation-receipts.md) provide durable per-call
 accounting/provenance and retain immutable failure observations without manufacturing delivery
 workflows. A real bounded synthetic provider probe did not settle: 14465 microdollars remain
-reserved, actual cost/cause unknown, no retry. These are prerequisites for the still-missing
-integrated qualifier/campaign controllers and do not admit any of the 36 historical candidates.
+reserved, actual cost/cause unknown, no retry. These support the integrated qualifier; the campaign
+execution controller remains missing. None of the 36 historical candidates has been admitted.
 
 [ADR-010](adr/ADR-010-executable-qualification-stages.md) adds independently exercised stages:
 [deterministic qualification runtime](qualification-runtime.md) runs actual preflight and twelve
@@ -100,20 +101,30 @@ clean checks with measured infrastructure accounting; [protected v2 review](qual
 provides inspectable source/oracle evidence and sealed-output adjudication; [development calibration](evaluation-calibration.md)
 binds frozen cases to actual model-broker executions and recomputed metrics. Controlled transports
 exercise model stages; no new paid calibration or real historical admission has run. Infrastructure
-operations use zero model tokens and share an account ceiling with model calls. All three stages
-remain explicit non-admission results until the integrated controller and protocol migration exist.
+operations use zero model tokens and share an account ceiling with model calls. Individual stage
+results remain non-admitting; current consumption requires the complete integrated chain.
 
-The latest complete local verification on 2026-09-28 passed **1056 tests, seven explicit Windows
-skips**, in 356.95 seconds with actual PostgreSQL, Temporal and Docker. The skips cover four POSIX
+[ADR-011](adr/ADR-011-current-qualification-authority.md) connects those stages through the
+[private controller](qualification-controller.md) and [admission authority](qualification-admission.md).
+The reader verifies actual execution chronology, sealed independent reviews, exact closed-account
+receipts and current action-specific use permission. Synthetic validation cannot authorize historical
+consumption. [Scoring execution](scoring-execution.md) separately authorizes and meters preflight,
+acceptance and regression, with current authority checks and unknown-operation retry refusal.
+The actual Docker integration exercises the full qualification, source-only export, metered score
+and cached resume using controlled model responses and synthetic task records. This is software
+verification, not live calibration or qualification of a historical candidate.
+
+The latest complete local verification on 2026-09-28 passed **1155 tests, seven explicit Windows
+skips**, in 610.65 seconds with actual PostgreSQL, Temporal and Docker. The skips cover four POSIX
 FIFO regressions and three unprivileged symlink cases; Linux CI exercises those platform cases.
-Ruff check/format (175 files), mypy (65 source files), locked dependency validation, wheel build,
-installed-wheel imports and synthetic infrastructure accounting passed. The staged secret scan and
-local links across 53 Markdown documents passed. Qualification/calibration tests use explicitly
+Ruff check/format (186 files), mypy (68 source files), locked dependency validation, wheel build
+and installed-wheel imports passed. The staged secret scan and
+local links across 57 Markdown documents passed. Qualification/calibration tests use explicitly
 synthetic agent/rights records and controlled model transports; they do not admit historical tasks.
 No new paid provider call or historical benchmark ran. The earlier unresolved probe remains unchanged.
-The preceding complete checkpoint passed 941 tests with seven Windows skips; all four hosted checks
-passed on [379bfa6](https://github.com/ahines99/agentic-delivery-os/actions/runs/36448350261), including
-895 passing tests per Python version and 54 real-service integration tests. Counts from separate
+The preceding complete checkpoint passed 1056 tests with seven Windows skips; all four hosted checks
+passed on [e2f94e9](https://github.com/ahines99/agentic-delivery-os/actions/runs/36451443398), including
+1009 passing tests per Python version and 55 real-service integration tests. Counts from separate
 full runs are not additive evidence.
 
 The earlier complete local verification passed **163 tests** with `TEST_DATABASE_URL`,

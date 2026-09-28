@@ -55,25 +55,38 @@ three times each, and calibrated automated scoring replace that dependency. Huma
 pilot signoff and human-only merges are separate unchanged controls. Human effort and benefit stay
 unmeasured unless real observations exist; no generated human identities or minutes are acceptable.
 
-`evaluation/qualification.py` now provides a bounded offline validator for provenance-bound review
-and execution artifacts; local and hosted contract/service checks have passed. It validates supplied evidence,
-does not invoke qualification agents or create missing receipts, and has not admitted any real task.
-The integrated qualifier admission controller remains missing. [Validation-only preparation](../docs/qualification-preparation.md)
-now checks trusted configuration/evidence bindings and exact accepted-reference patch application
-before execution; `prepare-qualification` returns explicit non-admission metadata. The
-[separate evaluation ledger](../docs/evaluation-execution-store.md) and
-[bound model-operation receipts](../docs/model-operation-receipts.md) supply accounting/provenance
-prerequisites without manufacturing product workflows or granting spending authority.
-The CLI verifies every `HistoricalTask` before writing
-its metadata-only summary:
+Current consumers require `independent-agents-v2` evidence and a concrete in-process
+`QualificationAuthority`; supplied artifacts cannot manufacture that authority.
+`worker_input(..., authority=authority)` checks a current `worker-export` grant before
+and after reading its source-only projection. `score_candidate(..., authority=authority,
+execution=execution)` checks a `scoring` grant and requires concrete budgeted
+`ScoringExecution` for preflight, acceptance and regression operations. It rechecks
+current admission before each effect and before returning a result. The execution
+ledger, private-store geometry and task/candidate bindings remain required even after
+qualification. Admission alone does not authorize unmetered execution.
+
+The integrated v2 controller and validators bind preparation, executed calibration,
+twelve deterministic runtime runs, actual model receipts and independent review
+contexts. Controlled-transport synthetic tests exercise these boundaries without
+qualifying a historical task or measuring real judge accuracy. The separate
+[evaluation ledger](../docs/evaluation-execution-store.md) and
+[model-operation receipts](../docs/model-operation-receipts.md) retain accounting and
+provenance, including unresolved operations. No real historical admission is claimed.
+
+The old `evaluation/qualification.py` validator remains available solely as historical
+inspection through `HistoricalTask.inspect_legacy_qualification`. To inspect a v1
+manifest without authorizing export, scoring or campaign execution:
 
 ```sh
-uv run python -m agentic_delivery.evaluation.cli validate-qualification --manifest /path/to/protected/tasks.jsonl --artifacts /path/to/protected/artifacts --output /path/to/private/qualification-validation.json
+uv run python -m agentic_delivery.evaluation.cli inspect-legacy-qualification --manifest /path/to/protected/tasks.jsonl --artifacts /path/to/protected/artifacts --output /path/to/private/qualification-history.json
 ```
 
-The output cannot be inside the protected artifact store or overwrite input. `worker_input` and
-`score_candidate` now refuse unverified structural manifests before reading snapshots or starting
-Docker. This is an admission guard, not proof that an arbitrary artifact writer ran agents honestly.
+The metadata-only output cannot overwrite input or enter the protected store. It
+reports `qualification_verified: false` and `execution_authorized: false`. Offline
+`validate-qualification` and `freeze-campaign` now refuse current use because the CLI
+has no trusted authority loader. Current campaign freezing is an in-process API;
+[schema-1 campaign inspection](../docs/evaluation-campaign.md) remains read-only.
+
 `human_minutes` is nullable; reports preserve missing observations and always leave
 `human_time_savings` null.
 All 36 candidates remain UNQUALIFIED. See [curation](../docs/evaluation-curation.md) for the exact
@@ -94,5 +107,7 @@ qualification stages: [metered twelve-run Docker checks](../docs/qualification-r
 [executed development calibration](../docs/evaluation-calibration.md). V2 evaluators inspect actual
 authorized source/oracle evidence; initial reviewers never see peers or reference solutions, while
 the adjudicator sees both sealed findings. Calibration expectations remain outside model input.
-These stages all report `admitted=false`; they do not silently upgrade v1 records or complete the
-integrated admission/campaign path. No historical task is qualified by synthetic tests.
+These standalone stages report `admitted=false`; only the complete current authority can
+authorize historical use. Synthetic-purpose records never authorize worker export, scoring
+or campaigns, and legacy v1 records are never silently upgraded. Campaign execution and
+real historical qualification remain incomplete. No historical task is qualified by synthetic tests.

@@ -132,7 +132,23 @@ and human-only merge remain unchanged. Live GitHub App/Linear onboarding is stil
 integration proof; it is separate from agent-led local benchmark qualification. No qualified or
 scored task is created merely by accepting this protocol revision.
 
-## Admission contract boundary
+## Current admission and historical inspection
+
+Current `HistoricalTask` use requires `independent-agents-v2` and the concrete
+in-process `QualificationAuthority`. The complete chain and current action grant
+are revalidated for qualification, worker export, scoring or campaign freeze.
+Synthetic-purpose records never authorize export/scoring/campaigns. Candidate
+scoring additionally requires the separate budgeted `ScoringExecution` account and
+rechecks authority before its metered operations. A prior admission result or a
+serialized flag cannot substitute for this live authority.
+
+The schema-1 contract below remains available through
+`inspect_legacy_qualification()` and the explicitly named offline inspection CLI.
+It describes historical evidence, grants no current use, and is never silently
+upgraded. The offline CLI has no trusted authority loader and refuses current
+`validate-qualification`/`freeze-campaign` requests. See
+[campaign consumers](evaluation-campaign.md) for schema-2 registration and
+[the evaluation workspace](../evals/README.md) for the current API boundaries.
 
 The bounded `qualification.py` contract uses `QualificationRecord` with `schema_version=1`,
 `qualification_mode=agent`, task/manifest identity, a `qualification_input_artifact`, exactly two
@@ -142,7 +158,7 @@ acceptance/regression profiles, required node identities, and three repeated bas
 execution records per suite. `AgentReview` receipts bind roles `qualifier_a`, `qualifier_b` and
 optionally `adjudicator`, separate invocation/context IDs and actual model/input/output provenance.
 Outputs declare `ADMIT`, `REJECT` or `UNRESOLVED` with evidence references. Any non-PASS deterministic
-gate denies admission regardless of votes. Admission returns status/reasons/digest, never solutions.
+gate rejects historical inspection regardless of votes. Inspection returns status/reasons/digest, never solutions.
 
 These hashes identify trusted-controller-owned record bytes; they do not authenticate arbitrary
 artifact writers or prove that a named model actually ran. Keep artifact creation/access within

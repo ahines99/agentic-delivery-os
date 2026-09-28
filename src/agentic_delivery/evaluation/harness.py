@@ -3,7 +3,7 @@
 import json
 import math
 from pathlib import Path
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import Field, model_validator
 
@@ -15,6 +15,13 @@ from agentic_delivery.execution.verification import report_verdict, verify
 from agentic_delivery.policy.changes import check_candidate
 from agentic_delivery.storage.artifacts import ArtifactStore
 from agentic_delivery.storage.store import digest_json
+
+if TYPE_CHECKING:
+    from agentic_delivery.evaluation.qualification_admission import (
+        QualificationAuthority,
+        ValidatedQualificationV2,
+    )
+    from agentic_delivery.evaluation.scoring_execution import ScoringExecution
 
 
 class HistoricalTask(Contract):
@@ -35,7 +42,9 @@ class HistoricalTask(Contract):
     acceptance_commands: tuple[CommandProfile, ...] = Field(min_length=1)
     regression_commands: tuple[CommandProfile, ...] = Field(min_length=1)
     reviewers: tuple[NonEmpty, ...] = Field(min_length=2)
-    qualification_mode: Literal["unverified", "independent-agents-v1"] = "unverified"
+    qualification_mode: Literal["unverified", "independent-agents-v1", "independent-agents-v2"] = (
+        "unverified"
+    )
     budget: Budget = Budget()
     qualification_artifact: str = Field(pattern=r"^[a-f0-9]{64}$")
 
@@ -51,7 +60,8 @@ class HistoricalTask(Contract):
             raise ValueError("Historical task is outside admitted evaluation scope")
         return self
 
-    def validate_qualification(self, artifacts: ArtifactStore) -> None:
+    def inspect_legacy_qualification(self, artifacts: ArtifactStore) -> None:
+        """Read historical v1 evidence only; never authorizes export, scoring or execution."""
         from agentic_delivery.evaluation.qualification import (
             qualification_task_digest,
             validate_qualification,
@@ -69,10 +79,41 @@ class HistoricalTask(Contract):
             task_document=self.model_dump(mode="json"),
         )
 
-    def worker_input(self, artifacts: ArtifactStore) -> dict[str, Any]:
-        self.validate_qualification(artifacts)
+    def validate_qualification(
+        self,
+        artifacts: ArtifactStore,
+        *,
+        authority: "QualificationAuthority | None" = None,
+        purpose: Literal["qualification", "worker-export", "scoring", "campaign"] = "qualification",
+    ) -> "ValidatedQualificationV2":
+        """Revalidate current v2 authority; structural/legacy records confer no capability."""
+        if self.qualification_mode != "independent-agents-v2":
+            raise ValueError("Current evaluation use requires independent-agents-v2 authority")
+        from agentic_delivery.evaluation.qualification_admission import QualificationAuthority
+
+        if not isinstance(authority, QualificationAuthority):
+            raise ValueError("Concrete current historical qualification authority is required")
+        if artifacts.root.resolve() != authority.protected_artifacts.root.resolve():
+            raise ValueError("Qualification authority binds a different protected artifact store")
+        validated = authority.validate(self, purpose=purpose)
+        if (
+            validated.admitted is not True
+            or validated.purpose != "HISTORICAL_QUALIFICATION"
+            or validated.use_purpose != purpose
+        ):
+            raise ValueError("Synthetic or unadmitted qualification cannot authorize current use")
+        return validated
+
+    def worker_input(
+        self,
+        artifacts: ArtifactStore,
+        *,
+        authority: "QualificationAuthority | None" = None,
+    ) -> dict[str, Any]:
+        self.validate_qualification(artifacts, authority=authority, purpose="worker-export")
         files = json.loads(artifacts.get(self.snapshot_artifact))
         validate_files(files)
+        self.validate_qualification(artifacts, authority=authority, purpose="worker-export")
         return {
             "task_id": self.id,
             "item": self.item.model_dump(mode="json"),
@@ -125,22 +166,29 @@ async def score_candidate(
     candidate: dict[str, str],
     protected_artifacts: ArtifactStore,
     output_artifacts: ArtifactStore,
+    *,
+    authority: "QualificationAuthority | None" = None,
+    execution: "ScoringExecution | None" = None,
 ) -> dict[str, Any]:
     from agentic_delivery.agents.evidence import ExecutionReceipt
-    from agentic_delivery.evaluation.qualification import QualificationInput, QualificationRecord
 
-    task.validate_qualification(protected_artifacts)
+    validated = task.validate_qualification(
+        protected_artifacts, authority=authority, purpose="scoring"
+    )
+    qualification = validated.qualification_input
+
+    def guard() -> None:
+        current = task.validate_qualification(
+            protected_artifacts, authority=authority, purpose="scoring"
+        )
+        if current.qualification_input != qualification:
+            raise ValueError("Qualification changed during candidate scoring")
+
     protected_root = protected_artifacts.root.resolve()
     output_root = output_artifacts.root.resolve()
     if output_root.is_relative_to(protected_root) or protected_root.is_relative_to(output_root):
         raise ValueError("Scoring output and protected input stores must be disjoint")
     # Both stores are evaluator-only: receipts can contain withheld test names/output.
-    record = QualificationRecord.model_validate_json(
-        protected_artifacts.get(task.qualification_artifact)
-    )
-    qualification = QualificationInput.model_validate_json(
-        protected_artifacts.get(record.qualification_input_artifact)
-    )
     source = json.loads(protected_artifacts.get(task.snapshot_artifact))
     oracle = json.loads(protected_artifacts.get(task.oracle_artifact))
     validate_files(candidate)
@@ -163,28 +211,46 @@ async def score_candidate(
     if source == candidate:
         raise ValueError("Candidate contains no change")
     check_candidate(source, candidate)
+    from agentic_delivery.evaluation.scoring_execution import ScoringExecution
+
+    if not isinstance(execution, ScoringExecution):
+        raise ValueError("Concrete budgeted scoring execution is required")
+    assert authority is not None
+
     files = {**candidate, **oracle}
+    execution.validate(task, candidate, authority, output_artifacts)
     runner = DockerRunner(task.image)
-    await runner.preflight()
-    acceptance = await verify(
-        files,
-        task.acceptance_commands,
-        runner,
-        output_artifacts,
-        timeout=task.budget.command_seconds,
-        workflow_id="eval-" + digest_json(task.id)[:20],
+
+    async def preflight(operation_id: str) -> dict[str, Any]:
+        await runner.preflight()
+        return {}
+
+    async def run_suite(commands: tuple[CommandProfile, ...], operation_id: str) -> dict[str, Any]:
+        return await verify(
+            files,
+            commands,
+            runner,
+            output_artifacts,
+            timeout=task.budget.command_seconds,
+            workflow_id=operation_id,
+        )
+
+    guard()
+    await execution.run_operation("preflight", preflight)
+    guard()
+    acceptance = await execution.run_operation(
+        "acceptance", lambda operation_id: run_suite(task.acceptance_commands, operation_id)
     )
-    regression = await verify(
-        files,
-        task.regression_commands,
-        runner,
-        output_artifacts,
-        timeout=task.budget.command_seconds,
-        workflow_id="eval-" + digest_json(task.id)[:20],
+    guard()
+    regression = await execution.run_operation(
+        "regression", lambda operation_id: run_suite(task.regression_commands, operation_id)
     )
 
     def frozen_collection(
-        summary: dict[str, Any], expected: tuple[str, ...], command: CommandProfile
+        summary: dict[str, Any],
+        expected: tuple[str, ...],
+        command: CommandProfile,
+        stage: Literal["acceptance", "regression"],
     ) -> bool:
         if len(summary["commands"]) != 1:
             return False
@@ -201,6 +267,7 @@ async def score_candidate(
         )
         return (
             passed
+            and receipt.workflow_id == execution.operation_id(stage)
             and not receipt.timed_out
             and receipt.report_error is None
             and receipt.image == task.image
@@ -216,11 +283,12 @@ async def score_candidate(
         )
 
     acceptance_collection = frozen_collection(
-        acceptance, qualification.behavior_nodes, qualification.acceptance_command
+        acceptance, qualification.behavior_nodes, qualification.acceptance_command, "acceptance"
     )
     regression_collection = frozen_collection(
-        regression, qualification.regression_nodes, qualification.regression_command
+        regression, qualification.regression_nodes, qualification.regression_command, "regression"
     )
+    guard()
     return {
         "passed": (
             acceptance["passed"]

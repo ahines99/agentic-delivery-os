@@ -4,8 +4,14 @@
 validator. It exercises the same protected `ReviewContextV2`, `ReviewOutputV2` and
 `qualifier_prompt(rubric_text)` used for qualification review. It does not admit a
 historical task, run the benchmark campaign, authorize a merge or override deterministic
-tests. Existing campaign metadata still reports calibration as unverified until an
-explicit integration consumes and validates this executed evidence.
+tests. Current [campaign preparation](evaluation-campaign.md) consumes this evidence through
+the concrete qualification authority. Legacy metadata remains unverified inspection material.
+
+The runner consumes already prepared protected contexts; it does not import or independently
+attest their historical provenance. The current historical preparation contract cannot honestly
+represent a project-owned local toy without new synthetic provenance support. A genuine live
+development run still needs that importer, ledger-verified runtime/context assembly and explicit
+negative/uncertain review subjects. Controlled test fixtures are not a substitute for those inputs.
 
 ## Frozen inputs and explicit authority
 

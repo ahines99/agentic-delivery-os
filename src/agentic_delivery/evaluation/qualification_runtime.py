@@ -359,6 +359,111 @@ def validate_deterministic_evidence(
         raise RuntimeFailure("Deterministic evidence validation failed") from None
 
 
+def validate_completed_deterministic_evidence(
+    request: DeterministicRequest,
+    evidence_artifact: str,
+    *,
+    authorization: RuntimeAuthorization,
+    settings: Settings,
+    policy: PreparationPolicy,
+    protected_artifacts: ArtifactStore,
+    output_artifacts: ArtifactStore,
+    worker_root: Path,
+    ledger: EvaluationExecutionStore,
+    now: datetime,
+) -> DeterministicEvidence:
+    """Validate historical execution at its recorded completion, plus current data rights.
+
+    The caller supplies the trusted current clock and original grant. Historical time
+    comes only from the immutable ledger checkpoint, never a caller-selected past time.
+    This performs no execution, writes, grant renewal or historical-task admission.
+    """
+    try:
+        request = DeterministicRequest.model_validate(request.model_dump(mode="json"))
+        grant = RuntimeAuthorization.model_validate(authorization.model_dump(mode="json"))
+        _require(now.tzinfo is not None and now.utcoffset() is not None, "Aware clock required")
+        _ledger_scope(settings, ledger, worker_root)
+        current = prepare_qualification(
+            request.preparation,
+            settings=settings,
+            policy=policy,
+            protected_artifacts=protected_artifacts,
+            output_root=output_artifacts.root,
+            worker_root=worker_root,
+            now=now,
+        )
+
+        def timestamp(value: Any) -> datetime:
+            _require(isinstance(value, str), "Missing ledger timestamp")
+            result = datetime.fromisoformat(value)
+            _require(
+                result.tzinfo is not None and result.utcoffset() is not None,
+                "Naive ledger timestamp",
+            )
+            return result
+
+        complete = ledger.checkpoint_receipt(grant.account_id, "deterministic-complete-v1")
+        bound = ledger.checkpoint_receipt(grant.account_id, "deterministic-binding-v1")
+        _require(complete is not None and bound is not None, "Missing trusted checkpoint")
+        assert complete is not None and bound is not None
+        _require(
+            complete["artifact_digest"] == evidence_artifact
+            and complete["account_id"] == bound["account_id"] == grant.account_id
+            and complete["stage"] == "deterministic-complete-v1"
+            and bound["stage"] == "deterministic-binding-v1",
+            "Checkpoint identity differs from requested evidence",
+        )
+        completed_at = timestamp(complete["created_at"])
+        previous = timestamp(bound["created_at"])
+        deadline = min(
+            grant.expires_at, grant.issued_at + timedelta(seconds=grant.budget.wall_seconds)
+        )
+        _require(
+            grant.issued_at <= previous <= completed_at < deadline and completed_at <= now,
+            "Completion is future-dated or outside original execution authority",
+        )
+        stages = ["preflight"] + [
+            f"{variant}-{suite}-{repetition}"
+            for variant in ("baseline", "reference")
+            for suite in ("acceptance", "regression")
+            for repetition in (1, 2, 3)
+        ]
+        for stage in stages:
+            operation_id = grant.account_id + ":" + stage
+            row = ledger.operation_receipt(grant.account_id, operation_id)
+            _require(
+                row["account_id"] == grant.account_id
+                and row["operation_id"] == operation_id
+                and row["status"] == "SETTLED",
+                "Historical operation is uncertain or has wrong identity",
+            )
+            created_at, settled_at = timestamp(row["created_at"]), timestamp(row["settled_at"])
+            _require(
+                previous <= created_at <= settled_at <= completed_at,
+                "Operation timestamps are outside the ordered completed execution",
+            )
+            previous = settled_at
+        evidence = validate_deterministic_evidence(
+            request,
+            evidence_artifact,
+            authorization=grant,
+            settings=settings,
+            policy=policy,
+            protected_artifacts=protected_artifacts,
+            output_artifacts=output_artifacts,
+            worker_root=worker_root,
+            ledger=ledger,
+            now=completed_at,
+        )
+        _require(
+            _read(output_artifacts, evidence.prepared_artifact) == _prepared_binding(current),
+            "Current preparation differs from completed evidence",
+        )
+        return evidence
+    except Exception:
+        raise RuntimeFailure("Completed deterministic evidence validation failed") from None
+
+
 async def _guarded(work: Awaitable[Any], guard: Callable[[], None]) -> Any:
     task = asyncio.ensure_future(work)
     try:
