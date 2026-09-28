@@ -61,9 +61,9 @@ scoring or historical campaign admission. Contract tests that exercise the histo
 with synthetic records are not imported into the historical catalog or published as benchmark
 results. A real authorized calibration and historical qualification run remain required.
 
-The classification does not yet provide a local synthetic provenance importer. Preparation
-still requires the pinned GitHub issue, license and accepted-commit fields of the historical
-contract. Project-owned local toys must not invent that history to satisfy the schema. An
-explicit synthetic provenance path and a ledger-verified runtime-to-calibration-context producer
-are the next prerequisites for an honest live synthetic run. Negative calibration subjects also
-need a truthful representation separate from the harmless code permitted to execute.
+The [owned synthetic path](synthetic-preparation.md) now provides distinct local provenance and
+protected import without inventing GitHub issue or accepted-commit history. The shared
+[review-input producer](qualification-inputs.md) revalidates completed runtime ledger evidence
+before assembly. [Calibration-only subjects](calibration-subjects.md) distinguish inert negative
+or uncertain review scenarios from harmless code actually executed. Synthetic purpose is bound
+before calibration or model effects and cannot be changed into historical qualification.

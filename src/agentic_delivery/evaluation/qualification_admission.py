@@ -25,7 +25,6 @@ from agentic_delivery.evaluation.harness import HistoricalTask
 from agentic_delivery.evaluation.qualification import (
     Digest,
     EvidenceSummary,
-    Provenance,
     QualificationInput,
     qualification_task_digest,
 )
@@ -35,6 +34,8 @@ from agentic_delivery.evaluation.qualification_preparation import (
     _files,
     _read,
     _scopes,
+    parse_provenance,
+    parse_task,
     prepare_qualification,
 )
 from agentic_delivery.evaluation.qualification_runtime import (
@@ -52,6 +53,7 @@ from agentic_delivery.evaluation.qualification_v2 import (
     resolve_reviews,
     validate_review_record,
 )
+from agentic_delivery.evaluation.synthetic_types import SyntheticTask
 from agentic_delivery.storage.artifacts import ArtifactStore
 from agentic_delivery.storage.store import digest_json
 
@@ -151,7 +153,7 @@ class CurrentUseGrant(Contract):
 
 
 class ExecutionInputsV2(Contract):
-    task: HistoricalTask
+    task: HistoricalTask | SyntheticTask
     prepared: PreparedQualification
     calibration: CalibrationEvidence
 
@@ -212,12 +214,13 @@ def _current_inputs(
         worker_root=worker_root,
         now=now,
     )
-    task = HistoricalTask.model_validate(
+    task = parse_task(
         _read(protected_artifacts, request.deterministic_request.preparation.task_artifact)
     )
     runtime = grant.runtime_authorization
     _require(
         task.qualification_mode == "independent-agents-v2"
+        and (not isinstance(task, SyntheticTask) or request.purpose == "SYNTHETIC_VALIDATION")
         and settings.model == request.model_configuration
         and grant.model_calls_authorized
         and grant.request_digest == digest_json(request.model_dump(mode="json"))
@@ -312,7 +315,7 @@ class QualificationAuthority:
     clock: Callable[[], datetime] = lambda: datetime.now(UTC)
 
     def validate(
-        self, task: HistoricalTask, purpose: UsePurpose = "qualification"
+        self, task: HistoricalTask | SyntheticTask, purpose: UsePurpose = "qualification"
     ) -> ValidatedQualificationV2:
         try:
             return self._validate(task, purpose)
@@ -341,8 +344,10 @@ class QualificationAuthority:
             now=self.clock(),
         )
 
-    def _validate(self, task: HistoricalTask, purpose: UsePurpose) -> ValidatedQualificationV2:
-        task = HistoricalTask.model_validate(task.model_dump(mode="json"))
+    def _validate(
+        self, task: HistoricalTask | SyntheticTask, purpose: UsePurpose
+    ) -> ValidatedQualificationV2:
+        task = parse_task(task.model_dump(mode="json"))
         _require(
             task.qualification_mode == "independent-agents-v2", "Current admission requires v2"
         )
@@ -555,7 +560,7 @@ class QualificationAuthority:
         runtime: DeterministicEvidence,
     ) -> None:
         task, store = current.task, self.protected_artifacts
-        provenance = Provenance.model_validate(
+        provenance = parse_provenance(
             _read(store, request.deterministic_request.preparation.provenance_artifact)
         )
         _require(

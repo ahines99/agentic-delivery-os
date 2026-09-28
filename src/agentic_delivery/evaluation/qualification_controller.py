@@ -17,11 +17,7 @@ from agentic_delivery.domain.models import Contract
 from agentic_delivery.evaluation.calibration import CalibrationPlan, CalibrationPolicy
 from agentic_delivery.evaluation.execution_store import EvaluationExecutionStore
 from agentic_delivery.evaluation.qualification import (
-    Checks,
-    Provenance,
     QualificationInput,
-    RepeatedExecution,
-    qualification_task_digest,
 )
 from agentic_delivery.evaluation.qualification_admission import (
     ControllerPlanV2,
@@ -32,19 +28,18 @@ from agentic_delivery.evaluation.qualification_admission import (
     ReviewInvocationV2,
     validate_execution_inputs,
 )
+from agentic_delivery.evaluation.qualification_inputs import materialize_qualification_input
 from agentic_delivery.evaluation.qualification_preparation import (
     PreparationPolicy,
-    UsageAuthorization,
-    _files,
     _read,
     _scopes,
+    parse_provenance,
+    parse_usage_authorization,
 )
 from agentic_delivery.evaluation.qualification_runtime import (
-    DeterministicEvidence,
     _guarded,
     _ledger_scope,
     run_deterministic_qualification,
-    validate_completed_deterministic_evidence,
 )
 from agentic_delivery.evaluation.qualification_v2 import (
     ReviewOutputV2,
@@ -156,10 +151,10 @@ async def _run(
 
     validated = inputs()
     task = validated.task
-    provenance = Provenance.model_validate(
+    provenance = parse_provenance(
         _read(protected_artifacts, request.deterministic_request.preparation.provenance_artifact)
     )
-    data_authority = UsageAuthorization.model_validate(
+    data_authority = parse_usage_authorization(
         _read(protected_artifacts, provenance.usage_authorization_artifact)
     )
     calibration_plan = CalibrationPlan.model_validate(
@@ -262,7 +257,7 @@ async def _run(
     )
     inputs()
     runtime_ref = runtime_result["evidence_artifact"]
-    deterministic: DeterministicEvidence = validate_completed_deterministic_evidence(
+    spec_ref = materialize_qualification_input(
         request.deterministic_request,
         runtime_ref,
         authorization=runtime,
@@ -272,58 +267,11 @@ async def _run(
         output_artifacts=output_artifacts,
         worker_root=worker_root,
         ledger=ledger,
-        now=clock(),
-    )
-    # Copy only validated runtime artifacts into the private review store, preserving digests.
-    for reference in (
-        runtime_ref,
-        deterministic.prepared_artifact,
-        deterministic.preflight_artifact,
-        *(entry.receipt_artifact for entry in deterministic.executions),
-    ):
-        _require(
-            protected_artifacts.put(output_artifacts.get(reference)) == reference,
-            "Protected runtime copy changed its digest",
-        )
-    baseline = {
-        **_files(protected_artifacts, task.snapshot_artifact),
-        **_files(protected_artifacts, task.oracle_artifact),
-    }
-    assert task.reference_snapshot_artifact is not None and task.item.risk_tier is not None
-    spec = QualificationInput(
-        schema_version=1,
-        task_id=task.id,
-        task_manifest_digest=qualification_task_digest(task.model_dump(mode="json")),
-        task_spec=task.item,
-        provenance=provenance,
-        checks=Checks.model_validate(
-            {finding.check: finding.status for finding in request.findings}
-        ),
         check_evidence=request.check_evidence,
         findings=request.findings,
-        risk_tier=task.item.risk_tier,
-        family=task.family,
-        split=task.split,
-        image=task.image,
-        baseline_snapshot_artifact=_put(protected_artifacts, baseline),
-        reference_snapshot_artifact=task.reference_snapshot_artifact,
-        reference_patch_artifact=task.reference_patch_artifact,
-        oracle_artifact=task.oracle_artifact,
-        acceptance_command=task.acceptance_commands[0],
-        regression_command=task.regression_commands[0],
-        behavior_nodes=request.deterministic_request.behavior_nodes,
-        regression_nodes=request.deterministic_request.regression_nodes,
-        executions=tuple(
-            RepeatedExecution(
-                variant=x.variant,
-                suite=x.suite,
-                repetition=x.repetition,
-                receipt_artifact=x.receipt_artifact,
-            )
-            for x in deterministic.executions
-        ),
+        now=clock(),
     )
-    spec_ref = _put(protected_artifacts, spec)
+    spec = QualificationInput.model_validate(_read(protected_artifacts, spec_ref))
     ledger.checkpoint(runtime.account_id, "qualification-input-v2", spec_ref)
 
     async def review(

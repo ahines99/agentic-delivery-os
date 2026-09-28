@@ -21,16 +21,17 @@ from agentic_delivery.agents.evidence import ExecutionReceipt, Preflight
 from agentic_delivery.config import Budget, CommandProfile, Settings
 from agentic_delivery.domain.models import Contract, NonEmpty
 from agentic_delivery.evaluation.execution_store import EvaluationExecutionStore
-from agentic_delivery.evaluation.harness import HistoricalTask
-from agentic_delivery.evaluation.qualification import Digest, Provenance
+from agentic_delivery.evaluation.qualification import Digest
 from agentic_delivery.evaluation.qualification_preparation import (
     PreparationPolicy,
     PreparationRequest,
     PreparedQualification,
-    UsageAuthorization,
     _files,
     _read,
     _scopes,
+    parse_provenance,
+    parse_task,
+    parse_usage_authorization,
     prepare_qualification,
 )
 from agentic_delivery.execution.docker import DockerRunner
@@ -223,9 +224,7 @@ def validate_deterministic_evidence(
             worker_root=worker_root,
             now=now,
         )
-        task = HistoricalTask.model_validate(
-            _read(protected_artifacts, request.preparation.task_artifact)
-        )
+        task = parse_task(_read(protected_artifacts, request.preparation.task_artifact))
         grant = RuntimeAuthorization.model_validate(authorization.model_dump(mode="json"))
         evidence = DeterministicEvidence.model_validate(_read(output_artifacts, evidence_artifact))
         authorization_digest = digest_json(grant.model_dump(mode="json"))
@@ -546,13 +545,11 @@ async def _run(
         worker_root=worker_root,
         now=clock(),
     )
-    task = HistoricalTask.model_validate(
-        _read(protected_artifacts, request.preparation.task_artifact)
-    )
-    provenance = Provenance.model_validate(
+    task = parse_task(_read(protected_artifacts, request.preparation.task_artifact))
+    provenance = parse_provenance(
         _read(protected_artifacts, request.preparation.provenance_artifact)
     )
-    rights = UsageAuthorization.model_validate(
+    rights = parse_usage_authorization(
         _read(protected_artifacts, provenance.usage_authorization_artifact)
     )
     _require(

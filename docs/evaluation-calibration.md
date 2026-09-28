@@ -8,10 +8,10 @@ tests. Current [campaign preparation](evaluation-campaign.md) consumes this evid
 the concrete qualification authority. Legacy metadata remains unverified inspection material.
 
 The runner consumes already prepared protected contexts; it does not import or independently
-attest their historical provenance. The current historical preparation contract cannot honestly
-represent a project-owned local toy without new synthetic provenance support. A genuine live
-development run still needs that importer, ledger-verified runtime/context assembly and explicit
-negative/uncertain review subjects. Controlled test fixtures are not a substitute for those inputs.
+attest their provenance. [Owned synthetic preparation](synthetic-preparation.md), protected import,
+[ledger-verified runtime/context assembly](qualification-inputs.md) and explicit
+[negative/uncertain review subjects](calibration-subjects.md) provide the development bootstrap.
+Controlled test fixtures are not a substitute for actual preparation and paid model receipts.
 
 ## Frozen inputs and explicit authority
 

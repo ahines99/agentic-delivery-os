@@ -114,17 +114,17 @@ The actual Docker integration exercises the full qualification, source-only expo
 and cached resume using controlled model responses and synthetic task records. This is software
 verification, not live calibration or qualification of a historical candidate.
 
-The latest complete local verification on 2026-09-28 passed **1155 tests, seven explicit Windows
-skips**, in 610.65 seconds with actual PostgreSQL, Temporal and Docker. The skips cover four POSIX
+The latest complete local verification on 2026-09-28 passed **1318 tests, seven explicit Windows
+skips**, in 661.83 seconds with actual PostgreSQL, Temporal and Docker. The skips cover four POSIX
 FIFO regressions and three unprivileged symlink cases; Linux CI exercises those platform cases.
-Ruff check/format (186 files), mypy (68 source files), locked dependency validation, wheel build
+Ruff check/format (207 files), mypy (73 source files), locked dependency validation, wheel build
 and installed-wheel imports passed. The staged secret scan and
-local links across 57 Markdown documents passed. Qualification/calibration tests use explicitly
+247 local links across 64 Markdown documents passed. Qualification/calibration tests use explicitly
 synthetic agent/rights records and controlled model transports; they do not admit historical tasks.
 No new paid provider call or historical benchmark ran. The earlier unresolved probe remains unchanged.
-The preceding complete checkpoint passed 1056 tests with seven Windows skips; all four hosted checks
-passed on [e2f94e9](https://github.com/ahines99/agentic-delivery-os/actions/runs/36451443398), including
-1009 passing tests per Python version and 55 real-service integration tests. Counts from separate
+The preceding complete checkpoint passed 1155 tests with seven Windows skips; all four hosted checks
+passed on [f3a5895](https://github.com/ahines99/agentic-delivery-os/actions/runs/36455635541), including
+1108 passing tests per Python version and 55 real-service integration tests. Counts from separate
 full runs are not additive evidence.
 
 The earlier complete local verification passed **163 tests** with `TEST_DATABASE_URL`,
@@ -183,9 +183,18 @@ Further scoped operational evidence on 2026-09-28:
   inventory; it never authorizes or performs deletion. Ruff/format and targeted mypy passed.
 
 These counts overlap existing scopes and remain separate from historical full-suite results.
-The full suite for the latest working tree is pending; no new aggregate total is asserted here.
+The complete 1318-test verification above includes these changes. Scoped counts are not additive.
 
 ## Recorded live development runs
+
+The owned synthetic calibration bootstrap now has typed project-owned provenance, a protected
+five-case importer, runtime-verified review-input materialization and inert review subjects.
+Its bounded preparation runner executes only safe anchors and makes no model calls. Known
+reference/expected-answer aggregates cannot become review supporting documents or a rubric.
+Request forecasts use the broker's actual serialization and reservation rules without network
+access or spending. These capabilities are covered by controlled tests; actual preparation and
+model calibration results are recorded separately below when executed. They do not qualify any
+of the 36 historical catalog candidates. See [ADR-012](adr/ADR-012-owned-synthetic-calibration.md).
 
 These used the controlled synthetic customer fixture, not historical benchmark tasks. Credentials
 were loaded from an explicitly authorized sibling project environment and never written to source.

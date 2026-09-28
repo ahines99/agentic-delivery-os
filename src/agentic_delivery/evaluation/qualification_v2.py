@@ -6,7 +6,7 @@ worker APIs, general logs, public exports or interactive agent conversations.
 
 import hashlib
 import json
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import Field
 
@@ -22,6 +22,7 @@ from agentic_delivery.evaluation.qualification import (
     _files,
     _read,
 )
+from agentic_delivery.evaluation.synthetic_types import SyntheticProvenance
 from agentic_delivery.execution.files import validate_files
 from agentic_delivery.integrations.model_receipts import (
     ModelOperationReceipt,
@@ -92,7 +93,7 @@ class FrozenReviewEvidenceV2(Contract):
     task_id: NonEmpty
     task_manifest_digest: Digest
     task_spec: WorkItem
-    provenance: Provenance
+    provenance: Provenance | SyntheticProvenance
     split: Literal["development", "validation", "test"]
     family: NonEmpty
     declared_checks: Checks
@@ -107,6 +108,43 @@ class FrozenReviewEvidenceV2(Contract):
     executions: tuple[ExecutionEvidenceV2, ...] = Field(min_length=12, max_length=12)
     rubric_artifact: Digest
     rubric_text: NonEmpty = Field(max_length=MAX_DOCUMENT_BYTES)
+
+
+class CalibrationReviewSubject(Contract):
+    """Inert review subject, separate from safe code actually executed for calibration."""
+
+    schema_version: Literal[1]
+    kind: Literal["synthetic-calibration-review-subject"]
+    task_id: NonEmpty
+    task_manifest_digest: Digest
+    execution_anchor_artifact: Digest
+    task_spec: WorkItem
+    check_evidence: dict[str, Digest]
+
+
+class CalibrationExecutionScope(Contract):
+    qualification_input_artifact: Digest
+    task_id: NonEmpty
+    task_manifest_digest: Digest
+    task_spec: WorkItem
+    declared_checks: Checks
+    source_snapshot_artifact: Digest
+    runtime_operation_ids: tuple[NonEmpty, ...] = Field(min_length=12, max_length=12)
+    scope: Literal["SAFE_ANCHOR_ONLY"] = "SAFE_ANCHOR_ONLY"
+
+
+class FrozenCalibrationEvidenceV2(FrozenReviewEvidenceV2):
+    """Source/oracle/receipts describe execution_scope, never the inert top-level subject."""
+
+    kind: Literal["synthetic-calibration-review-subject"]
+    purpose: Literal["CALIBRATION_ONLY"] = "CALIBRATION_ONLY"
+    subject_executed: Literal[False] = False
+    execution_scope: CalibrationExecutionScope
+
+
+def subject_manifest_digest(subject: CalibrationReviewSubject) -> str:
+    """Bind all exact subject fields except the recursive manifest digest itself."""
+    return digest_json(subject.model_dump(mode="json", exclude={"task_manifest_digest"}))
 
 
 class SealedReviewOutputV2(Contract):
@@ -125,7 +163,7 @@ class ReviewContextV2(Contract):
     task_manifest_digest: Digest
     context_id: NonEmpty
     evidence_digest: Digest
-    evidence: FrozenReviewEvidenceV2
+    evidence: FrozenCalibrationEvidenceV2 | FrozenReviewEvidenceV2
     peer_reviews: tuple[SealedReviewOutputV2, ...] = Field(default=(), max_length=2)
 
 
@@ -195,7 +233,13 @@ def _text(artifacts: ArtifactStore, digest: str) -> str:
 def _frozen_evidence(
     artifacts: ArtifactStore, input_artifact: str, rubric_artifact: str
 ) -> FrozenReviewEvidenceV2:
-    spec = QualificationInput.model_validate(_read(artifacts, input_artifact))
+    document = _read(artifacts, input_artifact)
+    if (
+        isinstance(document, dict)
+        and document.get("kind") == "synthetic-calibration-review-subject"
+    ):
+        return _calibration_subject_evidence(artifacts, input_artifact, rubric_artifact, document)
+    spec = QualificationInput.model_validate(document)
     source = _files(artifacts, spec.provenance.source_snapshot_artifact)
     oracle = _files(artifacts, spec.oracle_artifact)
     baseline = _files(artifacts, spec.baseline_snapshot_artifact)
@@ -253,6 +297,8 @@ def _frozen_evidence(
             )
         )
     forbidden = {spec.reference_snapshot_artifact, spec.reference_patch_artifact}
+    if isinstance(spec.provenance, SyntheticProvenance):
+        forbidden.add(spec.provenance.authoring_artifact)
     documents = []
     roles = {
         "license": spec.provenance.license_evidence_artifact,
@@ -287,6 +333,86 @@ def _frozen_evidence(
         executions=tuple(executions),
         rubric_artifact=rubric_artifact,
         rubric_text=_text(artifacts, rubric_artifact),
+    )
+
+
+def _calibration_subject_evidence(
+    artifacts: ArtifactStore, input_artifact: str, rubric_artifact: str, document: dict[str, Any]
+) -> FrozenCalibrationEvidenceV2:
+    subject = CalibrationReviewSubject.model_validate(document)
+    _require(
+        subject.task_manifest_digest == subject_manifest_digest(subject),
+        "Calibration subject differs from its exact manifest binding",
+    )
+    anchor = QualificationInput.model_validate(_read(artifacts, subject.execution_anchor_artifact))
+    _require(
+        isinstance(anchor.provenance, SyntheticProvenance)
+        and anchor.split == "development"
+        and anchor.risk_tier in (0, 1)
+        and anchor.task_spec.risk_tier == anchor.risk_tier
+        and subject.task_spec.repository == anchor.provenance.repository
+        and 0 < len(subject.task_spec.acceptance_criteria) <= 100
+        and set(subject.check_evidence) == set(ELIGIBILITY)
+        and len(set(subject.check_evidence.values())) == len(ELIGIBILITY),
+        "Calibration subjects require a safe synthetic development anchor and complete documents",
+    )
+    evidence = _frozen_evidence(artifacts, subject.execution_anchor_artifact, rubric_artifact)
+    _require(
+        not isinstance(evidence, FrozenCalibrationEvidenceV2),
+        "Calibration subjects cannot anchor another subject",
+    )
+    forbidden = {
+        anchor.reference_snapshot_artifact,
+        anchor.reference_patch_artifact,
+        subject.execution_anchor_artifact,
+        input_artifact,
+        rubric_artifact,
+        anchor.provenance.source_snapshot_artifact,
+        anchor.oracle_artifact,
+        *(entry.artifact_digest for entry in evidence.documents),
+        *(entry.receipt_artifact for entry in evidence.executions),
+    }
+    if isinstance(anchor.provenance, SyntheticProvenance):
+        forbidden.add(anchor.provenance.authoring_artifact)
+    documents = [
+        entry for entry in evidence.documents if entry.role in {"license", "authorization"}
+    ]
+    for role, digest in subject.check_evidence.items():
+        _require(
+            digest not in forbidden, "Subject supporting documents must be independently authored"
+        )
+        documents.append(
+            EvidenceDocumentV2.model_validate(
+                {
+                    "role": role,
+                    "artifact_digest": digest,
+                    "text": _text(artifacts, digest),
+                }
+            )
+        )
+    scope = CalibrationExecutionScope(
+        qualification_input_artifact=subject.execution_anchor_artifact,
+        task_id=anchor.task_id,
+        task_manifest_digest=anchor.task_manifest_digest,
+        task_spec=anchor.task_spec,
+        declared_checks=anchor.checks,
+        source_snapshot_artifact=anchor.provenance.source_snapshot_artifact,
+        runtime_operation_ids=tuple(
+            _read(artifacts, entry.receipt_artifact)["workflow_id"] for entry in anchor.executions
+        ),
+    )
+    return FrozenCalibrationEvidenceV2.model_validate(
+        {
+            **evidence.model_dump(mode="json"),
+            "qualification_input_artifact": input_artifact,
+            "task_id": subject.task_id,
+            "task_manifest_digest": subject.task_manifest_digest,
+            "task_spec": subject.task_spec.model_dump(mode="json"),
+            "declared_checks": dict.fromkeys(ELIGIBILITY, "PENDING"),
+            "documents": [entry.model_dump(mode="json") for entry in documents],
+            "kind": subject.kind,
+            "execution_scope": scope.model_dump(mode="json"),
+        }
     )
 
 
@@ -473,6 +599,15 @@ def validate_review_output(output: ReviewOutputV2, context: ReviewContextV2) -> 
         for finding in output.findings:
             for citation in finding.citations:
                 _citation(citation, context.evidence)
+            if isinstance(context.evidence, FrozenCalibrationEvidenceV2):
+                subject_documents: dict[str, str] = {
+                    d.role: d.artifact_digest for d in context.evidence.documents
+                }
+                role = "oracle" if finding.target_kind == "criterion" else finding.target_id
+                _require(
+                    subject_documents[role] in {c.artifact_digest for c in finding.citations},
+                    "Calibration findings must cite subject evidence separately from anchor facts",
+                )
             if finding.target_kind == "criterion":
                 _require(
                     any(
@@ -611,6 +746,14 @@ def resolve_reviews(
     adjudicator: ValidatedReviewV2 | None = None,
 ) -> ReviewStageResult:
     """Combine already validated protected records. This is not full qualification admission."""
+    _require(
+        not any(
+            isinstance(review.context.evidence, FrozenCalibrationEvidenceV2)
+            for review in (first, second, adjudicator)
+            if review is not None
+        ),
+        "Calibration-only subjects cannot be resolved into qualification review results",
+    )
     _validate_pair((first, second))
     for review in (first, second):
         validate_review_output(review.output, review.context)

@@ -13,6 +13,13 @@ from agentic_delivery.config import Settings
 from agentic_delivery.domain.models import CommitSHA, Contract, NonEmpty
 from agentic_delivery.evaluation.harness import HistoricalTask
 from agentic_delivery.evaluation.qualification import Digest, Provenance, qualification_task_digest
+from agentic_delivery.evaluation.synthetic_types import (
+    SyntheticLicenseEvidence,
+    SyntheticProvenance,
+    SyntheticReferenceProvenance,
+    SyntheticTask,
+    SyntheticUsageAuthorization,
+)
 from agentic_delivery.execution.files import protected, safe_path, validate_files
 from agentic_delivery.execution.verification import pytest_selectors
 from agentic_delivery.policy.changes import check_candidate
@@ -105,6 +112,24 @@ class PreparedQualification(Contract):
     reference_snapshot_digest: Digest
     patch_binding_digest: Digest
     prepared_at: AwareDatetime
+
+
+def parse_task(document: Any) -> HistoricalTask | SyntheticTask:
+    if isinstance(document, dict) and "kind" in document:
+        return SyntheticTask.model_validate(document)
+    return HistoricalTask.model_validate(document)
+
+
+def parse_provenance(document: Any) -> Provenance | SyntheticProvenance:
+    if isinstance(document, dict) and "kind" in document:
+        return SyntheticProvenance.model_validate(document)
+    return Provenance.model_validate(document)
+
+
+def parse_usage_authorization(document: Any) -> UsageAuthorization | SyntheticUsageAuthorization:
+    if isinstance(document, dict) and "kind" in document:
+        return SyntheticUsageAuthorization.model_validate(document)
+    return UsageAuthorization.model_validate(document)
 
 
 def _require(condition: bool, reason: str) -> None:
@@ -303,11 +328,8 @@ def prepare_qualification(
     _scopes(protected_artifacts.root, output_root, worker_root)
     _require(now.tzinfo is not None and now.utcoffset() is not None, "Aware clock required")
     _require(policy.policy_version == POLICY_VERSION, "Preparation policy version is stale")
-    task = HistoricalTask.model_validate(_read(protected_artifacts, request.task_artifact))
-    provenance = Provenance.model_validate(_read(protected_artifacts, request.provenance_artifact))
-    reference = ReferenceProvenance.model_validate(
-        _read(protected_artifacts, request.reference_provenance_artifact)
-    )
+    task = parse_task(_read(protected_artifacts, request.task_artifact))
+    provenance = parse_provenance(_read(protected_artifacts, request.provenance_artifact))
     _require(
         task.qualification_artifact == "0" * 64
         and task.qualification_mode in {"independent-agents-v1", "independent-agents-v2"}
@@ -322,16 +344,30 @@ def prepare_qualification(
     repo = f"{repository.github_owner}/{repository.github_name}"
     _require(settings.admissions_enabled, "Operator admissions are disabled")
     _require(repository.model_data_authorized, "Repository model data authorization is absent")
-    _require(
-        task.repository_url == f"https://github.com/{repo}"
-        and provenance.repository == repo
-        and provenance.base_sha == task.base_sha
-        and provenance.source_snapshot_artifact == task.snapshot_artifact
-        and provenance.issue_url == task.issue_url
-        and provenance.license_id == task.license_id
-        and task.issue_url.startswith(f"https://github.com/{repo}/issues/"),
-        "Task/provenance differs from configured repository or immutable base",
-    )
+    if isinstance(task, SyntheticTask):
+        _require(isinstance(provenance, SyntheticProvenance), "Mixed task/provenance kinds")
+        assert isinstance(provenance, SyntheticProvenance)
+        _require(
+            provenance.repository == repo
+            and provenance.authoring_artifact == task.authoring_artifact
+            and provenance.construction_revision == task.construction_revision
+            and provenance.source_snapshot_artifact == task.snapshot_artifact
+            and provenance.license_id == task.license_id,
+            "Synthetic task/provenance differs from configured repository or construction",
+        )
+    else:
+        _require(isinstance(provenance, Provenance), "Mixed task/provenance kinds")
+        assert isinstance(provenance, Provenance)
+        _require(
+            task.repository_url == f"https://github.com/{repo}"
+            and provenance.repository == repo
+            and provenance.base_sha == task.base_sha
+            and provenance.source_snapshot_artifact == task.snapshot_artifact
+            and provenance.issue_url == task.issue_url
+            and provenance.license_id == task.license_id
+            and task.issue_url.startswith(f"https://github.com/{repo}/issues/"),
+            "Task/provenance differs from configured repository or immutable base",
+        )
     _require(task.image == repository.sandbox_image, "Image differs from pinned configuration")
     _require(evaluate_intake(task.item).allowed, "Task requires policy/risk escalation")
     _require(
@@ -376,57 +412,67 @@ def prepare_qualification(
         ),
         "Oracle must contain only test Python files without runner/control overrides",
     )
-    license_record = LicenseEvidence.model_validate(
-        _read(protected_artifacts, provenance.license_evidence_artifact)
-    )
-    license_path = safe_path(license_record.license_path)
-    _require(
-        license_record.repository == repo
-        and license_record.base_sha == task.base_sha
-        and license_record.source_snapshot_artifact == task.snapshot_artifact
-        and license_record.license_id == task.license_id
-        and license_record.license_url == provenance.license_url
-        and license_record.license_url
-        == f"https://github.com/{repo}/blob/{task.base_sha}/{license_path}"
-        and len(source.get(license_path, "").strip()) >= 80
-        and hashlib.sha256(source.get(license_path, "").encode()).hexdigest()
-        == license_record.license_text_sha256,
-        "License record does not bind substantive immutable source license text",
-    )
-    _require(
-        provenance.usage_authorization_artifact in policy.approved_authorization_artifacts,
-        "Usage authorization is not pinned by the trusted preparation policy",
-    )
-    authorization = UsageAuthorization.model_validate(
-        _read(protected_artifacts, provenance.usage_authorization_artifact)
-    )
-    _require(
-        authorization.issuer in policy.authorized_issuers
-        and authorization.task_manifest_digest == digest
-        and authorization.repository == repo
-        and authorization.base_sha == task.base_sha
-        and authorization.source_url == provenance.source_url
-        and authorization.source_revision == provenance.source_revision
-        and authorization.issue_url == task.issue_url
-        and authorization.license_evidence_artifact == provenance.license_evidence_artifact
-        and authorization.rights_scope == provenance.rights_scope
-        and authorization.issued_at <= now < authorization.expires_at,
-        "Usage authorization is stale, unsupported or bound to different inputs",
-    )
-    _require(
-        reference.task_manifest_digest == digest
-        and reference.repository == repo
-        and reference.base_sha == task.base_sha
-        and reference.accepted_commit != task.base_sha
-        and reference.accepted_commit_url
-        == f"https://github.com/{repo}/commit/{reference.accepted_commit}"
-        and reference.issue_url == task.issue_url
-        and reference.source_snapshot_artifact == task.snapshot_artifact
-        and reference.oracle_artifact == task.oracle_artifact
-        and reference.reference_snapshot_artifact == task.reference_snapshot_artifact
-        and reference.reference_patch_artifact == task.reference_patch_artifact,
-        "Reference provenance does not bind this immutable task",
-    )
+    if isinstance(task, SyntheticTask):
+        assert isinstance(provenance, SyntheticProvenance)
+        license_path = _synthetic_rights(
+            task, provenance, request, policy, protected_artifacts, source, repo, digest, now
+        )
+    else:
+        assert isinstance(provenance, Provenance)
+        reference = ReferenceProvenance.model_validate(
+            _read(protected_artifacts, request.reference_provenance_artifact)
+        )
+        license_record = LicenseEvidence.model_validate(
+            _read(protected_artifacts, provenance.license_evidence_artifact)
+        )
+        license_path = safe_path(license_record.license_path)
+        _require(
+            license_record.repository == repo
+            and license_record.base_sha == task.base_sha
+            and license_record.source_snapshot_artifact == task.snapshot_artifact
+            and license_record.license_id == task.license_id
+            and license_record.license_url == provenance.license_url
+            and license_record.license_url
+            == f"https://github.com/{repo}/blob/{task.base_sha}/{license_path}"
+            and len(source.get(license_path, "").strip()) >= 80
+            and hashlib.sha256(source.get(license_path, "").encode()).hexdigest()
+            == license_record.license_text_sha256,
+            "License record does not bind substantive immutable source license text",
+        )
+        _require(
+            provenance.usage_authorization_artifact in policy.approved_authorization_artifacts,
+            "Usage authorization is not pinned by the trusted preparation policy",
+        )
+        authorization = UsageAuthorization.model_validate(
+            _read(protected_artifacts, provenance.usage_authorization_artifact)
+        )
+        _require(
+            authorization.issuer in policy.authorized_issuers
+            and authorization.task_manifest_digest == digest
+            and authorization.repository == repo
+            and authorization.base_sha == task.base_sha
+            and authorization.source_url == provenance.source_url
+            and authorization.source_revision == provenance.source_revision
+            and authorization.issue_url == task.issue_url
+            and authorization.license_evidence_artifact == provenance.license_evidence_artifact
+            and authorization.rights_scope == provenance.rights_scope
+            and authorization.issued_at <= now < authorization.expires_at,
+            "Usage authorization is stale, unsupported or bound to different inputs",
+        )
+        _require(
+            reference.task_manifest_digest == digest
+            and reference.repository == repo
+            and reference.base_sha == task.base_sha
+            and reference.accepted_commit != task.base_sha
+            and reference.accepted_commit_url
+            == f"https://github.com/{repo}/commit/{reference.accepted_commit}"
+            and reference.issue_url == task.issue_url
+            and reference.source_snapshot_artifact == task.snapshot_artifact
+            and reference.oracle_artifact == task.oracle_artifact
+            and reference.reference_snapshot_artifact == task.reference_snapshot_artifact
+            and reference.reference_patch_artifact == task.reference_patch_artifact,
+            "Reference provenance does not bind this immutable task",
+        )
     patched = apply_reference_patch(source, protected_artifacts.get(task.reference_patch_artifact))
     regression_paths = tuple(
         selector.split("::", 1)[0]
@@ -474,6 +520,65 @@ def prepare_qualification(
         ),
         prepared_at=now,
     )
+
+
+def _synthetic_rights(
+    task: SyntheticTask,
+    provenance: SyntheticProvenance,
+    request: PreparationRequest,
+    policy: PreparationPolicy,
+    store: ArtifactStore,
+    source: dict[str, str],
+    repo: str,
+    digest: str,
+    now: datetime,
+) -> str:
+    license_record = SyntheticLicenseEvidence.model_validate(
+        _read(store, provenance.license_evidence_artifact)
+    )
+    license_path = safe_path(license_record.license_path)
+    _require(
+        license_record.repository == repo
+        and license_record.construction_revision == task.construction_revision
+        and license_record.source_snapshot_artifact == task.snapshot_artifact
+        and license_record.license_id == task.license_id
+        and len(source.get(license_path, "").strip()) >= 80
+        and hashlib.sha256(source.get(license_path, "").encode()).hexdigest()
+        == license_record.license_text_sha256,
+        "Synthetic license does not bind substantive local source license text",
+    )
+    _require(
+        provenance.usage_authorization_artifact in policy.approved_authorization_artifacts,
+        "Synthetic usage authorization is not pinned by trusted policy",
+    )
+    authorization = parse_usage_authorization(_read(store, provenance.usage_authorization_artifact))
+    _require(isinstance(authorization, SyntheticUsageAuthorization), "Mixed authorization kind")
+    assert isinstance(authorization, SyntheticUsageAuthorization)
+    _require(
+        authorization.issuer in policy.authorized_issuers
+        and authorization.authoring_artifact == task.authoring_artifact
+        and authorization.task_manifest_digest == digest
+        and authorization.repository == repo
+        and authorization.construction_revision == task.construction_revision
+        and authorization.license_evidence_artifact == provenance.license_evidence_artifact
+        and authorization.rights_scope == provenance.rights_scope
+        and authorization.issued_at <= now < authorization.expires_at,
+        "Synthetic usage authorization is stale or bound to different inputs",
+    )
+    reference = SyntheticReferenceProvenance.model_validate(
+        _read(store, request.reference_provenance_artifact)
+    )
+    _require(
+        reference.task_manifest_digest == digest
+        and reference.repository == repo
+        and reference.construction_revision == task.construction_revision
+        and reference.source_snapshot_artifact == task.snapshot_artifact
+        and reference.oracle_artifact == task.oracle_artifact
+        and reference.reference_snapshot_artifact == task.reference_snapshot_artifact
+        and reference.reference_patch_artifact == task.reference_patch_artifact,
+        "Authored fixture reference does not bind this synthetic task",
+    )
+    return license_path
 
 
 def _test_path(path: str) -> bool:

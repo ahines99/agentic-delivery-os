@@ -16,6 +16,7 @@ from pydantic import AwareDatetime, Field, TypeAdapter
 from agentic_delivery.agents.evidence import ExecutionReceipt
 from agentic_delivery.config import CommandProfile
 from agentic_delivery.domain.models import CommitSHA, Contract, NonEmpty, WorkItem
+from agentic_delivery.evaluation.synthetic_types import SyntheticProvenance
 from agentic_delivery.execution.files import protected, validate_files
 from agentic_delivery.execution.verification import report_verdict
 from agentic_delivery.storage.artifacts import ArtifactStore
@@ -80,7 +81,7 @@ class QualificationInput(Contract):
     task_id: NonEmpty
     task_manifest_digest: Digest
     task_spec: WorkItem
-    provenance: Provenance
+    provenance: Provenance | SyntheticProvenance
     checks: Checks
     check_evidence: dict[str, Digest]
     findings: tuple[EvidenceSummary, ...] = Field(min_length=6, max_length=6)
@@ -317,6 +318,10 @@ def _validate(
         for ref in finding.evidence_refs:
             _require(bool(artifacts.get(ref)), "Missing finding evidence")
     provenance = spec.provenance
+    _require(
+        isinstance(provenance, Provenance), "Legacy qualification requires historical provenance"
+    )
+    assert isinstance(provenance, Provenance)
     if task_document is not None:
         _require(
             qualification_task_digest(task_document) == task_manifest_digest

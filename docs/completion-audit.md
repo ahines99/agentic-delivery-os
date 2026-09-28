@@ -344,3 +344,15 @@ Windows skips**, in 610.65 seconds against actual PostgreSQL, Temporal and Docke
 remained after the full run. No paid provider call, historical qualification or campaign ran.
 The previous `e2f94e9` checkpoint passed all four hosted checks at
 [run 36451443398](https://github.com/ahines99/agentic-delivery-os/actions/runs/36451443398).
+
+
+E44: [Owned calibration preparation](synthetic-preparation-runtime.md) connects five original
+development examples, scoped internal-processing rights, actual-ledger review inputs and inert
+review subjects. Known reference/expected-answer aggregates cannot be used as review documents
+or rubrics. Sixteen new exclusions plus the subject/v2 suite passed 82 focused tests. Pure
+[request forecasts](model-request-forecast.md) share actual broker serialization and reservation
+rules. Full local verification passed **1318 tests, seven explicit Windows skips**, in 661.83
+seconds with PostgreSQL, Temporal and Docker. Ruff check/format (207 files), mypy (73 sources),
+locked dependencies, wheel build, installed-wheel imports, 247 local links across 64 documents
+and staged secret scanning passed. No managed test container remained. At this source checkpoint
+the real five-case preparation and paid calibration had not run; no historical task was qualified.

@@ -3,8 +3,9 @@
 import asyncio
 import hashlib
 import json
+from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any, TypeVar
+from typing import Any, Literal, TypeVar
 
 import httpx
 from pydantic import BaseModel
@@ -100,6 +101,116 @@ class ModelFailure(RuntimeError):
     """No secret-bearing upstream response text is included in this exception."""
 
 
+@dataclass(frozen=True, slots=True)
+class ModelRequestForecast:
+    """Immutable metadata, not an execution grant, token estimate or provider invoice."""
+
+    provider: Literal["openai", "anthropic"]
+    request_digest: str
+    prompt_digest: str
+    context_digest: str
+    schema_digest: str
+    configuration_digest: str
+    serialized_body_bytes: int
+    upper_input_tokens: int
+    max_output_tokens: int
+    reservation_microdollars: int
+
+
+def _cost(config: ModelConfig, input_tokens: int, output_tokens: int) -> int:
+    return (
+        input_tokens * config.input_microdollars_per_million
+        + output_tokens * config.output_microdollars_per_million
+        + 999_999
+    ) // 1_000_000
+
+
+def _prepare_request(
+    config: ModelConfig,
+    *,
+    instructions: str,
+    context: dict[str, Any],
+    output_type: type[BaseModel],
+) -> tuple[dict[str, Any], ModelRequestForecast]:
+    """One private constructor for actual wire bodies and pure reservation forecasts."""
+    try:
+        config = ModelConfig.model_validate(config.model_dump(mode="json"))
+        if (
+            not isinstance(instructions, str)
+            or not isinstance(context, dict)
+            or not isinstance(output_type, type)
+            or not issubclass(output_type, BaseModel)
+        ):
+            raise ValueError("Invalid structured request inputs")
+        schema = output_type.model_json_schema()
+        body: dict[str, Any] = {
+            "model": config.model,
+            "store": False,
+            "instructions": instructions,
+            "input": json.dumps(context, ensure_ascii=False, sort_keys=True, allow_nan=False),
+            "max_output_tokens": config.max_output_tokens,
+            "text": {
+                "format": {
+                    "type": "json_schema",
+                    "name": output_type.__name__,
+                    "strict": True,
+                    "schema": strict_schema(schema),
+                }
+            },
+        }
+        if config.provider == "anthropic":
+            body = {
+                "model": config.model,
+                "max_tokens": config.max_output_tokens,
+                "system": instructions,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": json.dumps(context, sort_keys=True, allow_nan=False),
+                    }
+                ],
+                "output_config": {
+                    "format": {"type": "json_schema", "schema": anthropic_schema(schema)}
+                },
+            }
+        # Preserve the broker's existing serialization basis, including default
+        # spaces. This is deliberately not HTTPX's compact wire byte length.
+        body_bytes = len(json.dumps(body, ensure_ascii=False, allow_nan=False).encode())
+        upper_input = body_bytes + 1024
+        forecast = ModelRequestForecast(
+            provider=config.provider,
+            request_digest=digest_json(body),
+            prompt_digest=hashlib.sha256(instructions.encode()).hexdigest(),
+            context_digest=digest_json(context),
+            schema_digest=digest_json(schema),
+            configuration_digest=digest_json(config.model_dump(mode="json")),
+            serialized_body_bytes=body_bytes,
+            upper_input_tokens=upper_input,
+            max_output_tokens=config.max_output_tokens,
+            reservation_microdollars=_cost(config, upper_input, config.max_output_tokens),
+        )
+        return body, forecast
+    except (ValueError, TypeError, AttributeError, RecursionError, OverflowError):
+        raise ModelFailure("Structured model request inputs are invalid") from None
+
+
+def forecast_request(
+    config: ModelConfig,
+    *,
+    instructions: str,
+    context: dict[str, Any],
+    output_type: type[BaseModel],
+) -> ModelRequestForecast:
+    """Pure reservation metadata: no credentials, network, ledger or execution permission.
+
+    The schema class is trusted application code. Prompt, context and body are retained
+    only within this call and are never fields of the returned forecast.
+    """
+    return _prepare_request(
+        config, instructions=instructions, context=context, output_type=output_type
+    )[1]
+
+
 def strict_schema(schema: dict[str, Any]) -> dict[str, Any]:
     """Require all object fields, including optional nullable ones, for strict output."""
     result = dict(schema)
@@ -132,11 +243,7 @@ class StructuredModel:
         self.client = client
 
     def cost(self, input_tokens: int, output_tokens: int) -> int:
-        return (
-            input_tokens * self.config.input_microdollars_per_million
-            + output_tokens * self.config.output_microdollars_per_million
-            + 999_999
-        ) // 1_000_000
+        return _cost(self.config, input_tokens, output_tokens)
 
     async def generate(
         self,
@@ -148,63 +255,31 @@ class StructuredModel:
         output_type: type[T],
     ) -> T:
         key = secret(self.config.api_key_env)
-        body: dict[str, Any] = {
-            "model": self.config.model,
-            "store": False,
-            "instructions": instructions,
-            "input": json.dumps(context, ensure_ascii=False, sort_keys=True, allow_nan=False),
-            "max_output_tokens": self.config.max_output_tokens,
-            "text": {
-                "format": {
-                    "type": "json_schema",
-                    "name": output_type.__name__,
-                    "strict": True,
-                    "schema": strict_schema(output_type.model_json_schema()),
-                }
-            },
-        }
+        body, forecast = _prepare_request(
+            self.config, instructions=instructions, context=context, output_type=output_type
+        )
         endpoint = "https://api.openai.com/v1/responses"
         headers = {"Authorization": f"Bearer {key}"}
         if self.config.provider == "anthropic":
             endpoint = "https://api.anthropic.com/v1/messages"
             headers = {"x-api-key": key, "anthropic-version": "2023-06-01"}
-            body = {
-                "model": self.config.model,
-                "max_tokens": self.config.max_output_tokens,
-                "system": instructions,
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": json.dumps(context, sort_keys=True, allow_nan=False),
-                    }
-                ],
-                "output_config": {
-                    "format": {
-                        "type": "json_schema",
-                        "schema": anthropic_schema(output_type.model_json_schema()),
-                    }
-                },
-            }
         binding = {
             "account_id": workflow_id,
             "operation_id": operation_id,
             "provider": self.config.provider,
             "requested_model": self.config.model,
-            "request_digest": digest_json(body),
-            "prompt_digest": hashlib.sha256(instructions.encode()).hexdigest(),
-            "context_digest": digest_json(context),
-            "schema_digest": digest_json(output_type.model_json_schema()),
-            "configuration_digest": digest_json(self.config.model_dump(mode="json")),
+            "request_digest": forecast.request_digest,
+            "prompt_digest": forecast.prompt_digest,
+            "context_digest": forecast.context_digest,
+            "schema_digest": forecast.schema_digest,
+            "configuration_digest": forecast.configuration_digest,
         }
-        # UTF-8 bytes plus schema/serialization overhead deliberately over-reserve textual tokens.
-        upper_input = len(json.dumps(body, ensure_ascii=False).encode()) + 1024
-        upper_output = self.config.max_output_tokens
         cached = self.store.reserve(
             workflow_id,
             operation_id,
-            self.cost(upper_input, upper_output),
-            upper_input,
-            upper_output,
+            forecast.reservation_microdollars,
+            forecast.upper_input_tokens,
+            forecast.max_output_tokens,
         )
         if cached is not None:
             try:

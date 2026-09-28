@@ -15,10 +15,10 @@ Linear -> Requirements -> Risk policy -> Plan -> Isolated build
 Implemented and exercised locally: authenticated intake and plan approval, PostgreSQL
 inbox/outbox and audit storage, Temporal workflows, real Anthropic planning/build/review,
 bounded Docker execution, independent test runs, and digest-verified candidate artifacts.
-The local suite passed 1155 tests with actual PostgreSQL, Temporal and Docker, including
+The local suite passed 1318 tests with actual PostgreSQL, Temporal and Docker, including
 structured test-evidence validation, CI races, projection recovery, resource exhaustion and
 hostile dependency hooks; seven POSIX/symlink cases explicitly skipped on Windows.
-[The preceding revision's hosted CI passed](https://github.com/ahines99/agentic-delivery-os/actions/runs/36451443398)
+[The preceding revision's hosted CI passed](https://github.com/ahines99/agentic-delivery-os/actions/runs/36455635541)
 on Python 3.12/3.13, real service integration and secret scanning.
 A synthetic customer task reached `LOCAL_REVIEW_READY`; its durable workflow stopped at
 `POLICY_BLOCKED` because publication was disabled. No PR, merge, or deployment is implied.
@@ -96,6 +96,13 @@ skip without the runbook's service variables.
 | [docs/scoring-execution.md](docs/scoring-execution.md) | Separate candidate scoring grants, accounting and revocation |
 | [docs/qualification-v2.md](docs/qualification-v2.md) | Protected semantic evidence, independent reviews and adjudication |
 | [docs/evaluation-calibration.md](docs/evaluation-calibration.md) | Executed development cases and recomputed calibration metrics |
+| [docs/synthetic-preparation.md](docs/synthetic-preparation.md) | Owned development provenance without invented historical records |
+| [docs/synthetic-preparation-runtime.md](docs/synthetic-preparation-runtime.md) | Bounded five-case Docker preparation with no model calls |
+| [docs/synthetic-import.md](docs/synthetic-import.md) | Protected authored-case import and exact data authorization bindings |
+| [docs/synthetic-calibration-cases.md](docs/synthetic-calibration-cases.md) | Five original development cases with separately frozen expectations |
+| [docs/calibration-subjects.md](docs/calibration-subjects.md) | Inert review subjects separated from safe executed fixtures |
+| [docs/qualification-inputs.md](docs/qualification-inputs.md) | Review inputs reconstructed from completed ledger evidence |
+| [docs/model-request-forecast.md](docs/model-request-forecast.md) | Pure exact reservation forecasting without model effects |
 | [docs/qualification-preparation.md](docs/qualification-preparation.md) | Offline evidence preparation without admission or spending |
 | [docs/evaluation-execution-store.md](docs/evaluation-execution-store.md) | Separate evaluation accounts, immutable usage and checkpoints |
 | [docs/model-operation-receipts.md](docs/model-operation-receipts.md) | Bound model provenance and retained uncertain outcomes |
