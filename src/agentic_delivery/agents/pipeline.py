@@ -65,7 +65,7 @@ async def build_and_review(
         raise ValueError("Execution policy denied the assessed work item")
     pytest_import_options(repository.commands)
     runner = DockerRunner(repository.sandbox_image)
-    preflight = await runner.preflight()
+    preflight = await runner.preflight(run_id=workflow_id)
     artifacts = ArtifactStore(settings.artifact_root)
     model = StructuredModel(settings.model, store)
 

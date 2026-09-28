@@ -10,6 +10,7 @@ from agentic_delivery.agents.contracts import ImplementationPlan
 from agentic_delivery.agents.pipeline import build_and_review
 from agentic_delivery.config import Settings
 from agentic_delivery.domain.models import WorkItem
+from agentic_delivery.execution.docker import DockerRunner
 from agentic_delivery.integrations.github import GitHubPublisher
 from agentic_delivery.integrations.github_ci import GitHubCI, GitHubCIWaiting
 from agentic_delivery.integrations.linear import LinearClient
@@ -291,6 +292,23 @@ class Activities:
         # File content is stored in artifacts; do not inflate Temporal history with source trees.
         result.pop("candidate_files", None)
         return result
+
+    @activity.defn(name="cleanup_candidate")
+    async def cleanup_candidate(self, request: dict[str, Any]) -> dict[str, Any]:
+        # The durable workflow requests containment after a failed candidate. A
+        # revoked approval must not prevent cleanup; this grants no execution rights.
+        if set(request) != {"workflow_id"} or request["workflow_id"] != activity.info().workflow_id:
+            raise ValueError("Cleanup must match the calling workflow")
+        identity = request["workflow_id"]
+        run = self.store.workflow(identity)
+        repository = self.settings.repository(run["repository"])
+        if not repository.sandbox_image:
+            raise ValueError("Cleanup sandbox image configuration missing")
+        result = await DockerRunner(repository.sandbox_image).cleanup_run(identity)
+        artifact = ArtifactStore(self.settings.artifact_root).put(
+            json.dumps(result, sort_keys=True).encode()
+        )
+        return {**result, "artifact_digest": artifact}
 
     @activity.defn(name="publish")
     async def publish(self, request: dict[str, Any]) -> dict[str, Any]:

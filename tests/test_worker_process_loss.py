@@ -48,8 +48,12 @@ def events(directory: Path, generation: str) -> list[dict]:
 
 
 @pytest.mark.integration
-async def test_actual_worker_loss_fails_once_and_exposes_orphan_for_scoped_cleanup(
+@pytest.mark.parametrize(
+    "cleanup_fails", [False, True], ids=["automatic-cleanup", "cleanup-unknown"]
+)
+async def test_actual_worker_loss_fails_once_and_records_cleanup_outcome(
     tmp_path: Path,
+    cleanup_fails: bool,
 ) -> None:
     address, url, image = (
         os.environ.get(name)
@@ -172,6 +176,7 @@ async def test_actual_worker_loss_fails_once_and_exposes_orphan_for_scoped_clean
         json.dumps(
             {
                 "workflow_id": identity,
+                "cleanup_fails": cleanup_fails,
                 "settings": settings.model_dump(mode="json"),
                 "proposal": proposal.model_dump(mode="json"),
                 "assessment": {
@@ -290,6 +295,11 @@ async def test_actual_worker_loss_fails_once_and_exposes_orphan_for_scoped_clean
             "BuildProposal"
         ]
         assert len([event for event in combined if event["kind"] == "container-created"]) == 3
+        assert all(
+            event["run_label"] == identity
+            for event in combined
+            if event["kind"] == "container-created"
+        )
         with Session(engine) as session:
             usage = session.scalars(
                 select(UsageRecord).where(UsageRecord.workflow_id == identity)
@@ -298,13 +308,34 @@ async def test_actual_worker_loss_fails_once_and_exposes_orphan_for_scoped_clean
         assert store.operation_receipt(identity, f"{identity}:build:0") == before
         assert store.workflow(identity)["spent_microdollars"] == 3000
         assert store.workflow(identity)["reserved_microdollars"] == 0
-        # Inspect BEFORE parent cleanup. The production runner has no cross-process
-        # reaper: its Python finally cannot execute after hard process termination.
-        code, output, _ = await runner.cli("inspect", container_id)
-        assert code == 0
-        container = json.loads(output)[0]
-        assert container["Id"] == container_id and container["State"]["Running"]
-        assert container["Config"]["Labels"]["agentic-delivery.run"] == identity
+        assert len([event for event in combined if event["kind"] == "cleanup-started"]) == 1
+        cleanup = store.workflow(identity)["result"]["candidate_cleanup"]
+        # Inspect BEFORE parent fallback. Success must mean actual trusted cleanup;
+        # a failed cleanup activity must persist uncertainty and retain the orphan.
+        if cleanup_fails:
+            assert cleanup == {"status": "UNKNOWN", "verified_absent": False}
+            code, output, _ = await runner.cli("inspect", container_id)
+            assert code == 0
+            container = json.loads(output)[0]
+            assert container["Id"] == container_id and container["State"]["Running"]
+            assert container["Config"]["Labels"]["agentic-delivery.run"] == identity
+        else:
+            assert cleanup["status"] == "CLEANED" and cleanup["verified_absent"] is True
+            assert cleanup["workflow_id"] == identity
+            assert cleanup["removed_container_ids"] == [container_id]
+            assert json.loads(artifacts.get(cleanup["artifact_digest"])) == {
+                key: value for key, value in cleanup.items() if key != "artifact_digest"
+            }
+            code, output, _ = await runner.cli(
+                "ps",
+                "--all",
+                "--no-trunc",
+                "--filter",
+                "id=" + container_id,
+                "--format",
+                "{{.ID}}",
+            )
+            assert code == 0 and not output.strip()
         history = await handle.fetch_history()
         scheduled = [
             event.activity_task_scheduled_event_attributes
@@ -312,6 +343,10 @@ async def test_actual_worker_loss_fails_once_and_exposes_orphan_for_scoped_clean
             if event.HasField("activity_task_scheduled_event_attributes")
         ]
         assert len([event for event in scheduled if event.activity_type.name == "candidate"]) == 1
+        assert (
+            len([event for event in scheduled if event.activity_type.name == "cleanup_candidate"])
+            == 1
+        )
         timed_out = [
             event.activity_task_timed_out_event_attributes
             for event in history.events
@@ -337,8 +372,10 @@ async def test_actual_worker_loss_fails_once_and_exposes_orphan_for_scoped_clean
             "workflow_projection_artifact": put(store.workflow(identity)),
             "model_microdollars_fixture": 3000,
             "actual_provider_calls": 0,
-            "automatic_cleanup_observed": False,
-            "orphan_running_before_parent_cleanup": True,
+            "automatic_cleanup_observed": not cleanup_fails,
+            "injected_cleanup_failure": cleanup_fails,
+            "orphan_running_before_parent_cleanup": cleanup_fails,
+            "cleanup": cleanup,
             "snapshot_digest": digest_json(candidate),
             "history_sha256": hashlib.sha256(history_path.read_bytes()).hexdigest(),
         }
@@ -380,6 +417,8 @@ async def test_actual_worker_loss_fails_once_and_exposes_orphan_for_scoped_clean
         (tmp_path / "parent-cleanup.json").write_text(
             json.dumps({"explicit_parent_cleanup": True, "removed": removed}), encoding="utf-8"
         )
+        if finished:
+            assert removed == ([container_id] if cleanup_fails else [])
         if not finished:
             with suppress(Exception):
                 await handle.terminate(

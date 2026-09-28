@@ -90,7 +90,8 @@ def authorization_pipeline(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         def __init__(self, image: str):
             self.image = image
 
-        async def preflight(self) -> dict[str, Any]:
+        async def preflight(self, *, run_id: str | None = None) -> dict[str, Any]:
+            assert run_id == run["workflow_id"]
             script.effect("preflight")
             return template["preflight"]
 

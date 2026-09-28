@@ -211,6 +211,7 @@ while True:
             services.resolve_command,
             planner.analyze,
             services.candidate,
+            services.cleanup_candidate,
         ],
         graceful_shutdown_timeout=timedelta(seconds=10),
     ):

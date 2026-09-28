@@ -8,7 +8,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from agentic_delivery.execution.files import archive
 
@@ -265,7 +265,99 @@ class DockerRunner:
             return None, "Trusted collector report is not an object"
         return report, None
 
-    async def preflight(self) -> dict[str, Any]:
+    async def cleanup_run(self, run_id: str) -> dict[str, Any]:
+        """Remove only inspected containers of one trusted workflow, within twenty seconds.
+
+        Absence is a point-in-time observation, not a fence against a surviving worker.
+        This API belongs to the trusted activity host, never the candidate/model tools.
+        """
+        if not isinstance(run_id, str) or str(UUID(run_id)) != run_id:
+            raise ValueError("Cleanup requires a canonical workflow UUID")
+
+        async def scoped_ids() -> list[str]:
+            code, output, _ = await self.cli(
+                "ps",
+                "--all",
+                "--no-trunc",
+                "--filter",
+                "label=agentic-delivery.managed=true",
+                "--filter",
+                "label=agentic-delivery.run=" + run_id,
+                "--format",
+                "{{.ID}}",
+                timeout=5,
+            )
+            if code:
+                raise SandboxError("Workflow sandbox listing failed")
+            identities = output.decode("ascii").splitlines()
+            if (
+                len(identities) > 16
+                or len(set(identities)) != len(identities)
+                or any(not re.fullmatch(r"[a-f0-9]{64}", identity) for identity in identities)
+            ):
+                raise SandboxError("Workflow sandbox listing is malformed or exceeds its bound")
+            return identities
+
+        try:
+            async with asyncio.timeout(20):
+                identities = await scoped_ids()
+                if identities:
+                    code, output, _ = await self.cli("inspect", *identities, timeout=5)
+                    if code:
+                        raise SandboxError("Workflow sandbox inspection failed")
+                    records = json.loads(output)
+                    if not isinstance(records, list) or len(records) != len(identities):
+                        raise SandboxError("Workflow sandbox inspection is incomplete")
+                    inspected = set()
+                    for record in records:
+                        if not isinstance(record, dict):
+                            raise SandboxError("Invalid workflow sandbox identity")
+                        identity = record.get("Id")
+                        labels = record.get("Config", {}).get("Labels", {})
+                        if (
+                            identity not in identities
+                            or identity in inspected
+                            or labels.get("agentic-delivery.managed") != "true"
+                            or labels.get("agentic-delivery.run") != run_id
+                            or not re.fullmatch(r"/delivery-[a-f0-9]{32}", record.get("Name", ""))
+                        ):
+                            raise SandboxError(
+                                "Workflow sandbox identity does not match cleanup scope"
+                            )
+                        inspected.add(identity)
+                    # Validate the entire bounded set before performing any deletion.
+                    for identity in identities:
+                        code, _, _ = await self.cli(
+                            "rm", "--force", "--volumes", identity, timeout=5
+                        )
+                        if code:
+                            raise SandboxError("Workflow sandbox removal is unconfirmed")
+                    for identity in identities:
+                        code, output, _ = await self.cli(
+                            "ps",
+                            "--all",
+                            "--no-trunc",
+                            "--filter",
+                            "id=" + identity,
+                            "--format",
+                            "{{.ID}}",
+                            timeout=5,
+                        )
+                        if code or output.strip():
+                            raise SandboxError("Removed workflow sandbox absence is unconfirmed")
+                if await scoped_ids():
+                    raise SandboxError("Workflow sandbox scope is not empty after cleanup")
+                return {
+                    "status": "CLEANED",
+                    "workflow_id": run_id,
+                    "removed_container_ids": identities,
+                    "verified_absent": True,
+                    "scope": "point-in-time-workflow-labels-v1",
+                }
+        except (TimeoutError, ValueError, UnicodeError, AttributeError, TypeError):
+            raise SandboxError("Workflow sandbox cleanup could not confirm absence") from None
+
+    async def preflight(self, *, run_id: str | None = None) -> dict[str, Any]:
         probe = """import json, os, socket, pathlib
 result = {'nonroot': os.getuid() != 0}
 result['no_socket'] = not pathlib.Path('/var/run/docker.sock').exists()
@@ -286,7 +378,7 @@ stat = os.statvfs('/workspace')
 result['workspace_bounded'] = stat.f_blocks * stat.f_frsize <= 134217728
 print(json.dumps(result))
 """
-        result = await self.run({}, ("python", "-c", probe), timeout_seconds=15)
+        result = await self.run({}, ("python", "-c", probe), timeout_seconds=15, run_id=run_id)
         if result.exit_code:
             raise SandboxError("Runtime isolation probe failed")
         checks = json.loads(result.stdout)

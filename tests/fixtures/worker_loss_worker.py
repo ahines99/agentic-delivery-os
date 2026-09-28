@@ -40,10 +40,22 @@ async def run(bundle_path: Path, generation: str) -> None:
                     "container-created",
                     container_id=result[1].decode().strip(),
                     name=args[args.index("--name") + 1],
+                    run_label=next(
+                        arg.split("=", 1)[1]
+                        for arg in args
+                        if arg.startswith("agentic-delivery.run=")
+                    ),
                 )
             return result
 
     class ObservedActivities(Activities):
+        @activity.defn(name="cleanup_candidate")
+        async def cleanup_candidate(self, request):
+            record("cleanup-started", workflow_id=request["workflow_id"])
+            if bundle["cleanup_fails"]:
+                raise RuntimeError("Owned injected cleanup failure; no removal attempted")
+            return await super().cleanup_candidate(request)
+
         @activity.defn(name="candidate")
         async def candidate(self, request):
             record(
@@ -94,6 +106,7 @@ async def run(bundle_path: Path, generation: str) -> None:
                     services.resolve_command,
                     FrozenPlanner().analyze,
                     services.candidate,
+                    services.cleanup_candidate,
                 ],
             ):
                 record("worker-ready", task_queue=settings.task_queue)

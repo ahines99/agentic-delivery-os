@@ -377,6 +377,32 @@ class DeliveryWorkflow:
                         command, "REJECTED", "Command unavailable in current state"
                     )
         except ActivityError as failure:
+            cleanup_result = None
+            if (
+                failure.activity_type == "candidate"
+                and not is_cancelled_exception(failure)
+                and workflow.patched("candidate-failure-cleanup-v1")
+            ):
+                # Do not rerun candidate/model effects. Reconcile resources through
+                # a separate bounded trusted activity before terminal projection.
+                cleanup_result = {"status": "UNKNOWN", "verified_absent": False}
+                try:
+                    observed = await workflow.execute_activity(
+                        "cleanup_candidate",
+                        {"workflow_id": identity},
+                        start_to_close_timeout=timedelta(seconds=25),
+                        schedule_to_close_timeout=timedelta(seconds=30),
+                        retry_policy=RetryPolicy(maximum_attempts=1),
+                    )
+                    if (
+                        isinstance(observed, dict)
+                        and observed.get("status") == "CLEANED"
+                        and observed.get("workflow_id") == identity
+                        and observed.get("verified_absent") is True
+                    ):
+                        cleanup_result = observed
+                except ActivityError:
+                    pass  # Persist explicit uncertainty; never infer successful cleanup.
             if self.cancel_request is not None:
                 if workflow.patched(
                     "verified-cancellation-outcome-v1"
@@ -385,6 +411,7 @@ class DeliveryWorkflow:
                         identity,
                         "FAILED",
                         "Cancellation requested; activity cleanup not confirmed",
+                        result={"candidate_cleanup": cleanup_result} if cleanup_result else None,
                         actor=self.cancel_request["actor"],
                     )
                     await self.disposition(
@@ -402,7 +429,10 @@ class DeliveryWorkflow:
                 await self.disposition(self.cancel_request, "APPLIED")
                 return self.status()
             await self.move(
-                identity, "FAILED", "Activity failed; inspect redacted operation records"
+                identity,
+                "FAILED",
+                "Activity failed; inspect redacted operation records",
+                result={"candidate_cleanup": cleanup_result} if cleanup_result else None,
             )
             return self.status()
         except asyncio.CancelledError:
