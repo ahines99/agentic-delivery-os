@@ -95,6 +95,7 @@ skip without the runbook's service variables.
 | [docs/qualification-admission.md](docs/qualification-admission.md) | Executed evidence, current consumption authority and legacy inspection |
 | [docs/scoring-execution.md](docs/scoring-execution.md) | Separate candidate scoring grants, accounting and revocation |
 | [docs/qualification-v2.md](docs/qualification-v2.md) | Protected semantic evidence, independent reviews and adjudication |
+| [docs/qualifier-prompt-contract.md](docs/qualifier-prompt-contract.md) | Explicit finding and citation requirements with prompt provenance |
 | [docs/evaluation-calibration.md](docs/evaluation-calibration.md) | Executed development cases and recomputed calibration metrics |
 | [docs/synthetic-preparation.md](docs/synthetic-preparation.md) | Owned development provenance without invented historical records |
 | [docs/synthetic-preparation-runtime.md](docs/synthetic-preparation-runtime.md) | Bounded five-case Docker preparation with no model calls |
