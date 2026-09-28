@@ -258,10 +258,16 @@ async def test_actual_parameterization_capture_application_imports_and_readonly_
 async def test_actual_image_without_installed_collector_fails_closed(
     actual_runner: DockerRunner, tmp_path: Path
 ) -> None:
-    # The pinned Dockerfile base is already local after building TEST_SANDBOX_IMAGE.
+    # BuildKit may retain the base only in its build cache, not Docker's runnable
+    # image store. Prepare this immutable negative-control image on the test host;
+    # the production runner still uses --pull=never and denied container egress.
     base = DockerRunner(
         "python:3.12-slim@sha256:f77ac9e44ae96ef2c90b8053ea08c31f8be030f824196b0ae4db6d462c84e51f"
     )
+    present, _, _ = await base.cli("image", "inspect", base.image)
+    if present:
+        prepared, _, _ = await base.cli("pull", base.image, timeout=120)
+        assert prepared == 0, "Could not prepare pinned collector-absent test image"
     result, receipt = await check(
         base, tmp_path, {"tests/test_case.py": "def test_case(): assert True\n"}
     )

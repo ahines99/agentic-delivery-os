@@ -693,7 +693,7 @@
     "repo",
     "version"
   ],
-  "metadata_projection_sha256": "5ae351cfae6d3056a39b886df64f4d43ec3f73a61a90b539def3a673ca4444e8",
+  "metadata_projection_sha256": "5189ef8412609acddca84413a52daf7bff01af22610bd5ff6e7a9951eb462822",
   "schema_version": 1,
   "selection": "FIRST_12_LEXICOGRAPHIC_IDS_PER_SELECTED_REPOSITORY",
   "source_dataset": "https://huggingface.co/datasets/princeton-nlp/SWE-bench_Verified",

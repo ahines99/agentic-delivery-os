@@ -27,6 +27,7 @@ def test_metadata_catalog_has_36_unqualified_repository_separated_candidates() -
     assert all(task.issue_url is None for task in catalog.candidates)
     assert "patch" not in catalog.metadata_columns
     projection_path = CATALOG.with_name("metadata-projection.json")
+    assert b"\r" not in projection_path.read_bytes(), "Projection uses canonical LF bytes"
     assert hashlib.sha256(projection_path.read_bytes()).hexdigest() == (
         catalog.metadata_projection_sha256
     )

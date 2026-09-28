@@ -31,6 +31,8 @@ column chunks, constructing an in-memory sparse buffer for PyArrow projection. P
 problem-statement, hint and withheld-test-ID columns were not requested, read or stored.
 The [metadata projection](../evals/candidates/metadata-projection.json) records these columns;
 its byte digest is bound into the catalog. This is metadata-only research, not benchmark execution.
+The derived JSON projection uses UTF-8/LF bytes so its digest is identical on Windows and Linux;
+write those bytes explicitly when regenerating it, before updating the catalog digest.
 
 Original issue URLs are absent from these projected columns. An instance ID's numeric suffix
 must not be fabricated into an issue URL: task instances derive from issue/PR pairs. Consequently
