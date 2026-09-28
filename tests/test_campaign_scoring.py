@@ -1,16 +1,18 @@
 """Owned current-authority substitutions; no corpus admission, Docker or model effects."""
 
 import asyncio
+import copy
 import json
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
 import pytest
 from pydantic import ValidationError
+from sqlalchemy import update
 from test_evaluation_campaign import corpus_seed as original_corpus_seed
 
 from agentic_delivery.config import Budget, RepositoryConfig, Settings
-from agentic_delivery.evaluation import harness, qualification_runtime
+from agentic_delivery.evaluation import execution_store, harness, qualification_runtime
 from agentic_delivery.evaluation.campaign import (
     ArmConfiguration,
     CampaignSpecification,
@@ -72,6 +74,10 @@ def campaign_scoring(campaign_seed, tmp_path, monkeypatch):
     specification = CampaignSpecification.model_validate(document)
     now = datetime.now(UTC)
     state = {"now": now, "revoked": False, "policy": None, "grant": None}
+
+    def clock():
+        return max(state["now"], datetime.now(UTC))
+
     nodes = {
         "acceptance": ("tests/test_behavior.py::test_value",),
         "regression": ("tests/test_regression.py::test_existing",),
@@ -149,7 +155,7 @@ def campaign_scoring(campaign_seed, tmp_path, monkeypatch):
         preparation_policy_provider=lambda: state["preparation_policy"],
         calibration_policy_provider=lambda: None,
         current_use_grant_provider=lambda: None,
-        clock=lambda: state["now"],
+        clock=clock,
     )
     attempt = CampaignAttemptBinding(
         account_id="owned-arm-attempt",
@@ -204,7 +210,7 @@ def campaign_scoring(campaign_seed, tmp_path, monkeypatch):
             campaign_artifacts=frozen_store,
             authorization_provider=lambda: state["grant"],
             policy_provider=lambda: state["policy"],
-            clock=lambda: state["now"],
+            clock=clock,
         )
 
     case = SimpleNamespace(
@@ -655,6 +661,122 @@ async def test_completed_read_only_consumer_requires_existing_scoring_checkpoint
         "checkpoint",
         lambda *args: pytest.fail("Read-only consumer cannot repair missing checkpoints"),
     )
+    with pytest.raises(ScoringFailure):
+        validate_completed_scoring(
+            case.task,
+            case.candidate,
+            authority=case.authority,
+            execution=case.create(),
+            output_artifacts=case.output,
+        )
+
+
+@pytest.mark.parametrize(
+    "fault",
+    [
+        "reversed-operation",
+        "future-account",
+        "future-attempt-checkpoint",
+        "future-scoring-checkpoint",
+        "preauthorization",
+        "stage-order",
+        "naive-timestamp",
+        "before-attempt",
+        "after-deadline",
+        "missing-nonce",
+        "bad-nonce",
+        "duplicate-nonce",
+        "extra-binding-field",
+    ],
+)
+async def test_rehashed_receipts_must_keep_nonce_and_chronology(controlled_scoring, fault):
+    case = controlled_scoring
+    execution = case.create()
+    await harness.score_campaign_candidate(
+        case.task,
+        case.candidate,
+        case.protected,
+        case.output,
+        authority=case.authority,
+        execution=execution,
+    )
+    account_id = case.attempt.account_id
+    operation_id = execution.operation_id("acceptance")
+    row = case.ledger.operation_receipt(account_id, operation_id)
+    future = "2099-01-01T00:00:00+00:00"
+    if "nonce" in fault or fault == "extra-binding-field":
+        stored = copy.deepcopy(row["result"])
+        summary = stored["scoring_result"]
+        receipt = json.loads(case.output.get(summary["commands"][0]["artifact_digest"]))
+        if fault == "duplicate-nonce":
+            regression = case.ledger.operation_receipt(
+                account_id, execution.operation_id("regression")
+            )
+            other = json.loads(
+                case.output.get(
+                    regression["result"]["scoring_result"]["commands"][0]["artifact_digest"]
+                )
+            )
+            value = other["verification_binding"]["nonce"]
+        else:
+            value = "not-a-nonce"
+        for binding in (receipt["verification_binding"], receipt["verification_report"]["binding"]):
+            if fault == "missing-nonce":
+                binding.pop("nonce")
+            elif fault == "extra-binding-field":
+                binding["unapproved"] = True
+            else:
+                binding["nonce"] = value
+        summary["commands"][0]["artifact_digest"] = put(case.output, receipt)
+        statement = (
+            update(execution_store.operations)
+            .where(execution_store.operations.c.id == operation_id)
+            .values(result=stored)
+        )
+    elif fault == "future-account":
+        statement = (
+            update(execution_store.accounts)
+            .where(execution_store.accounts.c.id == account_id)
+            .values(created_at=future)
+        )
+    elif "checkpoint" in fault:
+        name = ATTEMPT_CHECKPOINT if "attempt" in fault else SCORING_CHECKPOINT
+        statement = (
+            update(execution_store.checkpoints)
+            .where(
+                execution_store.checkpoints.c.account_id == account_id,
+                execution_store.checkpoints.c.stage == name,
+            )
+            .values(created_at=future)
+        )
+    else:
+        values = {
+            "reversed-operation": {"created_at": future, "settled_at": "1999-01-01T00:00:00+00:00"},
+            "preauthorization": {
+                "created_at": (case.state["grant"].issued_at - timedelta(seconds=1)).isoformat()
+            },
+            "stage-order": {
+                "created_at": case.ledger.operation_receipt(
+                    account_id, execution.operation_id("preflight")
+                )["created_at"]
+            },
+            "naive-timestamp": {"settled_at": datetime.now().isoformat()},
+            "before-attempt": {
+                "created_at": (case.attempt.started_at - timedelta(seconds=1)).isoformat()
+            },
+            "after-deadline": {
+                "settled_at": (case.attempt.deadline + timedelta(seconds=1)).isoformat()
+            },
+        }[fault]
+        statement = (
+            update(execution_store.operations)
+            .where(execution_store.operations.c.id == operation_id)
+            .values(**values)
+        )
+    with case.ledger.engine.begin() as connection:
+        connection.execute(statement)
+    # SQLite receipt digests are freshly recomputed: reject inconsistent content,
+    # not just a stale hash. This does not claim protection against DB administrators.
     with pytest.raises(ScoringFailure):
         validate_completed_scoring(
             case.task,

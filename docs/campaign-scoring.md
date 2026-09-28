@@ -25,7 +25,11 @@ remain unchanged.
 `validate_completed_scoring` reconstructs evidence without account, checkpoint,
 reservation or Docker writes. It revalidates current authority, both checkpoints,
 three settled operation receipts, candidate/test snapshot bindings, exact frozen
-collections and complete setup/call/teardown reports. Complete ordinary test failures
+collections and complete setup/call/teardown reports. Receipt bindings require the
+exact approved keys and distinct 32-hex suite nonces. Aware account/checkpoint/stage
+timestamps must preserve attempt and authorization bounds, stage order, the current
+time and original deadline. These are consistency checks on trusted stored evidence,
+not authentication against arbitrary database writers. Complete ordinary test failures
 produce a negative deterministic result; malformed or missing evidence denies
 inspection. Its digest binds the exact account, attempt, candidate, authorization and
 receipt references. Returned metadata excludes stdout and stderr. Deterministic
@@ -41,3 +45,9 @@ The campaign controller, aggregate spending/ordinal uniqueness, phase promotion 
 semantic-scoring calibration remain separate work. This consumer neither creates
 historical execution grants nor starts a campaign. A trusted controller must prevent
 multiple account allocations for one ordinal and enforce the overall campaign cap.
+
+The completed reader currently requires no outstanding reservation. A later semantic
+executor using the same account must add an explicit trusted active-operation binding
+before polling this reader during a model call. It must validate that operation's
+ownership and immutable terms while continuing to reject every unrelated unknown
+reservation; the current reader intentionally does not silently permit model spend.

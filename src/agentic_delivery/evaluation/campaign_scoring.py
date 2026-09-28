@@ -2,6 +2,7 @@
 
 import copy
 import json
+import re
 import time
 from collections import Counter
 from collections.abc import Awaitable, Callable
@@ -96,6 +97,13 @@ class CampaignScoringAuthorization(Contract):
 def _require(value: bool) -> None:
     if not value:
         raise ScoringFailure("Campaign scoring authority or evidence is invalid")
+
+
+def _timestamp(value: Any) -> datetime:
+    _require(isinstance(value, str))
+    parsed = datetime.fromisoformat(value)
+    _require(parsed.tzinfo is not None and parsed.utcoffset() is not None)
+    return parsed
 
 
 def _resolve_campaign(
@@ -413,9 +421,23 @@ class CampaignScoringExecution:
         }
         account = self.ledger.account(grant.account_id)
         _require(account["budget"] == expected)
+        assert checkpoint is not None
+        _require(
+            attempt.started_at
+            <= _timestamp(account["created_at"])
+            <= _timestamp(checkpoint["created_at"])
+            <= now
+            < min(grant.expires_at, attempt.deadline)
+        )
         active_reserved = 0
         if active_operation_id is not None:
             active = self.ledger.operation_receipt(grant.account_id, active_operation_id)
+            _require(
+                grant.issued_at
+                <= _timestamp(active["created_at"])
+                <= now
+                < min(grant.expires_at, attempt.deadline)
+            )
             active_reserved = (
                 active["reserved_microdollars"] if active["status"] == "RESERVED" else 0
             )
@@ -459,6 +481,14 @@ class CampaignScoringExecution:
             self._context.grant.account_id, self.operation_id(stage)
         )
         terms = self._terms(stage)
+        context = self._context
+        _require(
+            context.grant.issued_at
+            <= _timestamp(row["created_at"])
+            <= _timestamp(row["settled_at"])
+            <= self.clock()
+            < min(context.grant.expires_at, context.attempt.deadline)
+        )
         _require(
             row["status"] == "SETTLED"
             and row["operation_kind"] == "infrastructure"
@@ -498,7 +528,20 @@ class CampaignScoringExecution:
         _require(
             _read(self._context.artifacts, checkpoint["artifact_digest"]) == self._context.binding
         )
+        attempt_checkpoint = self.ledger.checkpoint_receipt(
+            self._context.grant.account_id, ATTEMPT_CHECKPOINT
+        )
+        assert attempt_checkpoint is not None
+        previous = _timestamp(checkpoint["created_at"])
+        _require(
+            max(self._context.grant.issued_at, _timestamp(attempt_checkpoint["created_at"]))
+            <= previous
+            <= self.clock()
+        )
         rows = {stage: self._row(stage) for stage in STAGES}
+        for stage in STAGES:
+            _require(previous <= _timestamp(rows[stage]["created_at"]))
+            previous = _timestamp(rows[stage]["settled_at"])
         self._guard(self._context)
         return checkpoint["artifact_digest"], rows
 
@@ -517,8 +560,21 @@ class CampaignScoringExecution:
                 checkpoint is not None
                 and _read(context.artifacts, checkpoint["artifact_digest"]) == context.binding
             )
+            assert checkpoint is not None
+            attempt_checkpoint = self.ledger.checkpoint_receipt(
+                context.grant.account_id, ATTEMPT_CHECKPOINT
+            )
+            assert attempt_checkpoint is not None
+            previous_time = _timestamp(checkpoint["created_at"])
+            _require(
+                max(context.grant.issued_at, _timestamp(attempt_checkpoint["created_at"]))
+                <= previous_time
+                <= self.clock()
+            )
             for previous in STAGES[: STAGES.index(stage)]:
-                self._row(previous)
+                previous_row = self._row(previous)
+                _require(previous_time <= _timestamp(previous_row["created_at"]))
+                previous_time = _timestamp(previous_row["settled_at"])
             terms = self._terms(stage)
             operation_id = self.operation_id(stage)
             cached = self.ledger.reserve_infrastructure(
@@ -542,6 +598,7 @@ class CampaignScoringExecution:
                     result={"scoring_result": result},
                 )
             row = self._row(stage)
+            _require(previous_time <= _timestamp(row["created_at"]))
             self._guard(context)
             return dict(row["result"]["scoring_result"])
         except Exception:
@@ -571,6 +628,7 @@ def validate_completed_scoring(
         summaries: dict[str, Any] = {}
         receipt_artifacts: dict[str, str] = {}
         verdicts: dict[str, bool] = {}
+        nonces: set[str] = set()
         checks: tuple[
             tuple[Literal["acceptance", "regression"], CommandProfile, tuple[str, ...]], ...
         ] = (
@@ -586,6 +644,11 @@ def validate_completed_scoring(
                 _read(output_artifacts, command_result.artifact_digest)
             )
             binding = receipt.verification_binding
+            _require(set(binding) == {"nonce", "snapshot_digest", "command_digest", "argv"})
+            nonce = binding["nonce"]
+            _require(isinstance(nonce, str) and re.fullmatch(r"[a-f0-9]{32}", nonce) is not None)
+            _require(nonce not in nonces)
+            nonces.add(nonce)
             _require(
                 receipt.workflow_id == execution.operation_id(stage)
                 and receipt.argv == command.argv
