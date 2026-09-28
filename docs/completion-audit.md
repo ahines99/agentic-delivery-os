@@ -423,3 +423,20 @@ PostgreSQL, Temporal and Docker. Ruff/format (215 files), mypy (75 source files)
 dependencies, wheel build and fresh installed-wheel imports passed. All 268 local
 document links and staged secret scanning passed. These software checks do not turn
 the failed review into a qualification or resolve the historical compatibility gates.
+
+E53: A separate five-call calibration with an 8,000-token output allowance and
+180-second timeout retained the exact earlier development cases, expected findings,
+rubric and prompt. It passed all five complete evidence contracts at $0.727535,
+under an exact $1.610935 reservation ceiling; cached resume added no calls or cost.
+All three calibration stages remain retained ($2.223440 combined). This validates
+the revised configuration on those development cases only. A new finite synthetic
+qualification was initialized separately after the prior failed attempt was closed.
+
+E54: That fresh owned fixture completed **SYNTHETIC_VALIDATION_PASS** with 13 actual
+Docker operations and two independent model reviews; agreement made adjudication
+unnecessary. Complete authority reconstruction passed for synthetic validation while
+all historical/export/scoring/campaign consumers remained denied. Model usage cost
+$0.363880; infrastructure estimates added 26 microdollars. All operations settled,
+cached recovery added no effects or charges, and no managed container remained.
+Historical qualification is still zero. This closes the development demonstration
+of the complete qualification path, not the historical evaluation or pilot gates.

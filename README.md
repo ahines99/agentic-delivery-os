@@ -18,7 +18,7 @@ bounded Docker execution, independent test runs, and digest-verified candidate a
 The local suite passed 1414 tests with actual PostgreSQL, Temporal and Docker, including
 structured test-evidence validation, CI races, projection recovery, resource exhaustion and
 hostile dependency hooks; seven POSIX/symlink cases explicitly skipped on Windows.
-[The preceding revision's hosted CI passed](https://github.com/ahines99/agentic-delivery-os/actions/runs/36467042704)
+[The preceding revision's hosted CI passed](https://github.com/ahines99/agentic-delivery-os/actions/runs/36469053647)
 on Python 3.12/3.13, real service integration and secret scanning.
 A synthetic customer task reached `LOCAL_REVIEW_READY`; its durable workflow stopped at
 `POLICY_BLOCKED` because publication was disabled. No PR, merge, or deployment is implied.
@@ -39,6 +39,12 @@ Benchmark qualification and scoring now follow the user's hands-off preference t
 The worker and scorer require current authority over executed v2 qualification records; scoring
 also requires its own metered spending grant. Legacy records allow inspection only. Absent human observations remain
 unmeasured. This does not change human plan approval, merge authority or pilot signoff.
+
+An owned development fixture has now passed the complete synthetic qualification path:
+13 actual Docker operations, two independent model reviews and reconstructed authority
+validation. Cached recovery added no calls or charges. Synthetic fixtures remain barred
+from historical admission, worker export, scoring and campaign use. See the
+[recorded qualification](docs/evaluation-calibration.md#completed-synthetic-qualification).
 
 ## Local quickstart
 

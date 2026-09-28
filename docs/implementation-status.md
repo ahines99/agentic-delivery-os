@@ -124,8 +124,8 @@ synthetic agent/rights records and controlled model transports; they do not admi
 Ten subsequent paid development calibration calls across two stages are recorded below; no historical benchmark ran.
 The earlier unresolved probe remains unchanged.
 The preceding complete checkpoint passed 1324 tests with seven Windows skips; all four hosted checks
-passed on [42477d6](https://github.com/ahines99/agentic-delivery-os/actions/runs/36467042704), including
-1281 passing tests per Python version and 55 real-service integration tests. Counts from separate
+passed on [c3d640c](https://github.com/ahines99/agentic-delivery-os/actions/runs/36469053647), including
+1366 passing tests per Python version and 56 real-service integration tests. Counts from separate
 full runs are not additive evidence.
 
 The earlier complete local verification passed **163 tests** with `TEST_DATABASE_URL`,
@@ -227,6 +227,13 @@ Raw artifacts stay under ignored `.local/artifacts`; no sensitive artifacts are 
 The successful candidate result is `LOCAL_REVIEW_READY`, not a merged or deployed outcome.
 
 ## Remaining release gates
+
+The complete owned-fixture qualification path has now passed with the larger-output
+calibrated configuration: 13 actual Docker operations, two agreeing independent model
+reviews and successful authority reconstruction for synthetic validation. Model cost
+was $0.363880 plus 26 microdollars of infrastructure estimates, with zero reservation.
+Cached recovery added no effects. Synthetic classification continued to deny admission,
+worker export, scoring and campaign use. See the [completed qualification record](evaluation-calibration.md#completed-synthetic-qualification).
 
 The revised qualifier prompt passed all five original development calibration cases
 with complete evidence, at $0.760480 in configured model cost. The earlier failed

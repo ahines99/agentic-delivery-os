@@ -192,3 +192,39 @@ cost 168,441 microdollars. The receipt explicitly records failure and grants no 
 Reapplying reconciliation returned the same receipt without calls or accounting changes.
 The truncated review remains unusable for qualification. The earlier unrelated probe
 still has an unresolved reservation and was not touched.
+
+## Calibration with a larger output allowance
+
+After the failed review's accounting was closed, a separate stage retained the
+same five development cases, expected findings, rubric and prompt. Only the model
+configuration changed to an 8,000-token output limit and a 180-second timeout. Its
+new specification and grant permit twelve hours of current use within the original
+data authorization, with a 30-minute execution deadline and five fixed operations.
+
+All five responses again satisfied the evidence contract and matched the frozen
+expectations: **CALIBRATED**, zero false admits and zero mandatory failures. Recorded
+usage was 48,577 input and 19,386 output tokens, costing **727,535 microdollars
+($0.727535)** under the exact $1.610935 reservation ceiling and $5 hard cap. Cached
+resume reproduced the same result without another call or charge. The two earlier
+calibrations remain retained; combined configured calibration cost is **$2.223440**
+across fifteen calls. This remains reused development evidence, with no historical
+admission or held-out accuracy claim.
+
+## Completed synthetic qualification
+
+The newly calibrated configuration then completed a fresh owned-fixture qualification:
+preflight and twelve repeated baseline/reference Docker checks, followed by two
+independent, fully validated model reviews. Their findings agreed, so the conditional
+adjudicator did not run. Status is **SYNTHETIC_VALIDATION_PASS**; reconstruction of the
+complete record passed the authority's synthetic-validation checks.
+
+The two model calls used 17,441 input and 11,067 output tokens and cost **363,880
+microdollars ($0.363880)**. Thirteen Docker operations added 26 microdollars of local
+infrastructure estimates, for 363,906 microdollars total. All operations settled with
+zero remaining reservation. Cached recovery reproduced the same qualification artifact
+and accounting without further Docker or provider effects. No managed containers remained.
+
+Synthetic classification was explicitly checked against every consumer: historical
+admission, worker export, scoring and campaign use remained denied. This is an executed
+development validation of the complete machinery, not an admitted historical task or a
+benchmark score. The earlier truncated qualification remains a separate failed record.
