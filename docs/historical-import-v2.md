@@ -58,3 +58,39 @@ identify the object that caused closure; [PR fields](https://docs.github.com/en/
 distinguish merge time and merge commit. The REST documentation likewise distinguishes
 [a commit-linked closed event](https://docs.github.com/en/rest/using-the-rest-api/issue-event-types)
 from a generic reference. Prose references alone are not accepted by this profile.
+
+## Explicit derived import and rights
+
+`import_historical_task_v2(HistoricalImportRequestV2(...), ...)` is an explicit route;
+the v1 `import_historical_task` and all existing v1 serialized fields remain unchanged.
+The schema-2 acquisition envelope must bind the complete baseline inventory, full
+accepted snapshot, exact derivation/linkage/requirements capture, pending task digest,
+source metadata and both authorization references. Preparation's schema-2 reference
+must name these same artifacts. Rehashed mismatched envelopes refuse before writes.
+The task description must equal the captured body after the domain contract's outer
+whitespace stripping; its title must be the neutral `Historical issue #<number>`.
+The current captured issue title is never promoted into historical task requirements.
+
+The separate `DerivedReferenceAuthorization` is an explicit controller data attestation
+for `HISTORICAL_EVALUATION_DATA_PROCESSING`. It binds the parent `UsageAuthorization`
+digest, the same issuer/task, numeric repository identity, exact derivation/linkage,
+and full baseline/accepted/oracle/production-patch/executable-reference artifacts.
+Its finite validity window must fit inside the parent's window. Both exact authorization
+digests must appear in the unchanged trusted preparation policy's existing allowlist.
+This adds no default field to old policies, no second approval system, and no spending
+grant. Current preparation and authority must recheck the current policy and both windows.
+The content-only validator with `policy=None` validates no issuer or allowlist authority;
+it is exclusively for proof reconstruction, never execution or current admission.
+
+The importer checks data bindings and both current rights pins before invoking current
+preparation, which remains responsible for the substantive source license, configured
+repository/risk/commands, protected paths, exact frozen selectors, original regression
+scope and reference reconstruction. Only after these checks does it freeze metadata.
+`ImportedHistoricalTaskV2` remains `IMPORTED_NOT_QUALIFIED`, with no execution/admission
+capability. No task or executable reference is silently converted to v1 provenance.
+
+Accepted-source exclusion is enforced by the separately versioned qualification-input
+resolver: model inputs retain the existing reviewed projection rather than receiving
+accepted snapshots or provenance aggregates. Completing import does not establish a
+passing twelve-run matrix, calibration, independent review, current qualification,
+worker-export/scoring authority, or a historical benchmark result.

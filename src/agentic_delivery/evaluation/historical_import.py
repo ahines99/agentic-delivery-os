@@ -222,3 +222,230 @@ def _import_historical_task(
     for digest, raw in staged.items():
         _require(store.put(raw) == digest)
     return result
+
+
+class HistoricalAcquisitionEvidenceV2(Contract):
+    """Explicit derived acquisition envelope; never an exact accepted executable tree."""
+
+    schema_version: Literal[2]
+    kind: Literal["derived-historical-acquisition"]
+    source_scope: Literal["FULL_REPOSITORY"]
+    repository: NonEmpty
+    base_sha: CommitSHA
+    source_task_id: NonEmpty
+    source_url: NonEmpty
+    source_revision: CommitSHA
+    task_manifest_digest: Digest
+    task_spec_digest: Digest
+    source_snapshot_artifact: Digest
+    source_inventory: tuple[SourceInventoryEntry, ...] = Field(min_length=1, max_length=MAX_FILES)
+    accepted_snapshot_artifact: Digest
+    derivation_artifact: Digest
+    linkage_artifact: Digest
+    requirements_capture_artifact: Digest
+    usage_authorization_artifact: Digest
+    derivation_authorization_artifact: Digest
+    acquired_at: AwareDatetime
+
+
+class HistoricalImportRequestV2(Contract):
+    schema_version: Literal[2]
+    kind: Literal["derived-historical-import"]
+    preparation: PreparationRequest
+    acquisition_artifact: Digest
+
+
+class ImportedHistoricalTaskV2(Contract):
+    schema_version: Literal[2] = 2
+    kind: Literal["imported-derived-historical-task"] = "imported-derived-historical-task"
+    status: Literal["IMPORTED_NOT_QUALIFIED"] = "IMPORTED_NOT_QUALIFIED"
+    admitted: Literal[False] = False
+    execution_authorized: Literal[False] = False
+    task_id: NonEmpty
+    task_artifact: Digest
+    preparation: PreparationRequest
+    acquisition_artifact: Digest
+    import_request_artifact: Digest
+    prepared_artifact: Digest
+    derivation_artifact: Digest
+    linkage_artifact: Digest
+    derivation_authorization_artifact: Digest
+
+
+def import_historical_task_v2(
+    request: HistoricalImportRequestV2,
+    *,
+    settings: Settings,
+    policy: PreparationPolicy,
+    protected_artifacts: ArtifactStore,
+    output_root: Path,
+    worker_root: Path,
+    now: datetime,
+) -> ImportedHistoricalTaskV2:
+    """Explicit opt-in derived import; current preparation/qualification are still mandatory."""
+    try:
+        return _import_historical_task_v2(
+            request,
+            settings=settings,
+            policy=policy,
+            protected_artifacts=protected_artifacts,
+            output_root=output_root,
+            worker_root=worker_root,
+            now=now,
+        )
+    except Exception:
+        raise HistoricalImportFailure("Derived historical import refused") from None
+
+
+def _import_historical_task_v2(
+    request: HistoricalImportRequestV2,
+    *,
+    settings: Settings,
+    policy: PreparationPolicy,
+    protected_artifacts: ArtifactStore,
+    output_root: Path,
+    worker_root: Path,
+    now: datetime,
+) -> ImportedHistoricalTaskV2:
+    # Local imports preserve the v1 import/acquisition dependency boundary.
+    from agentic_delivery.evaluation.historical_acquisition import BaselineAcquisition
+    from agentic_delivery.evaluation.historical_authorization import validate_derived_authorization
+    from agentic_delivery.evaluation.historical_derivation import validate_reference_derivation
+    from agentic_delivery.evaluation.historical_linkage import validate_historical_linkage
+    from agentic_delivery.evaluation.qualification_preparation import (
+        ReferenceProvenanceV2,
+        UsageAuthorization,
+        _scopes,
+    )
+
+    request = HistoricalImportRequestV2.model_validate(request.model_dump(mode="json"))
+    store = protected_artifacts
+    _scopes(store.root, output_root, worker_root)
+    acquired = HistoricalAcquisitionEvidenceV2.model_validate(
+        _read(store, request.acquisition_artifact)
+    )
+    task = HistoricalTask.model_validate(_read(store, request.preparation.task_artifact))
+    provenance = Provenance.model_validate(_read(store, request.preparation.provenance_artifact))
+    reference = ReferenceProvenanceV2.model_validate(
+        _read(store, request.preparation.reference_provenance_artifact)
+    )
+    _require(
+        task.qualification_mode == "independent-agents-v2"
+        and task.qualification_artifact == "0" * 64
+    )
+    derivation = validate_reference_derivation(
+        acquired.derivation_artifact,
+        protected_artifacts=store,
+        worker_roots=(output_root, worker_root),
+    )
+    linkage = validate_historical_linkage(
+        acquired.linkage_artifact, protected_artifacts=store, derivation=derivation, now=now
+    )
+    baseline = BaselineAcquisition.model_validate(
+        _read(store, derivation.request.baseline_acquisition_artifact)
+    )
+    accepted = BaselineAcquisition.model_validate(
+        _read(store, derivation.request.accepted_acquisition_artifact)
+    )
+    digest = qualification_task_digest(task.model_dump(mode="json"))
+    _require(
+        acquired.repository
+        == provenance.repository
+        == derivation.repository
+        == reference.repository
+        and acquired.base_sha
+        == provenance.base_sha
+        == task.base_sha
+        == derivation.base_sha
+        == reference.base_sha
+        and acquired.source_task_id == provenance.source_task_id
+        and acquired.source_url == provenance.source_url
+        and acquired.source_revision == provenance.source_revision
+        and acquired.task_manifest_digest == digest == reference.task_manifest_digest
+        and acquired.task_spec_digest == digest_json(task.item.model_dump(mode="json"))
+        and acquired.source_snapshot_artifact
+        == task.snapshot_artifact
+        == provenance.source_snapshot_artifact
+        == derivation.source_snapshot_artifact
+        == reference.source_snapshot_artifact
+        and acquired.source_inventory == baseline.source_inventory
+        and acquired.accepted_snapshot_artifact == derivation.accepted_snapshot_artifact
+        and acquired.derivation_artifact
+        == reference.derivation_artifact
+        == linkage.derivation_artifact
+        and acquired.linkage_artifact == reference.linkage_artifact
+        and acquired.requirements_capture_artifact == linkage.requirements_capture_artifact
+        and acquired.usage_authorization_artifact == provenance.usage_authorization_artifact
+        and acquired.derivation_authorization_artifact
+        == reference.derivation_authorization_artifact
+        and reference.accepted_commit == derivation.accepted_commit == linkage.accepted_commit
+        and reference.accepted_commit_url
+        == f"https://github.com/{derivation.repository}/commit/{derivation.accepted_commit}"
+        and reference.issue_url == task.issue_url == provenance.issue_url == linkage.issue_url
+        and reference.oracle_artifact == task.oracle_artifact == derivation.oracle_artifact
+        and reference.reference_patch_artifact
+        == task.reference_patch_artifact
+        == derivation.production_patch_artifact
+        and reference.reference_snapshot_artifact
+        == task.reference_snapshot_artifact
+        == derivation.executable_reference_artifact
+        and max(baseline.acquired_at, accepted.acquired_at, linkage.captured_at)
+        <= acquired.acquired_at
+        <= now
+    )
+    body = store.get(linkage.requirements_artifact).decode("utf-8")
+    _require(
+        task.item.description == body.strip()
+        and task.item.title == f"Historical issue #{linkage.issue_number}"
+    )
+    parent = UsageAuthorization.model_validate(
+        _read(store, provenance.usage_authorization_artifact)
+    )
+    _require(
+        parent.source_url == provenance.source_url
+        and parent.source_revision == provenance.source_revision
+        and parent.license_evidence_artifact == provenance.license_evidence_artifact
+        and parent.rights_scope == provenance.rights_scope
+    )
+    validate_derived_authorization(
+        acquired.derivation_authorization_artifact,
+        protected_artifacts=store,
+        derivation=derivation,
+        parent_authorization_artifact=provenance.usage_authorization_artifact,
+        task_manifest_digest=digest,
+        linkage_artifact=acquired.linkage_artifact,
+        policy=policy,
+        now=now,
+    )
+    prepared = prepare_qualification(
+        request.preparation,
+        settings=settings,
+        policy=policy,
+        protected_artifacts=store,
+        output_root=output_root,
+        worker_root=worker_root,
+        now=now,
+    )
+    staged: dict[str, bytes] = {}
+
+    def stage(value: Any) -> str:
+        raw = json.dumps(value.model_dump(mode="json"), sort_keys=True, allow_nan=False).encode()
+        _require(len(raw) <= store.max_bytes)
+        artifact = hashlib.sha256(raw).hexdigest()
+        staged[artifact] = raw
+        return artifact
+
+    result = ImportedHistoricalTaskV2(
+        task_id=task.id,
+        task_artifact=request.preparation.task_artifact,
+        preparation=request.preparation,
+        acquisition_artifact=request.acquisition_artifact,
+        import_request_artifact=stage(request),
+        prepared_artifact=stage(prepared),
+        derivation_artifact=acquired.derivation_artifact,
+        linkage_artifact=acquired.linkage_artifact,
+        derivation_authorization_artifact=acquired.derivation_authorization_artifact,
+    )
+    for artifact, raw in staged.items():
+        _require(store.put(raw) == artifact)
+    return result
