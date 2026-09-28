@@ -15,10 +15,10 @@ Linear -> Requirements -> Risk policy -> Plan -> Isolated build
 Implemented and exercised locally: authenticated intake and plan approval, PostgreSQL
 inbox/outbox and audit storage, Temporal workflows, real Anthropic planning/build/review,
 bounded Docker execution, independent test runs, and digest-verified candidate artifacts.
-The recorded local suite at `9058c73` passed 1854 tests with actual PostgreSQL, Temporal and Docker, including
+The recorded local suite at `3956b29` passed 1997 tests with actual PostgreSQL, Temporal and Docker, including
 structured test-evidence validation, CI races, projection recovery, resource exhaustion and
 hostile dependency hooks; ten POSIX/symlink cases explicitly skipped on Windows.
-[A recorded hosted CI run passed](https://github.com/ahines99/agentic-delivery-os/actions/runs/36483021300)
+[A recorded hosted CI run passed](https://github.com/ahines99/agentic-delivery-os/actions/runs/36494661795)
 on Python 3.12/3.13, real service integration and secret scanning.
 A synthetic customer task reached `LOCAL_REVIEW_READY`; its durable workflow stopped at
 `POLICY_BLOCKED` because publication was disabled. No PR, merge, or deployment is implied.
@@ -112,6 +112,10 @@ skip without the runbook's service variables.
 | [docs/qualification-controller.md](docs/qualification-controller.md) | Complete private qualification execution, independent reviews and resume |
 | [docs/qualification-admission.md](docs/qualification-admission.md) | Executed evidence, current consumption authority and legacy inspection |
 | [docs/scoring-execution.md](docs/scoring-execution.md) | Separate candidate scoring grants, accounting and revocation |
+| [docs/campaign-scoring.md](docs/campaign-scoring.md) | Explicit frozen-arm scoring on existing shared attempt accounts |
+| [docs/semantic-scoring-context.md](docs/semantic-scoring-context.md) | Protected candidate evidence and structurally validated scorer findings |
+| [docs/semantic-scoring-examples.md](docs/semantic-scoring-examples.md) | Five original subjects with separate expected outcomes |
+| [docs/owned-semantic-runtime.md](docs/owned-semantic-runtime.md) | Actual bounded owned-example checks without historical admission |
 | [docs/qualification-v2.md](docs/qualification-v2.md) | Protected semantic evidence, independent reviews and adjudication |
 | [docs/qualifier-prompt-contract.md](docs/qualifier-prompt-contract.md) | Explicit finding and citation requirements with prompt provenance |
 | [docs/evaluation-calibration.md](docs/evaluation-calibration.md) | Executed development cases and recomputed calibration metrics |

@@ -98,8 +98,10 @@ timeout can also reflect a partition while a worker remains alive. Existing appr
 and configuration checks do not provide a durable per-run cleanup lease that fences
 such a worker from creating a later container. This change therefore proves the
 killed-process case, not distributed fencing, host/daemon-loss recovery, all
-provisioning races or a universal cleanup SLA. P-05 remains partial. A container-side
-finite lifetime and durable resource/lease reconciliation remain separate work.
+provisioning races or a universal cleanup SLA. P-05 remains partial. The existing
+two-hour keepalive exceeds the approved command deadline; a container-side lifetime
+tied to the authorized deadline and durable resource/lease reconciliation remain
+separate work.
 
 To repeat against isolated test services, configure `TEST_DATABASE_URL`,
 `TEST_TEMPORAL_ADDRESS` and immutable `TEST_SANDBOX_IMAGE`, then run:

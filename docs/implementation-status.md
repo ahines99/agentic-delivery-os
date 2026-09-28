@@ -26,13 +26,26 @@ fencing remains open. [Schema-3 campaign freezing](evaluation-campaign.md#explic
 separates immutable qualification budgets from comparison limits but grants no
 execution permission.
 
-The combined service-enabled suite at `9058c73` passed **1854 tests with ten explicit
-Windows skips** in 787.69 seconds. It exercised actual PostgreSQL, Temporal and Docker;
-the unique test database was removed and its absence verified. Ruff/format (254 files),
-mypy (82 sources), locked dependencies, package build, fresh wheel installation and
-new-commit/staged secret scans passed. All checked local links across 82 Markdown
-documents resolved. This local result precedes the next isolated scoring work and
-does not substitute for exact-head hosted CI or the remaining release gates.
+The combined service-enabled suite at `3956b29` passed **1997 tests with ten explicit
+Windows skips** in 957.33 seconds. It exercised actual PostgreSQL, Temporal and Docker;
+the unique test database was removed and its absence verified. Ruff/format (267 files),
+mypy (86 sources), locked dependencies, package build and new-commit secret scanning
+passed. This includes the versioned scoring, protected context and owned runtime
+changes below. It does not substitute for exact-head hosted CI or remaining release gates.
+
+Hosted [CI at `373cf34`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36494661795)
+previously passed all four checks: 1788 tests with 76 skips on each Python version,
+and 77 actual service integration tests. These overlapping scopes are not summed.
+
+The [versioned scoring consumer](campaign-scoring.md) uses an existing frozen
+attempt account and original deadline; it creates no additional spending capacity
+and leaves legacy scoring unchanged. [Protected semantic contexts](semantic-scoring-context.md)
+reconstruct candidate/receipt evidence and validate complete cited findings, but
+do not execute independent scorers or establish semantic success. Five separately
+authored [owned examples](semantic-scoring-examples.md) have also passed actual
+[Docker preparation](owned-semantic-runtime.md), retaining exact receipts and costs.
+They remain distinct from historical admission and model calibration. Campaign
+allocation/execution and executed final-scoring calibration are still open.
 
 The latest acquisition-only extension passed 103 focused acquisition/import tests and
 56 actual service integration tests (213.08 seconds), plus Ruff/format, mypy, locked

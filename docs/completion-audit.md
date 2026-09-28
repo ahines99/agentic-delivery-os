@@ -682,3 +682,45 @@ build, fresh wheel installation and new-commit/staged secret scanning passed.
 All checked local links across 82 Markdown documents resolved. This integrated
 scope includes E77–E80 and is not added to earlier counts. Subsequent isolated
 scoring implementation and exact-head hosted CI are separate evidence.
+
+E82: [Hosted CI](https://github.com/ahines99/agentic-delivery-os/actions/runs/36494661795)
+passed all four checks at `373cf34`: 1788 tests with 76 skips on each Python version
+and 77 actual PostgreSQL/Temporal/Docker tests. This documentation checkpoint retains
+production source `9058c73`; it precedes the scoring changes below. Counts overlap
+the full local scope and must not be summed.
+
+E83: The [versioned campaign scoring consumer](campaign-scoring.md) reads exact
+schema-3 arm limits, a current per-attempt grant and an existing immutable account.
+It preserves original qualified task bytes, deadline and prior usage, and allocates
+no capacity. Legacy scoring is unchanged. The initial 35 new and 121 affected legacy
+tests passed with explicit qualification/Docker substitutions; they do not constitute
+historical execution. Independent review then exposed impossible ledger chronology
+and missing collector nonce acceptance, addressed by thirteen additional regressions.
+
+E84: [Protected semantic contexts](semantic-scoring-context.md) passed 41 owned tests:
+exact source/candidate/oracle projections, observed receipt facts, current authority,
+reference/log exclusion and complete structurally valid cited findings. Independent
+review repeated that scope successfully. The actual model executor, semantic
+calibration, sealed independent scorer receipts and adjudication remain separate.
+
+E85: Five [original scoring subjects](semantic-scoring-examples.md) separate authored
+expectations and diagnostic counterexamples from model-visible material. Twenty-four
+authoring tests pass. Independent review clarified ordering versus full occurrence
+retention so expected criterion labels do not conflict. [Owned runtime preparation](owned-semantic-runtime.md)
+then passed 25 controlled authority/accounting/tamper cases and five actual Docker
+cases (23.70 seconds), with no model calls or historical admission. A review found
+and fixed a completed-evidence grant-rotation race; original reservation columns and
+checkpoint chronology also have regressions. These are owned execution proofs,
+not a calibrated scorer, historical score or campaign result.
+
+E86: Combined source `3956b29` passed **1997 tests with ten explicit Windows skips**
+in 957.33 seconds using actual PostgreSQL, Temporal and Docker. The disposable
+database was dropped and absence verified. Ruff/format (267 files), mypy (86 sources),
+locked dependency validation, package build and new-commit secret scanning passed.
+This integrated scope includes E83–E85 and overlaps earlier counts.
+
+E87: A separate retained execution of all five original semantic subjects completed
+fifteen actual Docker operations with 30 estimated infrastructure microdollars,
+zero model calls and zero remaining reservation. Exact cached recovery changed
+neither operations nor charges. Its status is `EXECUTED_NOT_CALIBRATED`; it admits
+no historical task and supplies no final-scoring calibration or campaign result.
