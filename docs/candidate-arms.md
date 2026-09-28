@@ -9,7 +9,8 @@ oracle, reference files, artifact store, workflow store or credentials.
 Builder-only mode requires `review=None` and returns `BUILD_VERIFIED` after successful
 self-checks. It never fabricates an independent review or product readiness. Independent
 mode requires a reviewer callback and returns `REVIEW_APPROVED` only under the existing
-criterion/verdict rules. Both use the same builder context and validation path; their
+criterion/verdict rules with exactly one verdict per criterion. Duplicate or conflicting
+criterion verdicts cannot produce approval. Both use the same builder context and validation path; their
 caller uses the existing unchanged builder prompt. Validation failures consume the
 same configured correction ceiling; review and repairs share the caller's total budget.
 
@@ -21,7 +22,9 @@ receipts/checkpoints and must not infer an authorized retry from an exception.
 
 The product wrapper always chooses independent review and constructs its existing
 `LOCAL_REVIEW_READY` manifest only from `REVIEW_APPROVED`. Its public failure shape,
-prompts, operation IDs, protected original tests and manifest checks are preserved.
+prompts, operation IDs and manifest checks are preserved. Original-test protection
+uses the scorer's conservative rule: any `test`/`tests` path component, a `test_`
+filename prefix, or an `_test.py` suffix; modification and deletion both fail.
 No product API exposes builder-only mode and no human approval/merge rule changes.
 
 The engine does not authorize effects, meter infrastructure, create accounts, cancel
@@ -45,3 +48,9 @@ validation and baseline-failure tests. Both flat and src layouts used existing i
 `sha256:136340a9d0e974bb74700fd4caa874f4fefd757b6683e6347e83bf8228041138`.
 Ruff check/format passed for 247 files and mypy for 82 source files. This is scoped
 regression evidence, not a new complete-suite or hosted-CI result.
+
+The review follow-up added twelve original-test modification/deletion cases across
+A/B and three duplicate/conflicting review-verdict cases. Relevant unit/manifest/
+authorization regression checks passed **101 tests in 4.83 seconds**; actual Docker
+A/B and product correction/exhaustion checks passed **4 tests in 30.64 seconds**.
+Ruff and mypy remained clean. Earlier scoped counts above describe their own runs.

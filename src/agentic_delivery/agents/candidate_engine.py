@@ -89,7 +89,9 @@ async def iterate_candidate(
     protected_paths = protected_paths + tuple(
         path
         for path in base
-        if path.startswith("tests/") or path.rsplit("/", 1)[-1].startswith("test_")
+        if any(part in {"test", "tests"} for part in path.split("/"))
+        or path.rsplit("/", 1)[-1].startswith("test_")
+        or path.endswith("_test.py")
     )
 
     for iteration in range(repair_rounds + 1):
@@ -183,7 +185,8 @@ async def iterate_candidate(
         )
         verdicts = {v.criterion_id: v.result for v in review_result.criterion_verdicts}
         complete = (
-            set(verdicts) == set(mappings)
+            len(verdicts) == len(review_result.criterion_verdicts)
+            and set(verdicts) == set(mappings)
             and all(v == "PASS" for v in verdicts.values())
             and all(v["passed"] for v in criterion_receipts.values())
             and review_result.decision == "APPROVE"

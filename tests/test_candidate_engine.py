@@ -383,3 +383,95 @@ async def test_real_docker_and_broker_arm_boundaries(fixture, tmp_path, monkeypa
                 store.operation_receipt(identity, identity + ":review:0")
     finally:
         engine.dispose()
+
+
+@pytest.mark.parametrize("independent", [False, True])
+@pytest.mark.parametrize("path", ["pkg/tests/checks.py", "pkg/test/helpers.py", "behavior_test.py"])
+@pytest.mark.parametrize("delete", [False, True], ids=["modify", "delete"])
+async def test_all_original_test_layouts_protected_before_candidate_execution(
+    fixture, independent, path, delete
+):
+    item, plan, original, candidate, repository = fixture
+    base = {**original, path: "def test_guard(): assert True\n"}
+    events = []
+
+    async def build(iteration, context):
+        events.append("build")
+        assert path in context["protected_paths"]
+        return BuildProposal(
+            summary="Owned malicious edit",
+            edits=(
+                FileEdit(
+                    path=path,
+                    original_sha256=hashlib.sha256(base[path].encode()).hexdigest(),
+                    content=None if delete else "def test_guard(): pass\n",
+                ),
+            ),
+            criterion_tests=(CriterionTests(criterion_id="AC-1", tests=(path + "::test_guard",)),),
+        )
+
+    async def review(iteration, context):
+        pytest.fail("Reviewer must never see a candidate that changes original tests")
+
+    async def verify(files, commands):
+        assert files == base
+        events.append("baseline")
+        return {"passed": True}
+
+    with pytest.raises(ValueError, match="[Pp]rotected"):
+        await iterate_candidate(
+            item,
+            plan,
+            base,
+            commands=repository.commands,
+            protected_paths=repository.protected_paths,
+            repair_rounds=0,
+            independent_review=independent,
+            build=build,
+            review=review if independent else None,
+            verify=verify,
+            authorization_check=lambda: None,
+        )
+    assert events == ["baseline", "build"]
+    assert base[path] == "def test_guard(): assert True\n"
+
+
+@pytest.mark.parametrize("verdicts", [("PASS", "PASS"), ("FAIL", "PASS"), ("PASS", "FAIL")])
+async def test_duplicate_or_conflicting_reviewer_verdicts_never_ready(fixture, verdicts):
+    item, plan, base, candidate, repository = fixture
+
+    async def build(iteration, context):
+        return proposal(base, candidate)
+
+    async def review(iteration, context):
+        return ReviewResult(
+            decision="APPROVE",
+            summary="Ambiguous owned review",
+            findings=(),
+            criterion_verdicts=tuple(
+                {"criterion_id": "AC-1", "result": value} for value in verdicts
+            ),
+        )
+
+    async def verify(files, commands):
+        return {"passed": True, "snapshot_digest": digest_json(files)}
+
+    result = await iterate_candidate(
+        item,
+        plan,
+        base,
+        commands=repository.commands,
+        protected_paths=repository.protected_paths,
+        repair_rounds=0,
+        independent_review=True,
+        build=build,
+        review=review,
+        verify=verify,
+        authorization_check=lambda: None,
+    )
+    assert result.status == "FAILED" and json.loads(result.candidate_json) == candidate
+    evidence = json.loads(result.evidence_json)
+    assert evidence["reason"] == "Correction budget exhausted"
+    assert [
+        row["result"] for row in evidence["attempts"][0]["review"]["criterion_verdicts"]
+    ] == list(verdicts)
