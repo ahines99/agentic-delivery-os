@@ -37,7 +37,7 @@ class HistoricalAcquisitionFailure(ValueError):
 class BaselineAcquisitionRequest(Contract):
     repository: str = Field(strict=True, pattern=REPOSITORY_PATTERN)
     base_sha: str = Field(strict=True, pattern=SHA_PATTERN)
-    max_requests: int = Field(default=MAX_FILES + 3, strict=True, ge=4, le=MAX_FILES + 3)
+    max_requests: int = Field(default=MAX_FILES + 3, strict=True, ge=3, le=MAX_FILES + 3)
     request_seconds: int = Field(default=15, strict=True, ge=1, le=30)
     wall_seconds: int = Field(default=120, strict=True, ge=1, le=300)
     max_response_bytes: int = Field(default=2 * 1024 * 1024, strict=True, ge=1, le=2 * 1024 * 1024)
@@ -66,7 +66,7 @@ class BaselineAcquisition(Contract):
     inventory_artifact: Digest
     source_inventory: tuple[SourceInventoryEntry, ...]
     acquired_at: AwareDatetime
-    request_count: int = Field(strict=True, ge=4, le=MAX_FILES + 3)
+    request_count: int = Field(strict=True, ge=3, le=MAX_FILES + 3)
     transferred_bytes: int = Field(strict=True, gt=0, le=16 * 1024 * 1024)
     source_bytes: int = Field(strict=True, ge=0, le=MAX_SNAPSHOT_BYTES)
 
@@ -198,18 +198,95 @@ def _tree(
     return paths
 
 
+def _verified_donor(
+    donor: BaselineAcquisition, store: ArtifactStore, repository: str
+) -> tuple[BaselineAcquisition, dict[str, bytes]]:
+    """Validate protected donor artifacts completely; labels never supply cached bytes."""
+    donor = BaselineAcquisition.model_validate(donor.model_dump(mode="json"))
+    _require(donor.repository.casefold() == repository.casefold())
+    files = json.loads(
+        store.get(donor.source_snapshot_artifact).decode("utf-8"), object_pairs_hook=_pairs
+    )
+    metadata = json.loads(
+        store.get(donor.inventory_artifact).decode("utf-8"), object_pairs_hook=_pairs
+    )
+    _require(isinstance(files, dict) and bool(files) and isinstance(metadata, dict))
+    _require(
+        all(isinstance(path, str) and isinstance(content, str) for path, content in files.items())
+    )
+    validate_files(files)
+    _require(
+        type(metadata["schema_version"]) is int
+        and metadata["schema_version"] == 1
+        and metadata["repository"] == donor.repository
+        and type(metadata["repository_id"]) is int
+        and metadata["repository_id"] == donor.repository_id
+        and metadata["base_sha"] == donor.base_sha
+        and metadata["tree_sha"] == donor.tree_sha
+    )
+    entries = metadata["entries"]
+    _require(isinstance(entries, list) and 0 < len(entries) <= MAX_FILES * 2)
+    tree = _tree(
+        {
+            "sha": donor.tree_sha,
+            "truncated": False,
+            "tree": [
+                {
+                    "path": entry["path"],
+                    "mode": entry["mode"],
+                    "type": entry["kind"],
+                    "sha": entry["git_sha"],
+                    **({"size": entry["byte_length"]} if entry["kind"] == "blob" else {}),
+                }
+                for entry in entries
+            ],
+        },
+        donor.tree_sha,
+        BaselineAcquisitionRequest(repository=donor.repository, base_sha=donor.base_sha),
+    )
+    recorded = {entry.path: entry for entry in donor.source_inventory}
+    _require(len(recorded) == len(donor.source_inventory) == len(files))
+    _require(
+        set(files)
+        == set(recorded)
+        == {path for path, entry in tree.items() if entry["type"] == "blob"}
+    )
+    inventory = {entry["path"]: entry for entry in entries}
+    cache: dict[str, bytes] = {}
+    total = 0
+    for path, content in files.items():
+        raw = content.encode("utf-8")
+        _require(
+            not any(ord(char) < 32 and char not in "\t\r\n" or ord(char) == 127 for char in content)
+        )
+        digest, git_sha = hashlib.sha256(raw).hexdigest(), _git_digest("blob", raw)
+        _require(
+            len(raw) == recorded[path].byte_length == inventory[path]["byte_length"]
+            and digest == recorded[path].content_sha256 == inventory[path]["content_sha256"]
+            and git_sha == tree[path]["sha"]
+        )
+        _require(git_sha not in cache or cache[git_sha] == raw)
+        cache[git_sha] = raw
+        total += len(raw)
+    _require(total == donor.source_bytes)
+    return donor, cache
+
+
 async def acquire_public_github_baseline(
     request: BaselineAcquisitionRequest,
     *,
     protected_artifacts: ArtifactStore,
     worker_roots: tuple[Path, ...],
     client: httpx.AsyncClient | None = None,
+    donor: BaselineAcquisition | None = None,
 ) -> BaselineAcquisition:
     """Fetch a complete eligible baseline; never fetch an issue, oracle or reference.
 
     The injected client is a trusted transport/test dependency. Default transport is
     credential-free with environment proxies disabled. Only metadata is returned.
     Caller must keep protected artifacts outside every declared worker/code scope.
+    Optional donor bytes are revalidated from this protected store and used only
+    where the fresh target tree independently names the same Git blob SHA and size.
     """
     owned = client is None
     active: httpx.AsyncClient | None = None
@@ -221,6 +298,9 @@ async def acquire_public_github_baseline(
         for worker in worker_roots:
             resolved = worker.resolve()
             _require(not root.is_relative_to(resolved) and not resolved.is_relative_to(root))
+        cache: dict[str, bytes] = {}
+        if donor is not None:
+            donor, cache = _verified_donor(donor, protected_artifacts, request.repository)
         active = client or httpx.AsyncClient(trust_env=False, follow_redirects=False)
         reader = _Reader(active, request)
         async with asyncio.timeout(request.wall_seconds):
@@ -230,14 +310,19 @@ async def acquire_public_github_baseline(
             repository_id = repository.get("id")
             _require(type(repository_id) is int and repository_id > 0)
             assert isinstance(repository_id, int)
+            _require(donor is None or donor.repository_id == repository_id)
             commit = await reader.get(f"/git/commits/{request.base_sha}")
             _require(_sha(commit.get("sha")) == request.base_sha)
             tree_sha = _sha(commit["tree"]["sha"])
             tree = _tree(await reader.get(f"/git/trees/{tree_sha}?recursive=1"), tree_sha, request)
             blobs = {entry["sha"] for entry in tree.values() if entry["type"] == "blob"}
-            _require(len(blobs) + reader.requests <= request.max_requests)
-            content_by_sha: dict[str, bytes] = {}
-            for sha in sorted(blobs):
+            content_by_sha = {sha: cache[sha] for sha in blobs if sha in cache}
+            for entry in tree.values():
+                if entry["type"] == "blob" and entry["sha"] in content_by_sha:
+                    _require(len(content_by_sha[entry["sha"]]) == entry["size"])
+            missing = blobs - content_by_sha.keys()
+            _require(len(missing) + reader.requests <= request.max_requests)
+            for sha in sorted(missing):
                 blob = await reader.get(f"/git/blobs/{sha}")
                 _require(_sha(blob.get("sha")) == sha and blob.get("encoding") == "base64")
                 encoded, size = blob.get("content"), blob.get("size")

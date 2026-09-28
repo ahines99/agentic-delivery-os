@@ -10,6 +10,7 @@ import httpx
 import pytest
 
 from agentic_delivery.evaluation.historical_acquisition import (
+    BaselineAcquisition,
     BaselineAcquisitionRequest,
     HistoricalAcquisitionFailure,
     acquire_public_github_baseline,
@@ -105,10 +106,14 @@ class Transport:
         )
 
 
-async def acquire(tmp_path, data=None, *, changes=None, store_limit=4 * 1024 * 1024):
+async def acquire(
+    tmp_path, data=None, *, changes=None, store_limit=4 * 1024 * 1024, donor=None, base_sha=COMMIT
+):
     transport = Transport(data or fixture())
     store = ArtifactStore(tmp_path / "protected", max_bytes=store_limit)
-    request = BaselineAcquisitionRequest(repository=REPOSITORY, base_sha=COMMIT, **(changes or {}))
+    request = BaselineAcquisitionRequest(
+        repository=REPOSITORY, base_sha=base_sha, **(changes or {})
+    )
     async with httpx.AsyncClient(
         transport=httpx.MockTransport(transport),
         headers={"Authorization": "secret-default", "X-Private": "secret-header"},
@@ -121,6 +126,7 @@ async def acquire(tmp_path, data=None, *, changes=None, store_limit=4 * 1024 * 1
             protected_artifacts=store,
             worker_roots=(tmp_path / "worker", tmp_path / "repository"),
             client=client,
+            donor=donor,
         )
     return result, store, transport
 
@@ -455,3 +461,232 @@ async def test_owned_transport_cleanup_error_is_sanitized(tmp_path, monkeypatch)
             worker_roots=(tmp_path / "worker",),
         )
     assert SECRET not in str(caught.value)
+
+
+def another_revision(data):
+    document = data.pop(f"/git/commits/{COMMIT}")
+    document["sha"] = "2" * 40
+    data[f"/git/commits/{'2' * 40}"] = document
+    return data
+
+
+@pytest.mark.asyncio
+async def test_donor_identical_bytes_uses_three_fresh_reads_preserves_artifact_serialization(
+    tmp_path,
+):
+    donor, store, original_transport = await acquire(tmp_path)
+    serialized = donor.model_dump_json()
+    restored = BaselineAcquisition.model_validate_json(serialized)
+    result, _, transport = await acquire(tmp_path, donor=restored, changes={"max_requests": 3})
+    assert len(original_transport.requests) == 5
+    assert result.request_count == len(transport.requests) == 3
+    assert all("/git/blobs/" not in str(request.url) for request in transport.requests)
+    assert result.source_snapshot_artifact == donor.source_snapshot_artifact
+    assert result.inventory_artifact == donor.inventory_artifact
+    assert result.source_inventory == donor.source_inventory
+    assert result.model_dump().keys() == donor.model_dump().keys()
+    assert restored.model_dump_json() == serialized
+    assert (
+        store.get(result.source_snapshot_artifact)
+        == b'{"README.md": "Synthetic\\r\\n", "src/demo.py": "# \xce\xbb\\n"}'
+    )
+    again, _, uncached = await acquire(tmp_path)
+    assert again.request_count == len(uncached.requests) == 5
+    assert again.source_snapshot_artifact == donor.source_snapshot_artifact
+    assert again.inventory_artifact == donor.inventory_artifact
+
+
+@pytest.mark.asyncio
+async def test_donor_partial_reuse_fetches_only_two_changed_blobs(tmp_path):
+    initial = {f"file{index}.py": f"# synthetic {index}\n".encode() for index in range(6)}
+    donor, _, _ = await acquire(tmp_path, fixture(initial))
+    changed = {**initial, "file1.py": b"# changed one\r\n", "file3.py": b"# changed two\n"}
+    data = another_revision(fixture(changed))
+    expected = {git_hash("blob", changed[path]) for path in ("file1.py", "file3.py")}
+    for key in list(data):
+        if "/git/blobs/" in key and key.rsplit("/", 1)[1] not in expected:
+            del data[key]
+    result, store, transport = await acquire(
+        tmp_path, data, donor=donor, base_sha="2" * 40, changes={"max_requests": 5}
+    )
+    assert result.request_count == len(transport.requests) == 5
+    assert {str(request.url).rsplit("/", 1)[1] for request in transport.requests[3:]} == expected
+    assert {
+        path: text.encode()
+        for path, text in json.loads(store.get(result.source_snapshot_artifact)).items()
+    } == changed
+    assert result.base_sha != donor.base_sha
+    assert result.inventory_artifact != donor.inventory_artifact
+
+
+@pytest.mark.asyncio
+async def test_donor_reuse_follows_fresh_paths_and_modes_not_old_inventory(tmp_path):
+    donor, _, _ = await acquire(tmp_path)
+    data = another_revision(
+        fixture({"new/path.py": "# \u03bb\n".encode()}, {"new/path.py": "100755"})
+    )
+    result, store, _ = await acquire(
+        tmp_path,
+        data,
+        donor=donor,
+        base_sha="2" * 40,
+        changes={"max_requests": 3, "max_files": 1},
+    )
+    assert json.loads(store.get(result.source_snapshot_artifact)) == {"new/path.py": "# \u03bb\n"}
+    assert {entry.path for entry in result.source_inventory} == {"new/path.py"}
+    inventory = json.loads(store.get(result.inventory_artifact))
+    assert (
+        next(entry for entry in inventory["entries"] if entry["kind"] == "blob")["mode"] == "100755"
+    )
+
+
+@pytest.mark.parametrize(
+    "damage",
+    [
+        "snapshot_bytes",
+        "snapshot_missing",
+        "snapshot_extra",
+        "artifact_digest",
+        "inventory_missing",
+        "inventory_duplicate",
+        "inventory_hash",
+        "inventory_size",
+        "inventory_tree",
+        "inventory_base",
+        "source_inventory_missing",
+        "source_inventory_duplicate",
+        "source_inventory_hash",
+        "total",
+        "repository",
+        "malformed_contract",
+        "duplicate_json",
+    ],
+)
+@pytest.mark.asyncio
+async def test_malformed_donor_refused_before_any_network_or_new_artifact(tmp_path, damage):
+    donor, store, _ = await acquire(tmp_path)
+    files = json.loads(store.get(donor.source_snapshot_artifact))
+    inventory = json.loads(store.get(donor.inventory_artifact))
+    if damage.startswith("snapshot_"):
+        if damage == "snapshot_bytes":
+            files["README.md"] = "Changed!\r\n"
+        elif damage == "snapshot_missing":
+            del files["README.md"]
+        else:
+            files["extra.txt"] = "extra"
+        donor = donor.model_copy(
+            update={"source_snapshot_artifact": store.put(json.dumps(files).encode())}
+        )
+    elif damage == "artifact_digest":
+        path = store.root / donor.source_snapshot_artifact[:2] / donor.source_snapshot_artifact
+        path.write_bytes(b"corrupted synthetic artifact")
+    elif damage.startswith("inventory_"):
+        blob = next(entry for entry in inventory["entries"] if entry["kind"] == "blob")
+        if damage == "inventory_missing":
+            inventory["entries"].remove(blob)
+        elif damage == "inventory_duplicate":
+            inventory["entries"].append(blob)
+        elif damage == "inventory_hash":
+            blob["content_sha256"] = "a" * 64
+        elif damage == "inventory_size":
+            blob["byte_length"] += 1
+        elif damage == "inventory_tree":
+            blob["git_sha"] = "a" * 40
+        else:
+            inventory["base_sha"] = "a" * 40
+        donor = donor.model_copy(
+            update={"inventory_artifact": store.put(json.dumps(inventory).encode())}
+        )
+    elif damage == "source_inventory_missing":
+        donor = donor.model_copy(update={"source_inventory": donor.source_inventory[1:]})
+    elif damage == "source_inventory_duplicate":
+        donor = donor.model_copy(
+            update={"source_inventory": (*donor.source_inventory, donor.source_inventory[0])}
+        )
+    elif damage == "source_inventory_hash":
+        entries = (
+            donor.source_inventory[0].model_copy(update={"content_sha256": "a" * 64}),
+            *donor.source_inventory[1:],
+        )
+        donor = donor.model_copy(update={"source_inventory": entries})
+    elif damage == "total":
+        donor = donor.model_copy(update={"source_bytes": donor.source_bytes + 1})
+    elif damage == "repository":
+        donor = donor.model_copy(update={"repository": "another/synthetic"})
+    elif damage == "duplicate_json":
+        raw = (
+            b'{"README.md":"Synthetic\\r\\n","README.md":"Synthetic\\r\\n",'
+            b'"src/demo.py":"# \\u03bb\\n"}'
+        )
+        donor = donor.model_copy(update={"source_snapshot_artifact": store.put(raw)})
+    else:
+        donor = donor.model_copy(update={"status": "APPROVED"})
+    before = set(store.root.rglob("*"))
+    transport = Transport(fixture())
+    async with httpx.AsyncClient(transport=httpx.MockTransport(transport)) as client:
+        with pytest.raises(
+            HistoricalAcquisitionFailure, match="^Public baseline acquisition refused$"
+        ):
+            await acquire_public_github_baseline(
+                BaselineAcquisitionRequest(repository=REPOSITORY, base_sha=COMMIT),
+                donor=donor,
+                protected_artifacts=store,
+                worker_roots=(tmp_path / "worker",),
+                client=client,
+            )
+    assert not transport.requests
+    assert set(store.root.rglob("*")) == before
+
+
+@pytest.mark.asyncio
+async def test_donor_must_be_available_in_same_protected_store(tmp_path):
+    donor, _, _ = await acquire(tmp_path / "old")
+    with pytest.raises(HistoricalAcquisitionFailure):
+        await acquire(tmp_path / "new", donor=donor)
+    assert not list((tmp_path / "new" / "protected").iterdir())
+
+
+@pytest.mark.parametrize(
+    "damage,expected_reads",
+    [
+        ("repository_id", 1),
+        ("omitted_entry", 3),
+        ("truncated", 3),
+        ("cached_size", 3),
+        ("request_bound", 3),
+        ("new_blob_tampered", 4),
+    ],
+)
+@pytest.mark.asyncio
+async def test_donor_never_overrides_fresh_target_validation(tmp_path, damage, expected_reads):
+    donor, store, _ = await acquire(tmp_path)
+    data = fixture()
+    if damage == "repository_id":
+        data[""]["id"] += 1
+    elif damage == "omitted_entry":
+        tree_document(data)["tree"].pop()
+    elif damage == "truncated":
+        tree_document(data)["truncated"] = True
+    elif damage == "cached_size":
+        tree_document(data)["tree"][0]["size"] += 1
+    else:
+        data = fixture({"new.py": b"# new\n"})
+        if damage == "new_blob_tampered":
+            first_blob(data)["content"] = base64.b64encode(b"# bad\n").decode()
+    transport = Transport(data)
+    before = set(store.root.rglob("*"))
+    async with httpx.AsyncClient(transport=httpx.MockTransport(transport)) as client:
+        with pytest.raises(HistoricalAcquisitionFailure):
+            await acquire_public_github_baseline(
+                BaselineAcquisitionRequest(
+                    repository=REPOSITORY,
+                    base_sha=COMMIT,
+                    max_requests=3 if damage == "request_bound" else 10,
+                ),
+                donor=donor,
+                protected_artifacts=store,
+                worker_roots=(tmp_path / "worker",),
+                client=client,
+            )
+    assert len(transport.requests) == expected_reads
+    assert set(store.root.rglob("*")) == before

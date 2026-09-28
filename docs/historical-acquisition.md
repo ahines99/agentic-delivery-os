@@ -56,6 +56,23 @@ GitHub rate limits may prevent even an otherwise eligible baseline. Bulk transpo
 a future campaign needs its own bounded design; this implementation does not substitute
 product credentials or silently switch transport.
 
+An optional `donor: BaselineAcquisition` lets a subsequent acquisition reuse exact
+protected bytes. Both donor artifacts must exist in the same supplied protected store.
+Their content digests, complete Git tree, per-path SHA-256 and byte lengths, full source
+inventory, text profile and aggregate size are revalidated before network requests.
+The repository name and fresh numeric repository identity must match the donor.
+This supplies bytes only; it transfers no rights, historical authority or admission.
+
+Every target still receives three fresh reads: public repository metadata, the requested
+commit and its complete recursive tree. Only bytes whose recomputed Git blob SHA and
+length match a fresh target entry can replace a blob download. Target paths and modes
+come exclusively from the freshly verified tree. Removed paths disappear; renamed paths
+can reuse identical bytes. Unmatched blobs are fetched normally. An identical target
+therefore needs three requests, and two changed unique blobs need five, subject to all
+existing limits. An invalid donor rejects the acquisition instead of silently fetching
+a replacement. The default without a donor, serialized result fields, and snapshot and
+inventory encoding remain unchanged; only the allowed request minimum is now three.
+
 All regular-file bytes must decode as UTF-8 and round-trip unchanged. NUL, DEL, and
 non-whitespace ASCII control characters are rejected as binary content. Newline style,
 Unicode, BOMs, empty files, original tests, configurations and dependency files are
