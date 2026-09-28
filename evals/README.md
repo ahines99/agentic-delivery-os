@@ -56,9 +56,15 @@ pilot signoff and human-only merges are separate unchanged controls. Human effor
 unmeasured unless real observations exist; no generated human identities or minutes are acceptable.
 
 `evaluation/qualification.py` now provides a bounded offline validator for provenance-bound review
-and execution artifacts; root checks are pending at this update. It validates supplied evidence,
+and execution artifacts; local and hosted contract/service checks have passed. It validates supplied evidence,
 does not invoke qualification agents or create missing receipts, and has not admitted any real task.
-The actual qualifier runner remains missing. The CLI verifies every `HistoricalTask` before writing
+The actual qualifier runner remains missing. [Validation-only preparation](../docs/qualification-preparation.md)
+now checks trusted configuration/evidence bindings and exact accepted-reference patch application
+before execution; `prepare-qualification` returns explicit non-admission metadata. The
+[separate evaluation ledger](../docs/evaluation-execution-store.md) and
+[bound model-operation receipts](../docs/model-operation-receipts.md) supply accounting/provenance
+prerequisites without manufacturing product workflows or granting spending authority.
+The CLI verifies every `HistoricalTask` before writing
 its metadata-only summary:
 
 ```sh

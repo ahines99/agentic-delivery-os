@@ -1104,6 +1104,63 @@ class Store:
                 )
             )
 
+    def record_observation(
+        self, account_id: str, operation_id: str, observation: dict[str, Any]
+    ) -> None:
+        """Preserve first observed provider metadata without resolving an uncertain call."""
+        encoded = json.dumps(observation, sort_keys=True, allow_nan=False)
+        if not isinstance(observation, dict) or len(encoded.encode()) > 65536:
+            raise ValueError("Provider observation must be a bounded JSON object")
+        with Session(self.engine) as session, session.begin():
+            run = session.scalar(
+                select(RunRecord).where(RunRecord.id == account_id).with_for_update()
+            )
+            if run is None:
+                raise NotFound("Model account not found")
+            usage = session.scalar(
+                select(UsageRecord).where(UsageRecord.id == operation_id).with_for_update()
+            )
+            if usage is None or usage.workflow_id != account_id:
+                raise NotFound("Model operation not found for this account")
+            result = dict(usage.result)
+            previous = result.get("provider_observation")
+            if previous is not None:
+                if json.dumps(previous, sort_keys=True, allow_nan=False) != encoded:
+                    raise Conflict("Provider observation is immutable")
+                return
+            if usage.status != "RESERVED":
+                raise Conflict("Cannot append observation to an already settled operation")
+            usage.result = {**result, "provider_observation": json.loads(encoded)}
+
+    def operation_receipt(self, account_id: str, operation_id: str) -> dict[str, Any]:
+        """Internal read for a trusted controller; legacy per-call usage stays unknown.
+
+        The delivery account is its workflow ID. No new public API or authorization
+        is implied by this storage method. Actual token counts originate in the
+        broker's committed result metadata, never from aggregate run accounting.
+        """
+        with Session(self.engine) as session:
+            usage = session.get(UsageRecord, operation_id)
+            if usage is None or usage.workflow_id != account_id:
+                raise NotFound("Model operation not found for this account")
+            provenance = usage.result.get("operation_receipt")
+            if not isinstance(provenance, dict):
+                provenance = {}
+            document = {
+                "account_id": usage.workflow_id,
+                "operation_id": usage.id,
+                "status": usage.status,
+                "reserved_microdollars": usage.reserved_microdollars,
+                "reserved_input_tokens": usage.reserved_input_tokens,
+                "reserved_output_tokens": usage.reserved_output_tokens,
+                "actual_microdollars": usage.actual_microdollars,
+                "actual_input_tokens": provenance.get("input_tokens"),
+                "actual_output_tokens": provenance.get("output_tokens"),
+                "observation": usage.result.get("provider_observation"),
+                "result": usage.result,
+            }
+        return {**document, "receipt_digest": digest_json(document)}
+
     def reserve(
         self,
         workflow_id: str,
@@ -1190,6 +1247,15 @@ class Store:
             )
             if not usage:
                 raise NotFound("Reservation not found")
+            observation = usage.result.get("provider_observation")
+            if observation is not None:
+                if json.dumps(
+                    result.get("provider_observation", observation), sort_keys=True
+                ) != json.dumps(observation, sort_keys=True):
+                    raise Conflict("Settlement cannot change observed provider metadata")
+                result = {**result, "provider_observation": observation}
+            elif "provider_observation" in result:
+                raise Conflict("Provider metadata must be observed before settlement")
             if usage.status == "SETTLED":
                 if usage.result != result or usage.actual_microdollars != cost:
                     raise Conflict("Settled usage cannot change")

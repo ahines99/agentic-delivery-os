@@ -85,15 +85,25 @@ local code and does not establish a qualified historical measurement or C-arm re
 Scoring now preserves original tests/configuration and revalidates the frozen collection and
 receipt bindings; contradictory success/regression records fail validation.
 
-The latest complete local verification on 2026-09-28 passed **748 tests, five explicit Windows
-skips**, in 254.01 seconds with actual PostgreSQL, Temporal and Docker. The skips cover three POSIX
-FIFO regressions and two unprivileged symlink cases; Linux CI exercises those platform cases.
-Ruff check/format (154 files), mypy (59 source files), locked dependency validation, wheel build,
-clean-wheel imports and the installed retention correction passed. The staged secret scan passed.
-Qualification/scoring Docker tests
-use explicitly synthetic agent/rights records and do not admit historical tasks. No extra model
-spend or historical benchmark run occurred in this update. The preceding complete checkpoint was
-638 passed with three Windows skips; these counts are separate full runs, not additive evidence.
+[Validation-only qualification preparation](qualification-preparation.md) now checks pinned
+controller/evidence/configuration bindings, exact reference-patch application and disjoint scopes.
+Its offline CLI exports only PREPARED_NOT_QUALIFIED metadata. The [separate evaluation ledger](evaluation-execution-store.md)
+and [bound model-operation receipts](model-operation-receipts.md) provide durable per-call
+accounting/provenance and retain immutable failure observations without manufacturing delivery
+workflows. A real bounded synthetic provider probe did not settle: 14465 microdollars remain
+reserved, actual cost/cause unknown, no retry. These are prerequisites for the still-missing
+qualifier/campaign controllers and do not admit any of the 36 historical candidates.
+
+The latest complete local verification on 2026-09-28 passed **941 tests, seven explicit Windows
+skips**, in 261.66 seconds with actual PostgreSQL, Temporal and Docker. The skips cover four POSIX
+FIFO regressions and three unprivileged symlink cases; Linux CI exercises those platform cases.
+Ruff check/format (165 files), mypy (62 source files), locked dependency validation, wheel build,
+clean-wheel imports and evaluation ledger creation passed. Qualification/scoring Docker tests
+use explicitly synthetic agent/rights records and do not admit historical tasks. The attempted
+live provider probe above remains unresolved; no historical benchmark ran. The preceding
+complete checkpoint passed 748 tests with five Windows skips and all four hosted checks at
+[b1dedd7](https://github.com/ahines99/agentic-delivery-os/actions/runs/36443683855).
+Counts from separate full runs are not additive evidence.
 
 The earlier complete local verification passed **163 tests** with `TEST_DATABASE_URL`,
 `TEST_TEMPORAL_ADDRESS` and `TEST_SANDBOX_IMAGE` configured against actual Compose PostgreSQL,

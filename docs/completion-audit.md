@@ -127,6 +127,32 @@ and deny duplicate logical calls; a committed settlement with lost acknowledgeme
 output. Fresh database engines verify persisted accounting. No external/paid call or actual invoice
 reconciliation is claimed, and unknown reservations are not released automatically.
 
+E31: [Model-operation receipts](model-operation-receipts.md) and [ADR-009](adr/ADR-009-model-provenance-and-evaluation-accounting.md)
+add per-call reported tokens, configured-rate cost, response object identity, timestamps and
+request/config/output bindings. Cache recovery checks the owning ledger and exact request before
+returning output; legacy records gain no invented provenance. Immutable allowlisted observations
+retain unsuccessful response/transport/cancellation metadata without releasing reservations.
+Controlled transport tests cover both delivery and evaluation stores, malformed output and actual
+Temporal error serialization. Hashes do not authenticate arbitrary writers or reconcile invoices.
+
+E32: [Separate evaluation ledger](evaluation-execution-store.md) passed 35 scoped tests including
+a unique disposable PostgreSQL database and concurrency. Model cost/token ceilings, unknown
+retention, immutable observations/checkpoints and schema/foreign-key checks are separate from
+delivery workflows. Accounts do not authorize spending; infrastructure, wall-time and total
+campaign allocation still require the executor.
+
+E33: [Qualification preparation](qualification-preparation.md) supplies strict imported evidence
+and controller-policy bindings, scope separation and exact in-memory reference-patch application.
+The pure API and offline CLI output PREPARED_NOT_QUALIFIED and no execution authority. A combined
+preparation/CLI/ledger run passed 133 tests with two explicit Windows skips. Synthetic attestations
+are not historical acceptance, source-origin proof or legal clearance. No task was admitted.
+
+E34: An attempted real Anthropic synthetic receipt probe used a 100000-microdollar cap and ended
+in ModelFailure. Account `synthetic-model-provenance-24346e68a8b9410e9431b21e36c750ef` retains 14465
+reserved microdollars; its final actual cost and failure cause are unknown. No retry or successful
+receipt is claimed. This occurred before diagnostic observations were added; absent HTTP metadata
+was not fabricated. The private ledger remains outside the repository.
+
 ## M0–M5 backlog ledger
 
 Every stable backlog ID appears below. Dependencies continue to apply even where later implementation was developed ahead of a milestone's full gate.
@@ -249,3 +275,10 @@ Recommendations below consolidate the five reviews without omitting their origin
 The initial audit identified the following historical wording for synchronization. ADR-006 deliberately changes publication order and keeps handoff draft. Where the product journey or retained plan/backlog paragraphs describe automatically marking ready after publication, state the superseding behavior in the active contract. Where the evaluation methodology describes its schema/scorer as entirely planned, partial tooling now exists; retain all remaining protocol requirements while updating that inventory. Research 05 says no hosted CI/remote/settings existed during the original setup; retain its historical date but link current E9/E10 status. Any plan wording that current records cannot authorize remote work should distinguish disabled configuration from missing broker implementation. The originally identified divergent policy labels are now replaced by a shared `POLICY_VERSION` used by execution configuration, candidate production and strict admission. Preserve that binding and its regressions; do not reopen the old labels as current behavior.
 
 Closing this audit means every required row has concrete qualifying evidence, or an explicit external prerequisite remains unresolved. It does not mean changing partial rows to deferred, shrinking the historical evaluation, or treating the controlled synthetic run as the end-to-end product.
+
+E35: The complete preparation/provenance checkpoint passed 941 tests with seven explicit Windows
+skips in 261.66 seconds against actual PostgreSQL, Temporal and Docker. Ruff check/format
+(165 files), mypy (62 sources), locked dependencies, wheel build, installed-wheel evaluation
+ledger creation and new contract imports passed. These validate prerequisites; no qualifier
+controller, calibration result or historical admission is implied. The real failed probe in E34
+remains unresolved.
