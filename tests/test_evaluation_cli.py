@@ -7,7 +7,8 @@ from typing import Any
 import pytest
 
 from agentic_delivery.evaluation.cli import main
-from agentic_delivery.evaluation.harness import HistoricalTask, Trial
+from agentic_delivery.evaluation.harness import HistoricalTask, Trial, report, score_candidate
+from agentic_delivery.storage.artifacts import ArtifactStore
 
 
 def synthetic_task(identity: str, split: str = "test") -> dict[str, Any]:
@@ -177,3 +178,100 @@ def test_output_cannot_replace_manifest(tmp_path: Path) -> None:
     with pytest.raises(SystemExit):
         main(["validate-manifest", "--manifest", str(source), "--output", str(source)])
     assert source.read_bytes() == before
+
+
+def test_unobserved_human_time_is_not_reported_as_zero_or_savings() -> None:
+    values = synthetic_trial("one")
+    del values["human_minutes"]
+    result = report(("one", "missing"), (Trial.model_validate(values),), "A", "test")
+    assert result["human_minutes_observed_tasks"] == 0
+    assert result["human_minutes_total"] is None
+    assert result["human_time_savings"] is None
+    values["human_minutes"] = 0
+    observed = report(("one",), (Trial.model_validate(values),), "A", "test")
+    assert observed["human_minutes_observed_tasks"] == 1
+    assert observed["human_minutes_total"] == 0
+    assert observed["human_time_savings"] is None
+
+
+@pytest.mark.parametrize("field", ["regression_failed", "regression_completed"])
+def test_success_cannot_contradict_regression_evidence(field: str) -> None:
+    values = synthetic_trial("one")
+    values[field] = not values[field]
+    with pytest.raises(ValueError, match="completed passing regressions"):
+        Trial.model_validate(values)
+
+
+@pytest.mark.asyncio
+async def test_unqualified_tasks_cannot_export_source_or_score(tmp_path: Path) -> None:
+    task = HistoricalTask.model_validate(synthetic_task("one"))
+    artifacts = ArtifactStore(tmp_path / "protected")
+    # No artifact exists: qualification must reject before touching source or Docker.
+    with pytest.raises(ValueError, match="have not passed agent qualification"):
+        task.worker_input(artifacts)
+    with pytest.raises(ValueError, match="have not passed agent qualification"):
+        await score_candidate(task, {}, artifacts, artifacts)
+
+
+def test_qualification_cli_does_not_promote_structural_manifest(tmp_path: Path) -> None:
+    source = manifest(tmp_path / "tasks.jsonl", synthetic_task("one"))
+    protected = tmp_path / "protected"
+    protected.mkdir()
+    result = tmp_path / "admission.json"
+    with pytest.raises(SystemExit) as caught:
+        main(
+            [
+                "validate-qualification",
+                "--manifest",
+                str(source),
+                "--artifacts",
+                str(protected),
+                "--output",
+                str(result),
+            ]
+        )
+    assert caught.value.code == 2
+    assert not result.exists()
+    assert list(protected.iterdir()) == []
+
+
+def test_comparison_cli_preserves_missing_pairs_and_labels_synthetic(tmp_path: Path) -> None:
+    source = manifest(tmp_path / "tasks.jsonl", synthetic_task("one"), synthetic_task("missing"))
+    trials = tmp_path / "trials.json"
+    first = synthetic_trial("one", "FAIL")
+    second = {**synthetic_trial("one"), "arm": "B"}
+    trials.write_text(json.dumps([first, second]), encoding="utf-8")
+    result = tmp_path / "comparison.json"
+    command = [
+        "compare",
+        "--manifest",
+        str(source),
+        "--trials",
+        str(trials),
+        "--arms",
+        "A",
+        "B",
+        "--split",
+        "test",
+        "--synthetic",
+        "--bootstrap-samples",
+        "100",
+        "--output",
+        str(result),
+    ]
+    assert main(command) == 0
+    content = result.read_bytes()
+    output = json.loads(content)
+    assert output["kind"] == "synthetic-paired-comparison"
+    assert output["qualification_verified"] is False
+    pair = output["comparison"]["comparisons"]["B_minus_A"]
+    assert pair["assigned_pairs"] == 2
+    assert pair["recorded_pairs"] == 1
+    assert pair["metrics"]["strict_success"]["candidate_minus_baseline"] == 0.5
+    assert main(command) == 0
+    assert result.read_bytes() == content
+    second["split"] = "development"
+    trials.write_text(json.dumps([first, second]), encoding="utf-8")
+    with pytest.raises(SystemExit):
+        main(command)
+    assert result.read_bytes() == content

@@ -3,6 +3,7 @@
 import hashlib
 import os
 import re
+import stat
 import tempfile
 from pathlib import Path
 
@@ -43,7 +44,19 @@ class ArtifactStore:
 
     def get(self, digest: str) -> bytes:
         path = self._path(digest)
-        with path.open("rb") as stream:
+        flags = (
+            os.O_RDONLY
+            | getattr(os, "O_BINARY", 0)
+            | getattr(os, "O_NOFOLLOW", 0)
+            | getattr(os, "O_NONBLOCK", 0)
+        )
+        descriptor = os.open(path, flags)
+        with os.fdopen(descriptor, "rb") as stream:
+            metadata = os.fstat(stream.fileno())
+            if not stat.S_ISREG(metadata.st_mode):
+                raise ValueError("Artifact must be a regular file")
+            if metadata.st_size > self.max_bytes:
+                raise ValueError("Artifact exceeds size limit")
             content = stream.read(self.max_bytes + 1)
         if len(content) > self.max_bytes or hashlib.sha256(content).hexdigest() != digest:
             raise ValueError("Artifact integrity check failed")

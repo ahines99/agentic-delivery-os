@@ -70,8 +70,8 @@ GitHub App publication and Linear integration code are contract/fixture tested, 
 onboarded: the required App/private-key and Linear workspace credentials are absent. OpenAI's
 wire adapter is contract tested; the recorded live model runs used Anthropic. Tests of named
 Docker controls do not establish general hostile-code isolation. Complete recovery, identity,
-security and product acceptance gates remain open, as does qualification and human scoring
-of 30+ historical tasks. No completed MVP, benchmark efficacy, merge or deployment is claimed.
+security and product acceptance gates remain open, as does agent-led qualification and scoring
+of 30+ historical tasks under ADR-007. Actual human benefit remains unmeasured. No completed MVP, benchmark efficacy, merge or deployment is claimed.
 
 The [implementation status](implementation-status.md) is the current capability record;
 the [backlog](backlog.md) annotates progress without treating code presence as release acceptance.
@@ -145,20 +145,35 @@ cancellation; it does not silently merge, delete branches, or roll back producti
 
 ## Evaluation and promotion
 
-Treat independent review and impact analysis as hypotheses. Compare configurations under
-declared matched budgets. Keep public-patch leakage and hidden tests out of agent context.
-Score behavior, regressions, false readiness and human burden, not diff similarity. Track
-infrastructure errors and safety denials with explicit denominators; never discard difficult
-tasks to improve the headline. The [protocol](evaluation-methodology.md) owns splits,
-statistical reporting and numeric promotion gates. All thresholds are targets; no benchmark
-outcomes or productivity improvements exist yet.
+Treat independent review and impact analysis as hypotheses. Compare configurations under declared
+matched budgets. Keep public-patch leakage and hidden tests out of campaign builder/reviewer context.
+Score behavior, regressions and false readiness with deterministic checks and a calibrated automated
+rubric. Actual human effort or benefit remains unmeasured unless observed; never invent human
+reviewer identities, review minutes or productivity savings. Track infrastructure errors and safety
+denials with explicit denominators; never discard difficult tasks to improve the headline.
+
+On 2026-09-28 the user requested a hands-off, fully agentic benchmark workflow. Under
+[ADR-007](adr/ADR-007-automated-benchmark-qualification.md), the protocol now requires two independent
+agent qualification/scoring passes, immutable input/model/configuration/output provenance, and a distinct third
+adjudication context for disagreement. Deterministic baseline/reference qualification runs three
+times each; failed checks, unresolved risk/rights or missing evidence fail closed and cannot be
+voted into success. This supersedes earlier human-curator/rubric prerequisites for benchmark work.
+Human plan approval, pilot signoff and every product merge remain unchanged.
+
+The [protocol](evaluation-methodology.md) retains target 36/minimum 30 tasks, at least three
+repositories, grouped equal dev/validation/sealed-test splits, contamination controls, matched
+finite budgets, operational safety and validation/false-ready promotion thresholds. The 36 staged
+metadata records are UNQUALIFIED diagnostic candidates, not a valid campaign merely by inclusion.
+All thresholds are targets; no historical benchmark result or measured productivity benefit exists.
+The USD 1,000 campaign cap is not permission for unlimited or unapproved spend. Live GitHub App and
+Linear access remain separate product-integration prerequisites.
 
 ## Main risks and responses
 
 | Risk | Mitigation / decision trigger |
 | --- | --- |
 | Scope expands before a useful PR exists | M0–M4 gates; no additional worker roles/trackers/UI until measured MVP. |
-| Agent tests repeat the implementation's mistake | Independent runner, withheld behavior tests, human rubric, generated-test mutation checks. |
+| Agent tests repeat the implementation's mistake | Independent runner, withheld behavior tests, calibrated independent agent rubric under ADR-007, generated-test mutation checks; human benefit unmeasured. |
 | Prompt injection or malicious repository script | Capabilities outside prompts; no secrets/egress in builder; host-level adversarial tests. |
 | External write succeeds but response is lost | Stable operation identity, authoritative reconciliation, explicit UNKNOWN stop. |
 | Review/evidence stale after branch changes | Exact revision tuple, check invalidation and new review attempt after terminal handoff. |

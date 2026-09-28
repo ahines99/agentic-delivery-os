@@ -10,8 +10,9 @@ from pydantic import Field, model_validator
 from agentic_delivery.config import Budget, CommandProfile
 from agentic_delivery.domain.models import CommitSHA, Contract, NonEmpty, WorkItem
 from agentic_delivery.execution.docker import DockerRunner
-from agentic_delivery.execution.files import validate_files
-from agentic_delivery.execution.verification import verify
+from agentic_delivery.execution.files import protected, validate_files
+from agentic_delivery.execution.verification import report_verdict, verify
+from agentic_delivery.policy.changes import check_candidate
 from agentic_delivery.storage.artifacts import ArtifactStore
 from agentic_delivery.storage.store import digest_json
 
@@ -29,17 +30,19 @@ class HistoricalTask(Contract):
     snapshot_artifact: str = Field(pattern=r"^[a-f0-9]{64}$")
     oracle_artifact: str = Field(pattern=r"^[a-f0-9]{64}$")
     reference_patch_artifact: str = Field(pattern=r"^[a-f0-9]{64}$")
+    reference_snapshot_artifact: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
     image: str = Field(pattern=r"^(?:[A-Za-z0-9._/:~-]+@)?sha256:[a-f0-9]{64}$")
     acceptance_commands: tuple[CommandProfile, ...] = Field(min_length=1)
     regression_commands: tuple[CommandProfile, ...] = Field(min_length=1)
     reviewers: tuple[NonEmpty, ...] = Field(min_length=2)
+    qualification_mode: Literal["unverified", "independent-agents-v1"] = "unverified"
     budget: Budget = Budget()
     qualification_artifact: str = Field(pattern=r"^[a-f0-9]{64}$")
 
     @model_validator(mode="after")
     def admitted(self) -> "HistoricalTask":
         if len(set(self.reviewers)) < 2:
-            raise ValueError("Two independent curator identities are required")
+            raise ValueError("Two independent qualification reviewer identities are required")
         if (
             self.item.risk_tier is None
             or self.item.risk_tier > 1
@@ -48,7 +51,26 @@ class HistoricalTask(Contract):
             raise ValueError("Historical task is outside admitted evaluation scope")
         return self
 
+    def validate_qualification(self, artifacts: ArtifactStore) -> None:
+        from agentic_delivery.evaluation.qualification import (
+            qualification_task_digest,
+            validate_qualification,
+        )
+
+        if self.qualification_mode != "independent-agents-v1":
+            raise ValueError("Legacy structural manifests have not passed agent qualification")
+        if self.reference_snapshot_artifact is None:
+            raise ValueError("Agent qualification requires an explicit reference snapshot")
+        validate_qualification(
+            artifacts,
+            self.qualification_artifact,
+            task_id=self.id,
+            task_manifest_digest=qualification_task_digest(self.model_dump(mode="json")),
+            task_document=self.model_dump(mode="json"),
+        )
+
     def worker_input(self, artifacts: ArtifactStore) -> dict[str, Any]:
+        self.validate_qualification(artifacts)
         files = json.loads(artifacts.get(self.snapshot_artifact))
         validate_files(files)
         return {
@@ -71,8 +93,16 @@ class Trial(Contract):
     model_microdollars: int = Field(ge=0, strict=True)
     infrastructure_microdollars: int = Field(ge=0, strict=True)
     active_seconds: float = Field(ge=0, allow_inf_nan=False)
-    human_minutes: float = Field(ge=0, allow_inf_nan=False)
+    human_minutes: float | None = Field(default=None, ge=0, allow_inf_nan=False)
     evidence_digest: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
+
+    @model_validator(mode="after")
+    def coherent_result(self) -> "Trial":
+        if self.status == "PASS" and (not self.regression_completed or self.regression_failed):
+            raise ValueError("Strict success requires completed passing regressions")
+        if self.regression_failed and not self.regression_completed:
+            raise ValueError("Regression failure requires a completed regression run")
+        return self
 
 
 def load_manifest(path: Path) -> tuple[HistoricalTask, ...]:
@@ -96,11 +126,43 @@ async def score_candidate(
     protected_artifacts: ArtifactStore,
     output_artifacts: ArtifactStore,
 ) -> dict[str, Any]:
+    from agentic_delivery.agents.evidence import ExecutionReceipt
+    from agentic_delivery.evaluation.qualification import QualificationInput, QualificationRecord
+
+    task.validate_qualification(protected_artifacts)
+    protected_root = protected_artifacts.root.resolve()
+    output_root = output_artifacts.root.resolve()
+    if output_root.is_relative_to(protected_root) or protected_root.is_relative_to(output_root):
+        raise ValueError("Scoring output and protected input stores must be disjoint")
+    # Both stores are evaluator-only: receipts can contain withheld test names/output.
+    record = QualificationRecord.model_validate_json(
+        protected_artifacts.get(task.qualification_artifact)
+    )
+    qualification = QualificationInput.model_validate_json(
+        protected_artifacts.get(record.qualification_input_artifact)
+    )
+    source = json.loads(protected_artifacts.get(task.snapshot_artifact))
     oracle = json.loads(protected_artifacts.get(task.oracle_artifact))
     validate_files(candidate)
     validate_files(oracle)
     if set(oracle) & set(candidate):
         raise ValueError("Candidate attempts to replace evaluator-owned test files")
+    original_tests = {
+        path
+        for path in source
+        if any(part in {"test", "tests"} for part in path.split("/"))
+        or path.rsplit("/", 1)[-1].startswith("test_")
+        or path.endswith("_test.py")
+    } | {node.split("::", 1)[0] for node in qualification.regression_nodes}
+    for path in source.keys() | candidate.keys():
+        if source.get(path) != candidate.get(path) and (
+            path in original_tests
+            or protected(path, (".github", "AGENTS.md", "CODEOWNERS", "Dockerfile", "infra"))
+        ):
+            raise ValueError("Candidate changed protected source tests or execution controls")
+    if source == candidate:
+        raise ValueError("Candidate contains no change")
+    check_candidate(source, candidate)
     files = {**candidate, **oracle}
     runner = DockerRunner(task.image)
     await runner.preflight()
@@ -120,8 +182,54 @@ async def score_candidate(
         timeout=task.budget.command_seconds,
         workflow_id="eval-" + digest_json(task.id)[:20],
     )
+
+    def frozen_collection(
+        summary: dict[str, Any], expected: tuple[str, ...], command: CommandProfile
+    ) -> bool:
+        if len(summary["commands"]) != 1:
+            return False
+        receipt = ExecutionReceipt.model_validate_json(
+            output_artifacts.get(summary["commands"][0]["artifact_digest"])
+        )
+        observed = (receipt.verification_report or {}).get("collected")
+        binding = receipt.verification_binding
+        passed, _, _ = report_verdict(
+            receipt.verification_report,
+            binding,
+            expected_tests=command.expected_tests,
+            exit_code=receipt.exit_code,
+        )
+        return (
+            passed
+            and not receipt.timed_out
+            and receipt.report_error is None
+            and receipt.image == task.image
+            and receipt.argv == command.argv
+            and receipt.command_id == command.id
+            and receipt.snapshot_digest == digest_json(files)
+            and binding.get("snapshot_digest") == digest_json(files)
+            and binding.get("command_digest") == digest_json(command.model_dump(mode="json"))
+            and binding.get("argv") == list(command.argv)
+            and isinstance(observed, list)
+            and len(observed) == len(expected)
+            and set(observed) == set(expected)
+        )
+
+    acceptance_collection = frozen_collection(
+        acceptance, qualification.behavior_nodes, qualification.acceptance_command
+    )
+    regression_collection = frozen_collection(
+        regression, qualification.regression_nodes, qualification.regression_command
+    )
     return {
-        "passed": acceptance["passed"] and regression["passed"],
+        "passed": (
+            acceptance["passed"]
+            and regression["passed"]
+            and acceptance_collection
+            and regression_collection
+        ),
+        "frozen_acceptance_collection": acceptance_collection,
+        "frozen_regression_collection": regression_collection,
         "acceptance": acceptance,
         "regression": regression,
         "candidate_digest": digest_json(candidate),
@@ -175,4 +283,11 @@ def report(
                 "NOT_RUN",
             )
         },
+        "human_minutes_observed_tasks": sum(trial.human_minutes is not None for trial in selected),
+        "human_minutes_total": (
+            sum(trial.human_minutes for trial in selected if trial.human_minutes is not None)
+            if any(trial.human_minutes is not None for trial in selected)
+            else None
+        ),
+        "human_time_savings": None,
     }

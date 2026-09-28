@@ -54,10 +54,34 @@ integration or production release gate.
   validates manifests and creates reproducible reports; no historical benchmark run exists.
   [Curation preparation](evaluation-curation.md) now contains 36 pinned metadata candidates, all
   UNQUALIFIED, zero qualified/scored; proposed groups do not constitute frozen eligible splits.
+  [ADR-007](adr/ADR-007-automated-benchmark-qualification.md) replaces human benchmark curator/scorer
+  prerequisites with isolated agent passes and deterministic qualification. The new bounded
+  qualification validator and `validate-qualification` CLI are implemented; local contract and Docker receipt checks pass.
+  Worker-input export/scoring now validate qualification before snapshot reads or Docker execution.
+  The real qualifier runner remains missing. `human_minutes` is nullable; reported human-time savings
+  remain null. No actual agent
+  qualification or candidate admission is claimed, and human effort/benefit remains unmeasured.
 - Pinned Compose development PostgreSQL/Temporal services, local CLI/API/worker entry points,
   tests and GitHub Actions quality/integration jobs.
 - `/readyz` checks database readiness; authenticated `/operations` exposes repository-scoped
   workflow states, spending, and pending/exhausted dispatch summaries.
+
+The offline evaluation CLI also exposes [paired comparison](evaluation-comparison.md) and
+[campaign preregistration](evaluation-campaign.md). These preserve missing-task denominators,
+unmeasured human benefit, phase ordering and matched budgets; neither executes a campaign.
+The standalone [coverage importer/ranker](coverage-contexts.md) binds hints to exact measurement
+inputs and always requires full regression execution. Its real coverage JSON smoke uses synthetic
+local code and does not establish a qualified historical measurement or C-arm result.
+Scoring now preserves original tests/configuration and revalidates the frozen collection and
+receipt bindings; contradictory success/regression records fail validation.
+
+The latest complete local verification on 2026-09-28 passed **638 tests, three explicit Windows
+skips**, in 173.22 seconds with actual PostgreSQL, Temporal and Docker. The skips cover two POSIX
+FIFO regressions and unprivileged symlink creation; Linux CI exercises those platform cases.
+Ruff check/format (137 files), mypy (58 source files), locked dependency validation, wheel build
+and clean-wheel evaluation/operations/coverage imports passed. Qualification/scoring Docker tests
+use explicitly synthetic agent/rights records and do not admit historical tasks. No extra model
+spend or historical benchmark run occurred in this update.
 
 The earlier complete local verification passed **163 tests** with `TEST_DATABASE_URL`,
 `TEST_TEMPORAL_ADDRESS` and `TEST_SANDBOX_IMAGE` configured against actual Compose PostgreSQL,
@@ -124,11 +148,13 @@ The successful candidate result is `LOCAL_REVIEW_READY`, not a merged or deploye
 3. Extend security qualification beyond the exercised memory/PID/disk/dependency-hook controls.
    Current Docker tests do not establish general runtime-escape resistance or hostile multi-tenant isolation.
 4. Qualify the implemented check-run/suite ingestion and REST readiness gate with the live product App.
-   Complete granular active-execution recovery, production identity hardening, telemetry export,
+   Complete granular active-execution recovery, production identity hardening, full telemetry,
    retention/deletion and cross-system recovery. Closed projection repair, terminal reruns and bounded
    waits do not replace these operational gates.
 5. Independently qualify 30+ historical tasks from a reviewed inventory, then execute the frozen paired evaluation
-   with human scoring. Manifest validation and one synthetic live demo cannot satisfy this requirement.
+   with calibrated independent agent scoring and authoritative deterministic tests under ADR-007.
+   Manifest validation and one synthetic live demo cannot satisfy this requirement. Human plan
+   approval, pilot signoff and merge remain distinct unchanged controls.
 6. Meet the complete product P-01–P-12 and security acceptance gates before calling this an MVP pilot.
    Additional trackers/languages/profiles and release automation remain conditional future options.
 
@@ -143,3 +169,9 @@ their own protections and live onboarding evidence.
 
 The [completion audit](completion-audit.md) retains all 29 backlog items, 12 product gates and
 36 research recommendations, including the remaining acceptance and external prerequisites.
+
+A bounded [operational metadata export](operations-export.md) was exercised against actual private
+PostgreSQL for workflow `2abb68f2-d32f-4ceb-90e9-5b8f53e9b322`; output SHA-256
+`cac7f2b60b5a8def617cbb15939829cf920c82717347005a5472355241758ef6`.
+It contains allowlisted metadata, not artifact bytes or secrets. This advances M4-03 only within
+that scope; retention/deletion, a full telemetry service and cross-system recovery remain open.

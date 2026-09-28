@@ -72,7 +72,9 @@ def test_worklist_has_no_qualification_and_exports_deterministically(tmp_path: P
     catalog = load_catalog(CATALOG)
     result = worklist(catalog)
     assert result["qualified_tasks"] == 0
-    assert all(task["curator_reviews"] == [] for task in result["tasks"])
+    assert all(task["agent_review_receipts"] == [] for task in result["tasks"])
+    assert result["status"] == "AWAITING_INDEPENDENT_AGENT_QUALIFICATION"
+    assert catalog.agent_passes_required_per_task == 2
     destination = tmp_path / "worklist.json"
     args = ["worklist", "--catalog", str(CATALOG), "--output", str(destination)]
     assert main(args) == 0

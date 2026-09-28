@@ -37,8 +37,8 @@ Authenticated `POST /work-items` uses an `Idempotency-Key`; receipt is distinct 
 
 A real Anthropic/Temporal/Docker run against the synthetic customer fixture produced `LOCAL_REVIEW_READY`, then ended `POLICY_BLOCKED` at disabled publication. This is the expected observed boundary for that configuration, not a completed remote delivery. The candidate result does not mean a PR was created, merged or deployed. Model-backed runs spend tokens; configure an authorized model/rate card and repository data permission deliberately. Live check scripts under `scripts/` are operator-invoked development checks, not benchmark runs.
 
-The latest recorded run is `b3909403-fead-4093-ae60-c7d20cd3f181`: one candidate attempt on the
-actual Compose services, with $0.197655 in recorded model spend. This excludes infrastructure
+The latest recorded candidate run is `2abb68f2-d32f-4ceb-90e9-5b8f53e9b322`: one candidate attempt on the
+actual Compose services, with $0.186240 in recorded model spend. This excludes infrastructure
 and human effort; the manifest digest and prior runs are in [implementation status](implementation-status.md).
 An explicit eligible terminal rerun creates a new attempt/budget while retaining old spend;
 it is blocked when publication is existing or uncertain.
@@ -49,8 +49,9 @@ The GitHub App publisher and Linear adapters are implemented, but live App/priva
 
 Run `uv run --no-sync python -m pytest` for unit/contract checks. PostgreSQL, Temporal and Docker integration tests require the environment in the runbook; unconfigured integration tests explicitly skip. Preserve which checks actually ran.
 
-The latest configured local run passed 163 tests, including actual Docker memory/PID/disk
-exhaustion and hostile PEP 517 hooks. [Hosted CI passed](https://github.com/ahines99/agentic-delivery-os/actions/runs/36374850293).
+The historical 163-test baseline included actual Docker memory/PID/disk exhaustion and hostile
+PEP 517 hooks. A later 392-test full run and focused follow-ups are recorded separately in
+[implementation status](implementation-status.md); do not infer a final-revision total from them. [Hosted CI passed](https://github.com/ahines99/agentic-delivery-os/actions/runs/36374850293).
 These probes demonstrate
 specific controls, not arbitrary-code or multi-tenant escape resistance.
 
@@ -64,6 +65,19 @@ and no independently qualified 30+ historical-task campaign has been run.
 | M2 | Synthetic candidate build, resource limits and hostile dependency hooks exercised | Exact commands and cleanup records; further runtime-escape and deployment qualification |
 | M3 | Independent local review exercised; actual App publication remains | Draft PR, base/head reconciliation, current criterion matrix and human handoff |
 | M4 | Some failure paths exercised; complete pilot qualification remains | Full product/security gates, granular recovery, retention and restore drills |
-| M5 | Harness implemented; historical campaign remains | Qualified 30+ tasks, frozen paired protocol, human scoring, costs and uncertainty |
+| M5 | Harness implemented; historical campaign remains | Qualified 30+ tasks, frozen paired protocol, independent agent scoring, costs and uncertainty |
 
 Use an operator-owned disposable target repository and synthetic tickets before a live pilot. Record exact versions, inputs, base/head commits, policy, and outcomes. Redact secrets before sharing artifacts. Publish no benchmark numbers until [the evaluation protocol](evaluation-methodology.md) has been executed reproducibly.
+
+Under [ADR-007](adr/ADR-007-automated-benchmark-qualification.md), benchmark qualification/scoring is
+agent-led, with two isolated evidence-bound passes, adjudication for disagreement and deterministic
+baseline/reference checks three times each. All 36 staged candidates remain UNQUALIFIED; the new
+qualification validator has no real candidate admission to demonstrate and local contract and Docker receipt checks pass.
+Human review benefit and effort savings remain unmeasured. Human plan approval, pilot signoff and
+merge controls are unchanged.
+
+The [bounded operational export](operations-export.md) was exercised on the actual private PostgreSQL
+record for the candidate run above, producing SHA-256
+`cac7f2b60b5a8def617cbb15939829cf920c82717347005a5472355241758ef6`.
+It exports allowlisted metadata without artifact bytes or secrets. Present it as partial operational
+evidence, not a completed retention, full telemetry or cross-system recovery capability.

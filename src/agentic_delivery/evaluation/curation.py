@@ -1,4 +1,4 @@
-"""Stage metadata-only historical candidates for human qualification; never admit tasks."""
+"""Stage metadata-only candidates for independent agent qualification; never admit tasks."""
 
 import argparse
 import hashlib
@@ -51,7 +51,7 @@ class Candidate(Contract):
 
 
 class CandidateCatalog(Contract):
-    schema_version: Literal[1] = 1
+    schema_version: Literal[2] = 2
     status: Literal["UNQUALIFIED_CANDIDATES"] = "UNQUALIFIED_CANDIDATES"
     source_dataset: HTTPS
     source_revision: CommitSHA
@@ -64,7 +64,8 @@ class CandidateCatalog(Contract):
     ]
     selection: Literal["FIRST_12_LEXICOGRAPHIC_IDS_PER_SELECTED_REPOSITORY"]
     split_status: Literal["PROVISIONAL_NOT_FROZEN"] = "PROVISIONAL_NOT_FROZEN"
-    human_curators_required_per_task: Literal[2] = 2
+    qualification_mode: Literal["independent-agents-v1"] = "independent-agents-v1"
+    agent_passes_required_per_task: Literal[2] = 2
     candidates: tuple[Candidate, ...] = Field(min_length=1)
 
     @model_validator(mode="after")
@@ -87,13 +88,13 @@ def load_catalog(path: Path) -> CandidateCatalog:
 def worklist(catalog: CandidateCatalog) -> dict[str, Any]:
     """Export unanswered curator work, with no fabricated identities or admission decisions."""
     return {
-        "schema_version": 1,
-        "status": "AWAITING_TWO_INDEPENDENT_HUMAN_CURATORS",
+        "schema_version": 2,
+        "status": "AWAITING_INDEPENDENT_AGENT_QUALIFICATION",
         "qualified_tasks": 0,
         "tasks": [
             {
                 "candidate": task.model_dump(mode="json"),
-                "curator_reviews": [],
+                "agent_review_receipts": [],
                 "pending_checks": [
                     "Identify original issue and freeze pre-solution requirements",
                     "Resolve dataset/issue usage authorization and repository license exceptions",
@@ -102,7 +103,7 @@ def worklist(catalog: CandidateCatalog) -> dict[str, Any]:
                     "Pin environment, dependencies, commands and executable behavioral acceptance",
                     "Qualify baseline and accepted solution three times in protected workspace",
                     "Audit hidden-test relevance and leakage; retain protected evidence digests",
-                    "Record two authenticated independent curator decisions; resolve disagreement",
+                    "Record two independent agent review receipts and adjudicate disagreement",
                 ],
             }
             for task in catalog.candidates
@@ -122,7 +123,7 @@ def main(argv: list[str] | None = None) -> int:
             result = worklist(catalog)
         else:
             result = {
-                "schema_version": 1,
+                "schema_version": 2,
                 "status": "METADATA_VALID_NOT_QUALIFIED",
                 "candidates": len(catalog.candidates),
                 "qualified_tasks": 0,

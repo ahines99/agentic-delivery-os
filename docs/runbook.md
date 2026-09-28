@@ -159,10 +159,19 @@ recorded local services. They are not an unattended benchmark campaign.
 
 For offline evaluation tooling, `uv run delivery-eval --help` lists schema export, manifest
 validation and deterministic reporting. Follow [evals/README.md](../evals/README.md); structural
-validation does not establish human qualification of historical tasks. The separate
+structural validation does not establish executed qualification of historical tasks. The separate
 [curation worklist](evaluation-curation.md) has 36 metadata-only UNQUALIFIED candidates and zero
-qualified/scored tasks. Keep rights/linkage/oracle decisions and the two independent actual human
-reviews explicit; proposed splits are not frozen campaign authorization.
+qualified/scored tasks. [ADR-007](adr/ADR-007-automated-benchmark-qualification.md) now requires two
+actual isolated agent passes with immutable provenance and deterministic baseline/reference checks
+three times each. Disagreements require a distinct adjudication context or remain unresolved;
+rights/risk failures cannot be voted into success. The new bounded qualification validator is
+implemented, with root checks pending; no actual qualification is claimed. Use `validate-qualification`
+with protected `--manifest` and `--artifacts` inputs and a distinct `--output` outside the artifact
+store; [evaluation instructions](../evals/README.md) show the command. Worker-input export and scoring
+refuse unverified structural manifests before snapshot reads or Docker execution. A real qualifier
+runner is still missing; this command validates existing evidence only. Proposed splits are not
+frozen campaign authorization. Do not invent human reviewer identities, minutes or benefit claims.
+Human plan approval, pilot signoff and merge authority are unchanged.
 
 The [local backup drill](local-backup.md) was exercised against the Compose database and artifacts.
 Stop all writers before invoking it; the script only restores into a newly created disposable
@@ -179,3 +188,20 @@ After inspecting the identity and report, use the same command with `--apply`; t
 refetches history and checks for concurrent changes. See [projection recovery](projection-recovery.md)
 for preconditions, refusal cases and the actual 11-test PostgreSQL/Temporal drill. This operation
 preserves financial/provider records and cannot resume a candidate or reconstruct a missing database.
+
+## Export bounded operational metadata
+
+Follow [operational export](operations-export.md) to select a new file in a private operator-owned
+directory outside repositories and artifact stores:
+
+```sh
+uv run python -m agentic_delivery.operations.export --config config.local.json --workflow-id WORKFLOW_UUID --output /private/delivery-exports/workflow-report.json
+```
+
+The tool reads a consistent database snapshot and refuses overwrite/protected destinations. It
+exports allowlisted correlation/state/spend metadata without artifact bytes, ticket/model output
+or secrets. Protect the report because repository IDs and timestamps may still be private.
+An actual private PostgreSQL export of workflow `2abb68f2-d32f-4ceb-90e9-5b8f53e9b322` produced
+SHA-256 `cac7f2b60b5a8def617cbb15939829cf920c82717347005a5472355241758ef6`.
+That snapshot does not reconcile live providers or implement retention/deletion, a full telemetry
+service, backup or recovery. Preserve UNKNOWN reservations rather than treating unknown cost as zero.

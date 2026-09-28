@@ -1,0 +1,446 @@
+{
+  "catalog_sha256": "51a398c1bc02fe60443bee1c24ff05e009cb2836384da82aada34643a5677286",
+  "kind": "public-candidate-issue-link-research",
+  "limitation": "Current linkage alone does not freeze historical issue text or usage rights",
+  "observed_at": "2026-09-28T14:35:18.472560+00:00",
+  "records": [
+    {
+      "linked_issues": [
+        {
+          "createdAt": "2022-04-21T14:49:50Z",
+          "number": 9877,
+          "url": "https://github.com/pytest-dev/pytest/issues/9877"
+        }
+      ],
+      "links_complete": true,
+      "merged_at": "2022-07-08T05:46:10Z",
+      "pull_request_url": "https://github.com/pytest-dev/pytest/pull/10051",
+      "qualification": "UNQUALIFIED",
+      "repository_id": 37489525,
+      "task_id": "pytest-dev__pytest-10051"
+    },
+    {
+      "linked_issues": [
+        {
+          "createdAt": "2022-06-21T12:47:26Z",
+          "number": 10060,
+          "url": "https://github.com/pytest-dev/pytest/issues/10060"
+        }
+      ],
+      "links_complete": true,
+      "merged_at": "2022-06-28T15:49:50Z",
+      "pull_request_url": "https://github.com/pytest-dev/pytest/pull/10081",
+      "qualification": "UNQUALIFIED",
+      "repository_id": 37489525,
+      "task_id": "pytest-dev__pytest-10081"
+    },
+    {
+      "linked_issues": [
+        {
+          "createdAt": "2020-09-24T21:10:19Z",
+          "number": 7792,
+          "url": "https://github.com/pytest-dev/pytest/issues/7792"
+        }
+      ],
+      "links_complete": true,
+      "merged_at": "2022-10-15T15:19:28Z",
+      "pull_request_url": "https://github.com/pytest-dev/pytest/pull/10356",
+      "qualification": "UNQUALIFIED",
+      "repository_id": 37489525,
+      "task_id": "pytest-dev__pytest-10356"
+    },
+    {
+      "linked_issues": [
+        {
+          "createdAt": "2019-05-14T08:24:24Z",
+          "number": 5257,
+          "url": "https://github.com/pytest-dev/pytest/issues/5257"
+        }
+      ],
+      "links_complete": true,
+      "merged_at": "2019-05-15T08:56:37Z",
+      "pull_request_url": "https://github.com/pytest-dev/pytest/pull/5262",
+      "qualification": "UNQUALIFIED",
+      "repository_id": 37489525,
+      "task_id": "pytest-dev__pytest-5262"
+    },
+    {
+      "linked_issues": [
+        {
+          "createdAt": "2019-07-15T13:45:33Z",
+          "number": 5606,
+          "url": "https://github.com/pytest-dev/pytest/issues/5606"
+        }
+      ],
+      "links_complete": true,
+      "merged_at": "2019-07-23T11:48:59Z",
+      "pull_request_url": "https://github.com/pytest-dev/pytest/pull/5631",
+      "qualification": "UNQUALIFIED",
+      "repository_id": 37489525,
+      "task_id": "pytest-dev__pytest-5631"
+    },
+    {
+      "linked_issues": [
+        {
+          "createdAt": "2019-01-08T14:37:18Z",
+          "number": 5786,
+          "url": "https://github.com/pytest-dev/pytest/issues/5786"
+        }
+      ],
+      "links_complete": true,
+      "merged_at": "2019-08-30T10:29:49Z",
+      "pull_request_url": "https://github.com/pytest-dev/pytest/pull/5787",
+      "qualification": "UNQUALIFIED",
+      "repository_id": 37489525,
+      "task_id": "pytest-dev__pytest-5787"
+    },
+    {
+      "linked_issues": [],
+      "links_complete": true,
+      "merged_at": "2019-09-01T12:34:17Z",
+      "pull_request_url": "https://github.com/pytest-dev/pytest/pull/5809",
+      "qualification": "UNQUALIFIED",
+      "repository_id": 37489525,
+      "task_id": "pytest-dev__pytest-5809"
+    },
+    {
+      "linked_issues": [],
+      "links_complete": true,
+      "merged_at": "2019-09-13T21:11:13Z",
+      "pull_request_url": "https://github.com/pytest-dev/pytest/pull/5840",
+      "qualification": "UNQUALIFIED",
+      "repository_id": 37489525,
+      "task_id": "pytest-dev__pytest-5840"
+    },
+    {
+      "linked_issues": [
+        {
+          "createdAt": "2019-11-15T09:13:35Z",
+          "number": 6194,
+          "url": "https://github.com/pytest-dev/pytest/issues/6194"
+        }
+      ],
+      "links_complete": true,
+      "merged_at": "2019-11-15T21:19:49Z",
+      "pull_request_url": "https://github.com/pytest-dev/pytest/pull/6197",
+      "qualification": "UNQUALIFIED",
+      "repository_id": 37489525,
+      "task_id": "pytest-dev__pytest-6197"
+    },
+    {
+      "linked_issues": [
+        {
+          "createdAt": "2019-11-14T13:11:34Z",
+          "number": 6189,
+          "url": "https://github.com/pytest-dev/pytest/issues/6189"
+        }
+      ],
+      "links_complete": true,
+      "merged_at": "2019-11-18T23:14:53Z",
+      "pull_request_url": "https://github.com/pytest-dev/pytest/pull/6202",
+      "qualification": "UNQUALIFIED",
+      "repository_id": 37489525,
+      "task_id": "pytest-dev__pytest-6202"
+    },
+    {
+      "linked_issues": [],
+      "links_complete": true,
+      "merged_at": "2020-05-14T13:04:23Z",
+      "pull_request_url": "https://github.com/pytest-dev/pytest/pull/7205",
+      "qualification": "UNQUALIFIED",
+      "repository_id": 37489525,
+      "task_id": "pytest-dev__pytest-7205"
+    },
+    {
+      "linked_issues": [
+        {
+          "createdAt": "2020-05-14T02:36:09Z",
+          "number": 7215,
+          "url": "https://github.com/pytest-dev/pytest/issues/7215"
+        }
+      ],
+      "links_complete": true,
+      "merged_at": "2020-05-30T17:33:23Z",
+      "pull_request_url": "https://github.com/pytest-dev/pytest/pull/7236",
+      "qualification": "UNQUALIFIED",
+      "repository_id": 37489525,
+      "task_id": "pytest-dev__pytest-7236"
+    },
+    {
+      "linked_issues": [],
+      "links_complete": true,
+      "merged_at": "2022-04-03T11:13:39Z",
+      "pull_request_url": "https://github.com/sphinx-doc/sphinx/pull/10323",
+      "qualification": "UNQUALIFIED",
+      "repository_id": 28710753,
+      "task_id": "sphinx-doc__sphinx-10323"
+    },
+    {
+      "linked_issues": [],
+      "links_complete": true,
+      "merged_at": "2022-05-08T10:02:05Z",
+      "pull_request_url": "https://github.com/sphinx-doc/sphinx/pull/10435",
+      "qualification": "UNQUALIFIED",
+      "repository_id": 28710753,
+      "task_id": "sphinx-doc__sphinx-10435"
+    },
+    {
+      "linked_issues": [],
+      "links_complete": true,
+      "merged_at": "2022-05-15T14:40:42Z",
+      "pull_request_url": "https://github.com/sphinx-doc/sphinx/pull/10449",
+      "qualification": "UNQUALIFIED",
+      "repository_id": 28710753,
+      "task_id": "sphinx-doc__sphinx-10449"
+    },
+    {
+      "linked_issues": [],
+      "links_complete": true,
+      "merged_at": "2022-05-26T00:25:35Z",
+      "pull_request_url": "https://github.com/sphinx-doc/sphinx/pull/10466",
+      "qualification": "UNQUALIFIED",
+      "repository_id": 28710753,
+      "task_id": "sphinx-doc__sphinx-10466"
+    },
+    {
+      "linked_issues": [
+        {
+          "createdAt": "2015-01-03T00:27:46Z",
+          "number": 865,
+          "url": "https://github.com/sphinx-doc/sphinx/issues/865"
+        },
+        {
+          "createdAt": "2016-11-23T13:39:18Z",
+          "number": 3176,
+          "url": "https://github.com/sphinx-doc/sphinx/issues/3176"
+        },
+        {
+          "createdAt": "2022-06-18T10:34:34Z",
+          "number": 10570,
+          "url": "https://github.com/sphinx-doc/sphinx/issues/10570"
+        }
+      ],
+      "links_complete": true,
+      "merged_at": "2023-08-08T19:32:58Z",
+      "pull_request_url": "https://github.com/sphinx-doc/sphinx/pull/10614",
+      "qualification": "UNQUALIFIED",
+      "repository_id": 28710753,
+      "task_id": "sphinx-doc__sphinx-10614"
+    },
+    {
+      "linked_issues": [
+        {
+          "createdAt": "2020-11-17T09:09:11Z",
+          "number": 8438,
+          "url": "https://github.com/sphinx-doc/sphinx/issues/8438"
+        }
+      ],
+      "links_complete": true,
+      "merged_at": "2022-09-12T19:13:14Z",
+      "pull_request_url": "https://github.com/sphinx-doc/sphinx/pull/10673",
+      "qualification": "UNQUALIFIED",
+      "repository_id": 28710753,
+      "task_id": "sphinx-doc__sphinx-10673"
+    },
+    {
+      "linked_issues": [
+        {
+          "createdAt": "2023-05-22T21:43:38Z",
+          "number": 11437,
+          "url": "https://github.com/sphinx-doc/sphinx/issues/11437"
+        }
+      ],
+      "links_complete": true,
+      "merged_at": "2023-07-23T16:14:01Z",
+      "pull_request_url": "https://github.com/sphinx-doc/sphinx/pull/11445",
+      "qualification": "UNQUALIFIED",
+      "repository_id": 28710753,
+      "task_id": "sphinx-doc__sphinx-11445"
+    },
+    {
+      "linked_issues": [
+        {
+          "createdAt": "2022-07-18T15:42:34Z",
+          "number": 10678,
+          "url": "https://github.com/sphinx-doc/sphinx/issues/10678"
+        }
+      ],
+      "links_complete": true,
+      "merged_at": "2023-08-14T15:02:05Z",
+      "pull_request_url": "https://github.com/sphinx-doc/sphinx/pull/11510",
+      "qualification": "UNQUALIFIED",
+      "repository_id": 28710753,
+      "task_id": "sphinx-doc__sphinx-11510"
+    },
+    {
+      "linked_issues": [],
+      "links_complete": true,
+      "merged_at": "2020-04-09T15:11:57Z",
+      "pull_request_url": "https://github.com/sphinx-doc/sphinx/pull/7440",
+      "qualification": "UNQUALIFIED",
+      "repository_id": 28710753,
+      "task_id": "sphinx-doc__sphinx-7440"
+    },
+    {
+      "linked_issues": [],
+      "links_complete": true,
+      "merged_at": "2020-04-10T14:04:25Z",
+      "pull_request_url": "https://github.com/sphinx-doc/sphinx/pull/7454",
+      "qualification": "UNQUALIFIED",
+      "repository_id": 28710753,
+      "task_id": "sphinx-doc__sphinx-7454"
+    },
+    {
+      "linked_issues": [],
+      "links_complete": true,
+      "merged_at": "2020-04-13T14:34:15Z",
+      "pull_request_url": "https://github.com/sphinx-doc/sphinx/pull/7462",
+      "qualification": "UNQUALIFIED",
+      "repository_id": 28710753,
+      "task_id": "sphinx-doc__sphinx-7462"
+    },
+    {
+      "linked_issues": [
+        {
+          "createdAt": "2020-03-11T08:22:02Z",
+          "number": 7294,
+          "url": "https://github.com/sphinx-doc/sphinx/issues/7294"
+        }
+      ],
+      "links_complete": true,
+      "merged_at": "2020-05-01T18:48:18Z",
+      "pull_request_url": "https://github.com/sphinx-doc/sphinx/pull/7590",
+      "qualification": "UNQUALIFIED",
+      "repository_id": 28710753,
+      "task_id": "sphinx-doc__sphinx-7590"
+    },
+    {
+      "linked_issues": [],
+      "links_complete": true,
+      "merged_at": "2016-09-19T15:51:29Z",
+      "pull_request_url": "https://github.com/sympy/sympy/pull/11618",
+      "qualification": "UNQUALIFIED",
+      "repository_id": 640534,
+      "task_id": "sympy__sympy-11618"
+    },
+    {
+      "linked_issues": [],
+      "links_complete": true,
+      "merged_at": "2017-02-07T19:12:58Z",
+      "pull_request_url": "https://github.com/sympy/sympy/pull/12096",
+      "qualification": "UNQUALIFIED",
+      "repository_id": 640534,
+      "task_id": "sympy__sympy-12096"
+    },
+    {
+      "linked_issues": [
+        {
+          "createdAt": "2017-03-12T22:21:42Z",
+          "number": 12300,
+          "url": "https://github.com/sympy/sympy/issues/12300"
+        }
+      ],
+      "links_complete": true,
+      "merged_at": "2017-03-25T18:10:30Z",
+      "pull_request_url": "https://github.com/sympy/sympy/pull/12419",
+      "qualification": "UNQUALIFIED",
+      "repository_id": 640534,
+      "task_id": "sympy__sympy-12419"
+    },
+    {
+      "linked_issues": [],
+      "links_complete": true,
+      "merged_at": "2017-04-03T19:30:38Z",
+      "pull_request_url": "https://github.com/sympy/sympy/pull/12481",
+      "qualification": "UNQUALIFIED",
+      "repository_id": 640534,
+      "task_id": "sympy__sympy-12481"
+    },
+    {
+      "linked_issues": [
+        {
+          "createdAt": "2017-03-31T11:04:49Z",
+          "number": 12465,
+          "url": "https://github.com/sympy/sympy/issues/12465"
+        }
+      ],
+      "links_complete": true,
+      "merged_at": "2017-04-06T09:14:27Z",
+      "pull_request_url": "https://github.com/sympy/sympy/pull/12489",
+      "qualification": "UNQUALIFIED",
+      "repository_id": 640534,
+      "task_id": "sympy__sympy-12489"
+    },
+    {
+      "linked_issues": [],
+      "links_complete": true,
+      "merged_at": "2017-07-24T20:19:25Z",
+      "pull_request_url": "https://github.com/sympy/sympy/pull/13031",
+      "qualification": "UNQUALIFIED",
+      "repository_id": 640534,
+      "task_id": "sympy__sympy-13031"
+    },
+    {
+      "linked_issues": [
+        {
+          "createdAt": "2017-08-02T01:10:10Z",
+          "number": 13078,
+          "url": "https://github.com/sympy/sympy/issues/13078"
+        }
+      ],
+      "links_complete": true,
+      "merged_at": "2017-08-08T21:03:31Z",
+      "pull_request_url": "https://github.com/sympy/sympy/pull/13091",
+      "qualification": "UNQUALIFIED",
+      "repository_id": 640534,
+      "task_id": "sympy__sympy-13091"
+    },
+    {
+      "linked_issues": [],
+      "links_complete": true,
+      "merged_at": "2017-10-02T10:07:48Z",
+      "pull_request_url": "https://github.com/sympy/sympy/pull/13372",
+      "qualification": "UNQUALIFIED",
+      "repository_id": 640534,
+      "task_id": "sympy__sympy-13372"
+    },
+    {
+      "linked_issues": [],
+      "links_complete": true,
+      "merged_at": "2017-10-19T05:37:25Z",
+      "pull_request_url": "https://github.com/sympy/sympy/pull/13480",
+      "qualification": "UNQUALIFIED",
+      "repository_id": 640534,
+      "task_id": "sympy__sympy-13480"
+    },
+    {
+      "linked_issues": [],
+      "links_complete": true,
+      "merged_at": "2017-10-31T21:22:42Z",
+      "pull_request_url": "https://github.com/sympy/sympy/pull/13551",
+      "qualification": "UNQUALIFIED",
+      "repository_id": 640534,
+      "task_id": "sympy__sympy-13551"
+    },
+    {
+      "linked_issues": [],
+      "links_complete": true,
+      "merged_at": "2017-11-20T13:25:30Z",
+      "pull_request_url": "https://github.com/sympy/sympy/pull/13615",
+      "qualification": "UNQUALIFIED",
+      "repository_id": 640534,
+      "task_id": "sympy__sympy-13615"
+    },
+    {
+      "linked_issues": [],
+      "links_complete": true,
+      "merged_at": "2017-11-29T07:28:07Z",
+      "pull_request_url": "https://github.com/sympy/sympy/pull/13647",
+      "qualification": "UNQUALIFIED",
+      "repository_id": 640534,
+      "task_id": "sympy__sympy-13647"
+    }
+  ],
+  "schema_version": 1,
+  "source": "GitHub GraphQL pullRequest.closingIssuesReferences"
+}

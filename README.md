@@ -15,9 +15,10 @@ Linear -> Requirements -> Risk policy -> Plan -> Isolated build
 Implemented and exercised locally: authenticated intake and plan approval, PostgreSQL
 inbox/outbox and audit storage, Temporal workflows, real Anthropic planning/build/review,
 bounded Docker execution, independent test runs, and digest-verified candidate artifacts.
-The local suite passed 392 tests with actual PostgreSQL, Temporal and Docker, including
+The local suite passed 638 tests with actual PostgreSQL, Temporal and Docker, including
 structured test-evidence validation, CI races, projection recovery, resource exhaustion and
-hostile dependency hooks. [The preceding revision's hosted CI passed](https://github.com/ahines99/agentic-delivery-os/actions/runs/36375406106)
+hostile dependency hooks; three POSIX/symlink cases explicitly skipped on Windows.
+[The preceding revision's hosted CI passed](https://github.com/ahines99/agentic-delivery-os/actions/runs/36434771217)
 on Python 3.12/3.13, real service integration and secret scanning.
 A synthetic customer task reached `LOCAL_REVIEW_READY`; its durable workflow stopped at
 `POLICY_BLOCKED` because publication was disabled. No PR, merge, or deployment is implied.
@@ -33,6 +34,10 @@ verification boundaries, and outstanding work. The original proposal remains pre
 The [full completion audit](docs/completion-audit.md) tracks every M0–M5 backlog item,
 product gate and research recommendation. The [historical candidate catalog](docs/evaluation-curation.md)
 contains 36 real metadata-only candidates; none is represented as a qualified or scored task.
+Benchmark qualification and scoring now follow the user's hands-off preference through
+[independent agent reviews and executable checks](docs/adr/ADR-007-automated-benchmark-qualification.md).
+The worker and scorer require verified qualification records; absent human observations remain
+unmeasured. This does not change human plan approval, merge authority or pilot signoff.
 
 ## Local quickstart
 
@@ -62,9 +67,10 @@ uv run --no-sync python -m mypy
 uv run --no-sync python -m pytest
 ```
 
-`delivery-eval` provides offline schema export, manifest validation and trial reporting; see
-[the evaluation workspace](evals/README.md). These commands do not run a benchmark or verify
-historical-task qualification. Integration tests explicitly skip without the runbook's service variables.
+`delivery-eval` provides offline schema export, structural and qualification-record validation,
+campaign preregistration and paired trial reporting; see [the evaluation workspace](evals/README.md).
+These commands do not execute a benchmark or authorize spending. Integration tests explicitly
+skip without the runbook's service variables.
 
 ## Project map
 
@@ -77,6 +83,8 @@ historical-task qualification. Integration tests explicitly skip without the run
 | [docs/architecture.md](docs/architecture.md) | Components, contracts, storage, recovery |
 | [docs/security-model.md](docs/security-model.md) | Trust boundaries and execution controls |
 | [docs/evaluation-methodology.md](docs/evaluation-methodology.md) | Reproducible evaluation protocol |
+| [docs/evaluation-campaign.md](docs/evaluation-campaign.md) | Qualified dataset/arm preregistration and frozen scheduling |
+| [docs/coverage-contexts.md](docs/coverage-contexts.md) | Revision-bound measured coverage hints and uncertainty |
 | [docs/backlog.md](docs/backlog.md) | Dependency-ordered implementation issues |
 | [docs/research/](docs/research/) | Five independent research reviews |
 | [docs/adr/](docs/adr/) | Architecture decision records |

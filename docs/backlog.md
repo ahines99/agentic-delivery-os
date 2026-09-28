@@ -12,11 +12,18 @@ Refer to [implementation status](implementation-status.md) for recorded evidence
 | M1 | Authenticated local intake/commands, real PostgreSQL and Temporal, model-assisted plans, plan approval, usage ledger; Linear signed-fixture tests | Actual Linear workspace onboarding and delivery/replay/status checks; complete identity, approval expiry/revocation and operational hardening |
 | M2 | Real synthetic build, fixed Docker runner, baseline/candidate/criterion tests and immutable artifacts | Broader dependency/resource/escape probes and granular execution recovery |
 | M3 | Fresh independent model review and `LOCAL_REVIEW_READY`; GitHub App publishing/observation contracts and Linear adapter | Live App credentials, actual draft PR/head-change reconciliation, independent check-run ingestion; publication remains disabled |
-| M4 | Restart/replay and named failure-path tests; local runbook | Complete P-01–P-12, adversarial/recovery/retention/backup gates and validation qualification before pilot |
-| M5 | Evaluation schema/scoring/leakage controls and conservative Python impact analysis | Independently qualified 30+ historical tasks, frozen paired campaign and human scoring; no historical benchmark exists |
+| M4 | Restart/replay and named failure paths; local restore/projection drills and actual bounded private PG metadata export | Complete P-01–P-12, adversarial/recovery/retention/backup gates and validation qualification before pilot |
+| M5 | Evaluation schema/scoring/leakage controls, 36 UNQUALIFIED metadata candidates and conservative Python impact analysis; bounded qualification validator implemented, local contract and Docker receipt checks pass | Independently qualified 30+ historical tasks, frozen paired campaign and independent agent scoring under ADR-007; no historical benchmark exists |
 | M6 | Retained future options | Evidence-led scope decision before implementation |
 
 [ADR-006](adr/ADR-006-verified-local-candidate.md) supersedes the original publication order below: verification/review happen locally before draft publication, and a human controls readiness and every merge. The recorded durable synthetic run stopped `POLICY_BLOCKED` at disabled publication after producing a verified local candidate.
+
+[ADR-007](adr/ADR-007-automated-benchmark-qualification.md) records the user's hands-off benchmark
+preference: qualification/scoring uses two independent agent passes, a distinct adjudicator for
+disagreement and authoritative three-repeat baseline/reference execution evidence. Unresolved
+rights/risk/evidence fails closed. This supersedes human benchmark reviewer-name requirements;
+all 36 candidates remain UNQUALIFIED. Actual human effort/benefit is unmeasured, not fabricated.
+Human plan approval, pilot signoff and product merges retain their existing controls.
 
 Each implementation issue must identify its owner, dependencies, criterion IDs, test evidence, risk, and recovery behavior using the repository issue template. Estimates should follow the first vertical slice; the plan does not commit to speculative delivery dates.
 
@@ -86,7 +93,7 @@ Gate: MVP acceptance is evidenced, including failures and recovery. This is a si
 | --- | --- | --- | --- |
 | M5-01 | Final frozen campaign corpus, oracle and provenance | M1-08, M4-04 | Extend qualified corpus to at least 30 eligible historical tasks under evaluation protocol; rights/provenance recorded; answers withheld; exclusions and splits frozen before reported runs; preserve prior validation/held-out separation |
 | M5-02 | Full-suite baseline and bounded Python impact analysis | M2-05, M4-04 | File/import/test mapping with confidence and conservative fallback; compare against full-suite outcomes; unrelated behavior and changed tests remain visible; no unsupported no-regression claim |
-| M5-03 | Reproducible benchmark runner and configuration comparisons | M5-01, M5-02 | Builder-only and independent-review configurations tested under comparable budgets; task-level outcomes, retries, costs, wall time and human effort retained; failures included |
+| M5-03 | Reproducible benchmark runner and configuration comparisons | M5-01, M5-02 | Builder-only and independent-review configurations tested under comparable budgets; task-level outcomes, retries, costs, wall time and agent qualification/scoring provenance retained; actual human intervention recorded only if observed, human benefit otherwise unmeasured; failures included |
 | M5-04 | Portfolio report and replayable demonstration package | M5-03 | Manifest and instructions reproduce measurements; uncertainty/limitations reported; no invented numbers; held-out answers excluded from public agent context; actual outcomes distinguished from future scope |
 
 Gate: publish only measurements produced by the frozen protocol. Evaluation can reject the thesis or show that added review/impact complexity is not worthwhile.
