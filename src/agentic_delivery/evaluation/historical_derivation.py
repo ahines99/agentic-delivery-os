@@ -190,15 +190,18 @@ def _nodes(content: str) -> dict[str, str]:
     return names
 
 
-def _produce(
-    request: ReferenceDerivationRequest, store: ArtifactStore, worker_roots: tuple[Path, ...]
-) -> tuple[ReferenceDerivation, dict[str, bytes]]:
-    request = ReferenceDerivationRequest.model_validate(request.model_dump(mode="json"))
-    _require(all(safe_path(path) == path for path in request.protected_paths))
+def _scopes(store: ArtifactStore, worker_roots: tuple[Path, ...]) -> None:
     _require(isinstance(worker_roots, tuple) and bool(worker_roots))
     for scope in worker_roots:
         root = scope.resolve()
         _require(not store.root.is_relative_to(root) and not root.is_relative_to(store.root))
+
+
+def _produce(
+    request: ReferenceDerivationRequest, store: ArtifactStore
+) -> tuple[ReferenceDerivation, dict[str, bytes]]:
+    request = ReferenceDerivationRequest.model_validate(request.model_dump(mode="json"))
+    _require(all(safe_path(path) == path for path in request.protected_paths))
     baseline = BaselineAcquisition.model_validate(
         _read(store, request.baseline_acquisition_artifact)
     )
@@ -334,7 +337,8 @@ def derive_historical_reference(
 ) -> str:
     """Write deterministic protected derivation artifacts; return only the record digest."""
     try:
-        result, staged = _produce(request, protected_artifacts, worker_roots)
+        _scopes(protected_artifacts, worker_roots)
+        result, staged = _produce(request, protected_artifacts)
         for digest, raw in staged.items():
             _require(protected_artifacts.put(raw) == digest)
         return hashlib.sha256(_encoded(result.model_dump(mode="json"))).hexdigest()
@@ -350,8 +354,21 @@ def validate_reference_derivation(
 ) -> ReferenceDerivation:
     """Reconstruct every binding without writes; result is protected evaluator metadata."""
     try:
+        _scopes(protected_artifacts, worker_roots)
+        return validate_reference_derivation_content(
+            artifact, protected_artifacts=protected_artifacts
+        )
+    except Exception:
+        raise ReferenceDerivationFailure("Protected reference derivation refused") from None
+
+
+def validate_reference_derivation_content(
+    artifact: str, *, protected_artifacts: ArtifactStore
+) -> ReferenceDerivation:
+    """Recompute protected content only; this makes no worker-scope or authority claim."""
+    try:
         stored = ReferenceDerivation.model_validate(_read(protected_artifacts, artifact))
-        actual, staged = _produce(stored.request, protected_artifacts, worker_roots)
+        actual, staged = _produce(stored.request, protected_artifacts)
         _require(actual == stored)
         _require(hashlib.sha256(_encoded(actual.model_dump(mode="json"))).hexdigest() == artifact)
         _require(all(protected_artifacts.get(digest) == raw for digest, raw in staged.items()))

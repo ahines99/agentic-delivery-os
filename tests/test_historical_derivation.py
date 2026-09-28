@@ -365,3 +365,25 @@ async def test_ambiguous_collection_hooks_and_class_duplicates_refused(tmp_path,
     with pytest.raises(ReferenceDerivationFailure):
         derive_historical_reference(request, protected_artifacts=store, worker_roots=scopes)
     assert set(store.root.rglob("*")) == before
+
+
+@pytest.mark.asyncio
+async def test_content_validation_reconstructs_without_asserting_scopes(tmp_path):
+    from agentic_delivery.evaluation.historical_derivation import (
+        validate_reference_derivation_content,
+    )
+
+    request, store, scopes = await bundle(tmp_path)
+    ref = derive_historical_reference(request, protected_artifacts=store, worker_roots=scopes)
+    before = set(store.root.rglob("*"))
+    assert validate_reference_derivation_content(
+        ref, protected_artifacts=store
+    ) == validate_reference_derivation(ref, protected_artifacts=store, worker_roots=scopes)
+    with pytest.raises(ReferenceDerivationFailure):
+        validate_reference_derivation(ref, protected_artifacts=store, worker_roots=())
+    document = json.loads(store.get(ref))
+    document["acceptance_selectors"] = document["acceptance_selectors"][:1]
+    tampered = store.put(json.dumps(document).encode())
+    with pytest.raises(ReferenceDerivationFailure):
+        validate_reference_derivation_content(tampered, protected_artifacts=store)
+    assert before <= set(store.root.rglob("*"))
