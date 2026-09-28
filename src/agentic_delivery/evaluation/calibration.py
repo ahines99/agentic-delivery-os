@@ -202,7 +202,9 @@ def _load_spec(
         )
         _require(
             context.evidence.rubric_artifact == spec.rubric_artifact
-            and context.evidence.rubric_text == rubric
+            # NonEmpty rubric_text strips surrounding whitespace; artifact/prompt
+            # identities remain independently checked against the exact stored bytes.
+            and context.evidence.rubric_text == rubric.strip()
             and context.evidence_digest == digest_json(context.evidence.model_dump(mode="json")),
             "Calibration context rubric or evidence binding is stale",
         )

@@ -46,7 +46,15 @@ def frozen(tmp_path, monkeypatch):
         f"sqlite+pysqlite:///{tmp_path / 'delivery_eval_calibration.db'}"
     )
 
-    def make(provider="openai", *, split="development", spec_changes=None, authorized=True):
+    def make(
+        provider="openai",
+        *,
+        split="development",
+        spec_changes=None,
+        authorized=True,
+        rubric_text=None,
+    ):
+        selected_rubric = artifacts.put(rubric_text.encode()) if rubric_text is not None else rubric
         config = ModelConfig(
             provider=provider,
             model="synthetic-model",
@@ -74,7 +82,7 @@ def frozen(tmp_path, monkeypatch):
             context = assemble_review_context(
                 artifacts,
                 put(artifacts, spec),
-                rubric_artifact=rubric,
+                rubric_artifact=selected_rubric,
                 stage="qualifier_a",
                 context_id="template-" + category,
             )
@@ -137,9 +145,9 @@ def frozen(tmp_path, monkeypatch):
             )
         spec = CalibrationSpec.model_validate(
             {
-                "rubric_artifact": rubric,
+                "rubric_artifact": selected_rubric,
                 "prompt_artifact": artifacts.put(
-                    qualifier_prompt(artifacts.get(rubric).decode()).encode()
+                    qualifier_prompt(artifacts.get(selected_rubric).decode()).encode()
                 ),
                 "model_configuration_digest": digest_json(config.model_dump(mode="json")),
                 "output_schema_digest": digest_json(ReviewOutputV2.model_json_schema()),
@@ -575,3 +583,59 @@ async def test_invalid_review_citations_are_measured_failures(frozen):
     assert evidence.metrics.valid_outputs == evidence.metrics.matched_cases == 4
     with pytest.raises(CalibrationFailure):
         validate(case, digest)
+
+
+@pytest.mark.parametrize("provider", ["openai", "anthropic"])
+async def test_rubric_whitespace_normalizes_context_and_prompt_without_rewriting_artifact(
+    frozen, provider
+):
+    raw = " \t\nFrozen rubric: retain  internal spacing.\nSecond requirement.\r\n"
+    case, calls = frozen(provider, rubric_text=raw), []
+    artifacts = case["artifacts"]
+    rubric_ref = case["spec"].rubric_artifact
+    exact_raw_bytes = raw.encode()
+    expected_prompt = qualifier_prompt(raw.strip())
+    assert qualifier_prompt(raw) == expected_prompt
+    assert artifacts.get(rubric_ref) == exact_raw_bytes
+    assert artifacts.get(case["spec"].prompt_artifact) == expected_prompt.encode()
+    async with adapter(case, calls) as client:
+        digest = await run(case, client)
+        assert validate(case, digest).status == "CALIBRATED"
+        assert await run(case, client) == digest
+    assert len(calls) == 5
+    for body, context in calls:
+        assert body["system" if provider == "anthropic" else "instructions"] == expected_prompt
+        assert context["evidence"]["rubric_text"] == raw.strip()
+        assert context["evidence"]["rubric_artifact"] == rubric_ref
+    assert artifacts.get(rubric_ref) == exact_raw_bytes
+
+
+@pytest.mark.parametrize("target", ["prompt_whitespace", "rubric_artifact"])
+async def test_whitespace_normalization_never_bypasses_exact_artifact_or_prompt_identity(
+    frozen, target
+):
+    raw = "\nFrozen rubric with exact immutable provenance.\n"
+    case, calls = frozen(rubric_text=raw), []
+    spec = case["spec"].model_dump(mode="json")
+    if target == "prompt_whitespace":
+        spec["prompt_artifact"] = case["artifacts"].put((qualifier_prompt(raw) + "\n").encode())
+    else:
+        # Same normalized text is insufficient: frozen contexts still bind the raw artifact.
+        spec["rubric_artifact"] = case["artifacts"].put(raw.strip().encode())
+    case["digest"] = put(case["artifacts"], spec)
+    case["authorization"] = case["authorization"].model_copy(
+        update={"spec_artifact": case["digest"]}
+    )
+    case["policy"] = case["policy"].model_copy(
+        update={"approved_spec_artifacts": (case["digest"],)}
+    )
+    async with adapter(case, calls) as client:
+        with pytest.raises(CalibrationFailure):
+            await run(case, client)
+    assert not calls
+
+
+@pytest.mark.parametrize("raw", [" \t\r\n", " " * 32768 + "x"], ids=["blank", "oversized_raw"])
+def test_rubric_prompt_normalization_preserves_raw_size_and_nonempty_checks(raw):
+    with pytest.raises(ValueError):
+        qualifier_prompt(raw)
