@@ -544,3 +544,10 @@ outcomes. The first eligible schedule lead produced exact protected derivation w
 frozen acceptance selectors, but no rights grant, task import, runtime qualification or
 model call. Separate issue and license observations remain evidence ingredients, not
 historical admission. All 36 original catalog candidates remain unqualified.
+
+E68: The full local suite at source `f669d72` passed **1675 tests, ten explicit
+Windows skips**, in 707.25 seconds with actual PostgreSQL, Temporal and Docker.
+This includes the new collector, pipeline evidence and standalone derivation, but
+precedes versioned import/linkage/authorization integration. It is distinct from
+the earlier 342-test focused run. The four new commits through that source passed
+secret scanning, and the locked dependency check resolved 45 packages unchanged.

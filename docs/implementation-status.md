@@ -276,13 +276,26 @@ do not themselves authorize processing or admit a historical task.
 Verified donor reuse then captured the complete accepted commit in five snapshot
 reads plus one parent-link check. Its 43 files/231,483 bytes remain protected
 reference evidence. A private static check found three added test candidates;
-collection and actual behavior remain unvalidated. [ADR-013](adr/ADR-013-derived-historical-reference.md)
-defines the pending explicit reference derivation and source-layout support.
+collection and actual behavior remain unvalidated. The subsequent protected derivation
+refused that lead's test-filename shape. The refusal is retained without broadening
+the profile to admit it.
+
+[Source-layout execution](src-layout-verification.md) and standalone
+[reference derivation](historical-reference-derivation.md) are now implemented and
+tested with owned fixtures. A later metadata screen identified two potentially eligible
+development leads among twelve examined; the first, schedule PR 463, passed protected
+derivation with two frozen acceptance selectors. Versioned import integration, current
+rights, actual historical runtime checks and independent semantic reviews remain separate.
+No historical task is yet imported or qualified.
 
 Two [actual failing-baseline checks](baseline-failure.md) now preserve assertion and
 collection failures while proving the delivery pipeline makes no model call,
 reservation or candidate. They exercise Docker and the production verifier, with
-all four created containers removed. End-to-end operator triage remains separate.
+all four created containers removed. A subsequent actual PostgreSQL/Temporal/Docker and
+loopback-HTTP test proves durable failure routing to authenticated operator detail,
+worklist and audit views, with receipt preservation and workflow-history replay. This
+uses an automated test-role approval; human observation and live Linear routing remain
+unmeasured.
 
 1. Configure a GitHub App installation/private key for only the target repository, set branch
    protections without bot bypass, and exercise actual publication/head-change reconciliation.

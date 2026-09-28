@@ -69,6 +69,15 @@ No historical source, issue, oracle or reference text was printed into implement
 conversation. No repository code or model ran. These observations are evidence
 ingredients only: no usage authorization, task import or qualification resulted.
 
+A subsequent protected `dbader/schedule` development lead used the same observation
+method. Its root MIT license matched the grant, conditions and disclaimer, with the
+actual notice retained. GitHub reported the latest reachable license change at
+`78d89269ecb2af5dfa20003e692d912e113f36ba`, with committer time 2013-05-19T13:11:40Z,
+before issue 175's recorded 2017-11-09 creation. The exact license bytes and Git blob
+hash at that change matched the acquired baseline. The same limits apply: provider
+history and heuristic notice checks do not establish complete rights coverage or grant
+processing authority.
+
 For accepted changes that modify original tests, [ADR-013](adr/ADR-013-derived-historical-reference.md)
 specifies explicit derived-reference provenance and source-layout execution support.
 Standalone derivation and source-layout execution are implemented. Versioned import
