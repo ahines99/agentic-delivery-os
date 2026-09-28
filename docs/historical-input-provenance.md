@@ -80,6 +80,7 @@ processing authority.
 
 For accepted changes that modify original tests, [ADR-013](adr/ADR-013-derived-historical-reference.md)
 specifies explicit derived-reference provenance and source-layout execution support.
-Standalone derivation and source-layout execution are implemented. Versioned import
-integration remains separate; a derived artifact alone grants no processing rights,
-execution authority or qualification.
+Derivation, source-layout execution and the explicit versioned import route are
+implemented. Derived processing requires the parent and derived-data attestations to
+be separately pinned by current policy. A derived artifact alone grants no processing
+rights, execution authority or qualification.

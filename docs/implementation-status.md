@@ -284,8 +284,12 @@ the profile to admit it.
 [reference derivation](historical-reference-derivation.md) are now implemented and
 tested with owned fixtures. A later metadata screen identified two potentially eligible
 development leads among twelve examined; the first, schedule PR 463, passed protected
-derivation with two frozen acceptance selectors. Versioned import integration, current
-rights, actual historical runtime checks and independent semantic reviews remain separate.
+derivation with two frozen acceptance selectors. The explicit v2 importer and
+[derived qualification-input path](derived-qualification-inputs.md) now bind the
+captured requirements, both current data authorizations and protected reference exclusions.
+Owned controller tests cover both outer checkpoints, current admission, resume and
+shorter-grant expiry. Current rights for the actual lead, historical runtime checks
+and independent semantic reviews remain separate.
 No historical task is yet imported or qualified.
 
 Two [actual failing-baseline checks](baseline-failure.md) now preserve assertion and

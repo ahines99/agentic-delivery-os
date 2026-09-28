@@ -551,3 +551,22 @@ This includes the new collector, pipeline evidence and standalone derivation, bu
 precedes versioned import/linkage/authorization integration. It is distinct from
 the earlier 342-test focused run. The four new commits through that source passed
 secret scanning, and the locked dependency check resolved 45 packages unchanged.
+
+E69: After versioned import, explicit derived-data authorization, input resolution and
+active expiry integration, the evaluation regression scope at `6129dea` passed
+**863 tests, two explicit Windows skips**, in 479.33 seconds. It covered historical,
+qualification, synthetic, calibration and scoring modules with actual service variables
+configured. Independent owned mutations also denied either authorization pin revoked,
+fully rebound task wording, unverified title/reference aliases, wrapper stripping and
+expiry during active runtime/model work. This later focused scope is not summed with
+the earlier 1675-test full run. Ruff/format checked 241 files and mypy checked 81 sources;
+the wheel built and imported from a fresh offline-installed environment. All 294 local
+links across 76 inspected documents resolved; the 13 new commits passed secret scanning.
+
+E70: Two bounded fixed-query provider metadata captures for schedule PR 463/issue 175
+agreed and passed the new linkage validator, including requirements strictly preceding
+the accepted commit timestamp, the exact acquired tree/sole baseline parent, and the
+merged PR's issue-closing event. Cached revalidation against integrated source added
+no network calls. These provider assertions do not establish cryptographic authenticity,
+rights, historical runtime success or admission. Actual historical imports and qualified
+tasks remain zero; no new model spend or historical code execution occurred.

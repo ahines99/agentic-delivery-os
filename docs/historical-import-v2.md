@@ -69,10 +69,10 @@ must name these same artifacts. Rehashed mismatched envelopes refuse before writ
 The importer requires the task description to equal the captured body after the domain
 contract's outer whitespace stripping; its title must be the neutral `Historical issue #<number>`.
 The current captured issue title is never promoted into historical task requirements.
-The same projection must be enforced at shared preparation/resolver/current-use entry
-points, because callers can prepare a task without importing it. Final shared projection
-and active-expiry guard validation is separate from the completed importer checks;
-the recorded importer tests alone do not establish that cross-route boundary.
+The same projection is enforced at shared preparation/resolver/current-use entry
+points, because callers can prepare a task without importing it. Separate owned
+tests reject fully rebound alternate wording through those direct paths. Active
+runtime/model guards honor the earlier data-authorization expiration.
 
 The separate `DerivedReferenceAuthorization` is an explicit controller data attestation
 for `HISTORICAL_EVALUATION_DATA_PROCESSING`. It binds the parent `UsageAuthorization`
@@ -102,9 +102,11 @@ worker-export/scoring authority, or a historical benchmark result.
 
 The owned synthetic test run covered 187 cases across v1/v2 import, derived rights,
 linkage, derivation and the initial shared resolver; Ruff and mypy passed. It used no
-historical payloads or code execution. Final shared guard/projection follow-ups were
-still pending when this documentation pass was prepared, so those test counts do not
-claim their completion or validation of later source revisions.
+historical payloads or code execution. Subsequent independently reviewed owned tests
+cover shared projection, current-title exclusion, outer checkpoints and the full
+controlled controller/admission/resume path, including cancellation at the shorter
+derived expiration. These later checks are separate from that earlier 187-case run;
+see [derived inputs](derived-qualification-inputs.md) for their scope.
 
 Separately, after the reviewed linkage implementation, a protected capture for
 `dbader/schedule` PR 463 and issue 175 used two fixed metadata-only GraphQL queries:

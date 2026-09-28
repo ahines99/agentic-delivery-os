@@ -1,8 +1,9 @@
 # ADR-013: Explicit historical reference derivation
 
-Date: 2026-09-28. Status: source-layout execution and standalone protected derivation
-implemented; versioned import integration remains in progress. Historical runtime
-qualification remains pending. This decision does not admit a replacement candidate.
+Date: 2026-09-28. Status: source-layout execution, protected derivation, versioned import
+and qualification-input integration implemented and tested with owned fixtures.
+Historical runtime qualification remains pending. This decision does not admit a
+replacement candidate.
 
 ## Problem
 

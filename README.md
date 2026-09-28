@@ -18,7 +18,7 @@ bounded Docker execution, independent test runs, and digest-verified candidate a
 The recorded local suite at `f669d72` passed 1675 tests with actual PostgreSQL, Temporal and Docker, including
 structured test-evidence validation, CI races, projection recovery, resource exhaustion and
 hostile dependency hooks; ten POSIX/symlink cases explicitly skipped on Windows.
-[The preceding revision's hosted CI passed](https://github.com/ahines99/agentic-delivery-os/actions/runs/36469053647)
+[A recorded hosted CI run passed](https://github.com/ahines99/agentic-delivery-os/actions/runs/36476000928)
 on Python 3.12/3.13, real service integration and secret scanning.
 A synthetic customer task reached `LOCAL_REVIEW_READY`; its durable workflow stopped at
 `POLICY_BLOCKED` because publication was disabled. No PR, merge, or deployment is implied.
@@ -112,6 +112,7 @@ skip without the runbook's service variables.
 | [docs/synthetic-preparation-runtime.md](docs/synthetic-preparation-runtime.md) | Bounded five-case Docker preparation with no model calls |
 | [docs/synthetic-import.md](docs/synthetic-import.md) | Protected authored-case import and exact data authorization bindings |
 | [docs/historical-import.md](docs/historical-import.md) | Offline protected historical import with complete source inventory checks |
+| [docs/historical-import-v2.md](docs/historical-import-v2.md) | Derived historical import with exact linkage and current data authorization |
 | [docs/historical-acquisition.md](docs/historical-acquisition.md) | Bounded public GitHub baseline acquisition into protected evaluator storage |
 | [docs/historical-requirements.md](docs/historical-requirements.md) | Protected issue bodies with bounded provider-reported edit history |
 | [docs/historical-reference-derivation.md](docs/historical-reference-derivation.md) | Exact protected production deltas and whole-file test relocation |
