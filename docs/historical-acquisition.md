@@ -8,6 +8,15 @@ requirements, accepted commits, reference patches, oracle tests, rights evidence
 the rest of a `HistoricalAcquisitionEvidence` bundle. It does not qualify, admit, score,
 execute repository code, call a model, or authorize spending.
 
+The caller selects the commit. The existing `base_sha` field and baseline result
+name are retained for compatibility; they do not establish that a commit predates
+a particular fix. A protected producer may reuse this complete Git read mechanism
+to acquire an explicitly identified accepted commit, but must wrap it as accepted
+reference evidence, retain the distinct historical baseline identity, and exclude
+its contents from model/worker inputs. Such a capture is not a derived executable
+reference, oracle or imported historical task; [ADR-013](adr/ADR-013-derived-historical-reference.md)
+specifies the separate pending derivation work.
+
 The request requires a strict `owner/repository` and lowercase 40-hex commit SHA. The
 acquirer first checks public repository metadata, then requests that commit, its recursive
 tree, and each unique blob. The origin is fixed to `https://api.github.com`; returned

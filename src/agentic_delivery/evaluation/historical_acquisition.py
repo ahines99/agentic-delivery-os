@@ -280,11 +280,14 @@ async def acquire_public_github_baseline(
     client: httpx.AsyncClient | None = None,
     donor: BaselineAcquisition | None = None,
 ) -> BaselineAcquisition:
-    """Fetch a complete eligible baseline; never fetch an issue, oracle or reference.
+    """Fetch a complete eligible Git snapshot at an explicit caller-selected revision.
 
     The injected client is a trusted transport/test dependency. Default transport is
     credential-free with environment proxies disabled. Only metadata is returned.
     Caller must keep protected artifacts outside every declared worker/code scope.
+    This primitive does not establish a revision's historical role. A caller acquiring
+    an accepted commit must label and isolate it as protected reference evidence;
+    this result is never a derived executable reference or a task import.
     Optional donor bytes are revalidated from this protected store and used only
     where the fresh target tree independently names the same Git blob SHA and size.
     """
