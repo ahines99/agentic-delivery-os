@@ -169,24 +169,24 @@ Every stable backlog ID appears below. Dependencies continue to apply even where
 | M1-05 | partial | E5/E11: real Anthropic plans/build/review, strict response parsing and durable reservations. ADR-006 explicitly says account availability selected provider, not benchmark comparison. | Run and retain development selection experiment; strengthen malformed/429/timeout/cancellation and billed-usage reconciliation proof. |
 | M1-06 | partial | E3/E4/E5: revised specifications, unchanged existing criteria, max observed risk, plan digest, authenticated clarification. Real synthetic plan exists; full live Linear clarification and adversarial missing-requirement cases absent. | Exercise ambiguity→authorized revision→new plan end to end, including stale/unauthorized answer and immutable source identity. |
 | M1-07 | partial | E3/E4/E13/E16/E25/E26: canonical commands, worker current authorization/expiry monitoring, actual active Docker cancellation/expiry, cleanup-error classification and restart-based HTTP token rotation. Full recovery/identity qualification remains open. | Extend worker/daemon/host-loss, paid-operation uncertainty and multi-process credential/revocation scenarios. |
-| M1-08 | partial preparation; agent qualification required | E8/E17: 36 metadata-only candidates are explicitly UNQUALIFIED; zero qualified or scored tasks. Rights/linkage decisions, independent agent judgments with immutable execution provenance, oracle qualification and final frozen splits remain open. | Use the curation worklist; execute two isolated agent reviews per task with disagreement handling and oracle stability/leakage evidence before promotion. |
+| M1-08 | partial; corpus qualification required | E17/E75/E76: the original 36 metadata candidates remain UNQUALIFIED; two separately acquired development tasks passed deterministic checks, two independent reviews and current admission authority. No historical scoring or campaign. | Extend qualification with rights/linkage, oracle stability, independent provenance and final frozen splits. |
 | M2-01 | partial | E6/E9 prove actual named Docker resource, egress, filesystem and credential probes. Broader malicious runtime/cleanup/host-admission qualification remains open. | Extend adversarial cases on the selected host; document residual shared-kernel risk and fail release on unresolved bypasses. |
 | M2-02 | partial | E6/E11: exact Git snapshot, fixed image, separated offline execution and real passing baseline. No general dependency bundle/lock qualification path for multiple historical repositories. | Add pinned dependency preparation/provenance and a failing-baseline integration case; retain installation/baseline records. |
 | M2-03 | partial | E5/E6: typed edit proposal replaces arbitrary tools; policy and budget sit outside prompt. Real builder ran. Fault/authorization matrix and development provider qualification incomplete. | Exercise schema/rate-limit/cancel/errors and demonstrate no execution or spend following denied admission. |
 | M2-04 | partial | E6/E11: safe paths, symlink rejection, original tests/protected configuration, exact old-content hashes, immutable candidate/diff artifacts. Complete hostile-output and candidate-reproduction matrix absent. | Verify candidate reproduction and add symlink/traversal/size/secret cases across the entire builder-to-publisher boundary. |
 | M2-05 | partial | E6/E13: image-owned structured pytest collection replaces stdout verdicts; completion, identities/phases, minimum counts and execution bindings are checked. Named forged-summary/early-exit cases now have actual Docker tests. Candidate code still shares the collector interpreter. | Qualify malicious runtime/oracle cases and independent behavioral checks; do not treat structured reports as semantic attestation. |
 | M3-01 | external prerequisite, with partial code | E7: scoped App token broker, branch/tree/PR markers, final exact-ref reread, no merge API; HTTP contract tests only. E10 is not a product App PR. | Install authorized least-permission App; exercise real draft creation, unknown response reconciliation, duplicate/head/base races, token revocation and no-bypass protection. |
-| M3-02 | partial | E5/E11: fresh reviewer context and one real approving result; bounded correction loop exists. A real rejection→repair→new validation/review result not recorded. | Add controlled reviewer rejection/exhaustion tests and a live development rejection/repair run; maintain separate capabilities and shared budgets. |
+| M3-02 | partial | E5/E11/E77: fresh reviewer context and a live approving result; actual Docker with controlled model responses proves rejection, repair with fresh validation/review, and normal exhaustion. | Retain a live development model rejection/repair result; maintain separate capabilities and shared budgets. |
 | M3-03 | partial | E13/E14/E15: strict manifest/reference validation, structured collection and independent producer-scoped CI observations/reconciliation are implemented and fixture tested; fresh synthetic manifest passed the gate. Live App check evidence and complete manual pending/denial handling remain open. | Exercise the full onboarded product chain, manual evidence semantics and remaining adversarial provenance/race matrix. |
 | M3-04 | external prerequisite, with partial code | E7: Linear state adapter and signed GitHub PR observations, staleness/merge/closed records. No actual Linear→product PR→observed close/merge run. ADR-006 keeps PR draft for human review. | Complete live integration sequence and preserve signed receipts and revision tuple; human performs readiness/merge. Do not infer deployment. |
-| M3-05 | missing; qualified data/campaign prerequisite | No A/B development/validation campaign or promotion result found (E8). Synthetic success is outside the historical denominator. | Implement campaign executor and genuine A/B configuration, qualify tasks, run equal-cap arms with the frozen calibrated automated rubric; leave sealed split unopened. |
-| M4-01 | partial | E3/E4/E7/E25/E27/E29/E30 cover fixture faults, wait restart, saved replay, actual active Docker cancellation below 30 seconds, PG rollback/redelivery and model reservation recovery. No actual candidate-worker crash or unknown live publication recovery drill. | Extend daemon/host/worker crashes, paid-model cancellation and actual-provider lost-response reconciliation; retain one-effect evidence. |
+| M3-05 | partial engine; campaign missing | E78/E79 provide a shared A/B candidate engine and explicit frozen execution-budget contract. No historical A/B campaign or validation promotion result. | Implement the authorized campaign executor and calibrated final scoring; qualify tasks and execute equal-cap arms while leaving the sealed split unopened. |
+| M4-01 | partial | E3/E4/E7/E25/E27/E29/E30 cover fixture faults, wait restart, replay, active Docker cancellation, PG rollback/redelivery and model reservation recovery. E80 proves actual candidate-worker process loss with bounded cleanup or explicit UNKNOWN and no repeated candidate call. | Extend daemon/host loss, distributed fencing, paid-model cancellation and actual-provider lost-response reconciliation; retain one-effect evidence. |
 | M4-02 | partial ? release qualification open | E2/E6/E7/E13/E14: named forged-summary/early-exit paths now rejected; strict manifest and CI producer/revision/rerun guards have regressions. Complete prompt-injection, malicious oracle and race qualification remains open. | Execute the full P-03/P-06/P-09/P-11 matrix on the actual selected runtime; investigate same-interpreter evidence limitations. |
 | M4-03 | partial | E3/E12/E16/E19/E26/E28: operational views/export, local restore, closed projection repair, restart-based HTTP operator rotation and read-only reference-aware retention planning. Full telemetry, coordinated deletion, whole-system restore and provider/replica rotation remain open. | Establish writer/hold/backup coordination before deletion; rehearse cross-system recovery and remaining credential/kill-switch paths. |
 | M4-04 | missing; external prerequisite | No complete P-01–P-12 evidence matrix, validation promotion decision or human pilot signoff. | Close preceding gates; retain scenario manifests and actual authenticated operator signoff for a restricted pilot. |
-| M5-01 | partial preparation; agent qualification required | E17: 36 real metadata candidates with pinned source/base/license provenance and proposed 12/12/12 groups; all UNQUALIFIED, zero scored. This is not the required qualified corpus or frozen campaign. | Qualify at least 30 tasks with actual independent agent curation, rights/oracle/linkage decisions, protected references and frozen splits. |
+| M5-01 | partial; corpus qualification required | E17/E75/E76: original 36 metadata candidates remain UNQUALIFIED; two separate development tasks are qualified, zero scored. Proposed groups are not the required eligible corpus or frozen campaign. | Qualify at least 30 tasks with actual independent agent curation, rights/oracle/linkage decisions, protected references and frozen splits. |
 | M5-02 | partial | E8/E23: conservative reverse-import traversal, standalone bound coverage-context import/ranking, explicit unknowns and mandatory full suite. Product integration, AST edge provenance and paired full-suite comparison remain open. | Integrate qualified measured coverage and revision-bound AST provenance; compare full-suite outcomes without skipping mandatory checks. |
-| M5-03 | partial tooling; campaign missing | E8: isolated scorer, strict missing-task denominator, Wilson interval and report CLI. Paired seeded bootstrap, missing-cost accounting and compare CLI now exist (E20). Preregistration/arm parity/scheduling/cap validation exist (E22); no executor, genuine arm execution or completed campaign. | Implement protocol-complete runner/result provenance and report comparisons, then execute the frozen campaign with actual agent scoring/usage records; leave unobserved human effort and benefit unmeasured. |
+| M5-03 | partial tooling; campaign missing | E8/E20/E22 provide deterministic scoring, strict denominators, intervals, paired comparisons and preregistration. E78/E79 add controlled A/B candidate execution and schema-3 frozen arm budgets; no historical executor or campaign. | Implement protocol-complete execution and calibrated final semantic scoring with shared attempt accounting; execute frozen comparisons and leave unobserved human benefit unmeasured. |
 | M5-04 | missing | Documentation and a synthetic demonstration exist; no historical portfolio report, qualified outcomes or replayable evaluation package. | Publish measured task-level report, uncertainty/failures/costs/agent decisions and any actual human interventions and redacted reproducibility artifacts after M5-03. Report missed thresholds honestly. |
 
 ## Product acceptance gates P-01–P-12
@@ -197,9 +197,9 @@ Every stable backlog ID appears below. Dependencies continue to apply even where
 | P-02 ambiguity | partial | Intake fixtures and revisioned clarification routes exist; Temporal test planner returns a fixed ready plan. | End-to-end ambiguous analysis, no execution while blocked, authenticated answer and fresh revision/plan; live source mapping. |
 | P-03 risk | partial | High-risk fixtures and sensitive-change detectors reject named cases. Model must not lower observed risk. | Actual end-to-end high-risk/sensitive-diff rejection with zero unauthorized tools, publication or spend. |
 | P-04 duplicates | partial | E29 adds real PG intake rollback/response-loss dedup and actual Temporal start/ack redelivery with one run; outbox lease fencing and mocked PR reconciliation also exist. | Extend terminal/active activity races and real provider redelivery showing one logical PR/status operation. |
-| P-05 crash | partial | Real Temporal restart at human wait/replay and closed projection repair (E16). Neither is in-flight candidate recovery. | Crash active build, validator and publisher; reconcile provider/usage/resources, safely resume or terminate without duplicate effect. |
+| P-05 crash | partial | E16 proves closed projection repair. E80 kills the actual worker during candidate validation; replacement processing terminates without repeating candidate execution and records verified cleanup or UNKNOWN. | Extend active model/publisher and daemon/host-loss recovery; prove distributed fencing and reconcile provider usage/effects. |
 | P-06 evidence | partial | E13/E14/E15: structured collector attack regressions, strict referenced manifest gate, exact producer/head CI and changed PR-context invalidation. Live product CI and complete malicious-runtime/manual-evidence matrix remain open. | Retain actual forged/changed-head/base/policy/criteria denial evidence through onboarded final handoff; qualify residual semantic trust. |
-| P-07 corrections | partial | Bounded loop is implemented; single live success has no repair; no full pipeline rejection-loop test found. | Reviewer requests changes, new candidate gets new checks/review, exhausted budget fails, all usage retained. |
+| P-07 corrections | proved — controlled local route | E77: actual Docker and controlled model responses exercise rejection, repaired candidate with fresh checks/review, exhaustion and retained usage. | Measure actual model correction quality in authorized development runs; this local proof does not establish historical effectiveness or human review. |
 | P-08 stop/budget | partial | E14/E25: finite reservations/CI deadlines, separate tracker gate and actual active Docker parent/child cancellation in 15.359s with durable CANCELLED, APPLIED command and no remaining labelled container. Cleanup uncertainty fails; approval expiry stops execution. | Extend to paid-model uncertainty, worker/daemon loss and complete no-post-ack effect/budget matrix; one bounded drill is not a general timing guarantee. |
 | P-09 injection/secrets | partial | Real malicious dependency hook cannot read broker canary, Docker socket or external endpoints; protected paths and risk heuristics exist. | Repository/ticket/log injection and malicious tests cannot expand capabilities, forge readiness or access withheld artifacts; actual runtime evidence. |
 | P-10 external outcome | external prerequisite | Signed observation code and fabricated merged/closed/stale tests exist. | Actual authorized product PR close/merge observation retained separately from agent status; no invented deployment status. |
@@ -228,7 +228,7 @@ Recommendations below consolidate the five reviews without omitting their origin
 | Architecture: receipts distinct from applied commands | proved — bounded control tests | E3/E4 persist canonical command IDs, disposition and expected sequence; complete connected race matrix. |
 | Architecture: logical operation IDs and reconciliation | partial | E3/E5/E7 implement dedup and markers; live unknown-result recovery open. |
 | Architecture: revision-bound plan/evidence/approval | partial | Use-time expiry/current role and strict input/config/plan/candidate/PR/CI bindings are implemented (E13/E14); complete connected/live qualification remains open. |
-| Architecture: cancellation with bounded cleanup | partial | E25 proves one actual active Docker parent/child workload stops below 30 seconds; cleanup-error and expiry drills fail closed. Host/daemon/worker loss and paid-provider effects remain open. |
+| Architecture: cancellation with bounded cleanup | partial | E25 proves actual active Docker cancellation, cleanup-error and expiry handling. E80 adds killed-worker cleanup or explicit UNKNOWN. Host/daemon loss, surviving-worker fencing and paid-provider effects remain open. |
 | Architecture: replay-compatible upgrades | partial | E27 supplies saved prior-commit synthetic histories and offline replay/negative control. More branches and supervised deployment/activity compatibility remain open. |
 | Architecture: database constraints/session boundaries/migrations | partial | Migrations through 0006, atomic CI generations/snapshots and E16 projection repair augment E3; full crash/restore matrix remains open. |
 | Security: deny outside prompt; no agent merge | partial qualification | No merge API; fixed tools/config/policy. Actual target App permissions/protection and end-to-end denial proofs pending. |
@@ -237,11 +237,11 @@ Recommendations below consolidate the five reviews without omitting their origin
 | Security: raw signature, signed freshness, semantic dedup | partial | E3 handles Linear timestamp and GitHub signature without invented timestamp. Complete actual redelivery/out-of-order reconciliation. |
 | Security: approval expiration and changed-input invalidation | partial qualification | E25 checks current worker settings per protected operation and during execution; actual Docker expiry stops work. Polling/provider races and distributed revocation qualification remain open. |
 | Security: authentic evidence, capability independence | partial | E13 structured collector/strict manifest and E14 independent CI close named gaps; same-interpreter semantic trust and live App/evaluator qualification remain open. |
-| Evaluation: qualify individual tasks, oracle and rights | partial preparation | E17/E18: all 36 candidates remain UNQUALIFIED. ADR-007 supersedes human-curator names with actual agent provenance, deterministic qualification and unresolved-disagreement refusal; no task admitted. |
+| Evaluation: qualify individual tasks, oracle and rights | partial corpus | E17/E75/E76: original 36 remain UNQUALIFIED; two separate development tasks have executed qualification and current admission authority under ADR-007. No scoring or campaign. |
 | Evaluation: acceptance vs regression, no empty/skipped success | partial | Separate scorer and structured completion/identity/phase checks reject named empty/skipped/early-exit cases (E13). Semantic oracle/rubric qualification remains open. |
 | Evaluation: leak-free worker inputs and separate scorer | partial | `worker_input` omits reference/oracle; scorer checks path collisions. Actual export scan, protected immutable oracle, tamper tests and independent review absent. |
-| Evaluation: 30+ tasks, grouped frozen splits, held-out repo | partial preparation | E17 proposes three 12-candidate repository groups; zero qualified, no frozen campaign or held-out result. |
-| Evaluation: matched-cap A/B/C and all costs/retries | missing campaign | Budgets/scorer/report primitives exist; implement arms/executor/order/repeats/infrastructure accounting and execute protocol. |
+| Evaluation: 30+ tasks, grouped frozen splits, held-out repo | partial corpus | E17 proposes three 12-candidate groups; E75/E76 add two separately qualified development tasks. No eligible 30-task corpus, frozen campaign or held-out result. |
+| Evaluation: matched-cap A/B/C and all costs/retries | missing campaign | E78/E79 add a shared A/B engine and explicit frozen execution budgets. Campaign execution, calibrated final scoring, C-arm integration and complete attempt accounting remain open. |
 | Evaluation: strict denominators, uncertainty and human rubric | partial; rubric requirement superseded | Historical recommendation retained; ADR-007 uses a calibrated automated rubric. Missing-task/Wilson and paired-bootstrap tooling exists (E20); calibrated scoring, full metrics and qualified campaign remain open. Human benefit stays unmeasured. |
 | Evaluation: AST + measured coverage + full suite | partial | AST and full suite present; standalone coverage contexts/extractor binding now exist (E23). Product integration, qualified measurements and C-arm experiment remain open. |
 | Delivery: dependency gates and truthful boundaries | partial | Plan/backlog label open gates; older product/research wording conflicts with ADR-006 and current status. Synchronize present-tense claims. |
@@ -622,3 +622,63 @@ attempt remains retained, so combined PR 404 qualification cost is 1,706,102
 microdollars, excluding separate calibration/environment preparation. No worker export,
 scoring or campaign authority resulted. The original 36 metadata candidates and full
 30+ task corpus gate remain unchanged.
+
+E76: Schedule PR 337 / issue 331 completed a third protected development import.
+A retained unauthenticated acquisition refusal was followed by bounded operator-only
+authenticated public reads. A separate import setup refusal preceded an explicit
+correction of missing empty output/worker scopes; no historical source/test selector
+changed. All thirteen deterministic operations passed: one acceptance node failed on
+the baseline and passed on the reference, and all 24 original regressions passed on
+both variants, across three repetitions. Two independent reviews agreed and current
+authority admitted the task. Model usage was 120,755 input and 16,046 output tokens,
+costing 1,004,925 microdollars; 26 estimated infrastructure microdollars brought the
+attempt to 1,004,951. All fifteen operations settled with zero reservation. Two
+development tasks are now qualified, with no historical scoring or campaign execution.
+
+E77: The [controlled correction loop](correction-loop.md) now has two actual-Docker
+cases for rejection followed by repair/approval and normal repair exhaustion. Each
+case verifies fresh candidate receipts, unchanged original tests, retained attempts,
+four settled scripted model operations and absence of all created containers. The
+approved manifest passes production validation; exhaustion produces no readiness.
+These are controlled local P-07/M3-02 proofs, not actual model quality or human review.
+
+E78: A [shared candidate engine](candidate-arms.md) now implements a genuine
+builder-only path with zero independent-review calls and a separate self-checked
+result. The product wrapper always selects independent review and retains its public
+result contract. Internal failure results preserve final candidate bytes for later
+one-way scoring. Follow-up tests close inherited gaps in nested/suffix original-test
+protection and duplicate reviewer verdicts. The isolated integration scope passed
+94 tests before that follow-up; the follow-up passed 101 focused cases and four
+actual-Docker cases. These overlapping scopes are not summed. The engine does not
+implement campaign authority, shared spending allocation or final semantic scoring.
+
+E79: [ADR-014](adr/ADR-014-campaign-execution-budgets.md) adds explicit schema-3
+campaign freezing with execution caps taken from equal arm configurations while
+preserving admitted task bytes. Legacy schema-2 exact budget equality is unchanged.
+All current authority, calibration, corpus, split, parity and overall cap checks
+remain required. The 58-case campaign contract scope passed; its authority boundary
+is an owned test injection, not an actual corpus. No execution account or spending
+permission is created, and versioned execution/scoring consumers remain open.
+
+E80: An [actual worker-process-loss drill](worker-process-loss.md) initially exposed
+an orphaned candidate container after heartbeat failure. The workflow did not repeat
+the builder, but the test parent had to remove the container. The bounded cleanup
+fix in [ADR-015](adr/ADR-015-bounded-candidate-cleanup.md) now uses a separate trusted
+activity to inspect and remove only exact workflow-owned container IDs before
+terminal projection. Two actual hard-kill drills passed: normal automatic cleanup
+required no parent fallback; an injected cleanup failure persisted `UNKNOWN` and
+required explicit parent cleanup. Both preserved one candidate invocation and one
+settled scripted builder operation without reviewer/publication calls. Three actual
+cancellation/expiry cases and 39 focused cleanup/authorization/replay cases passed
+separately. The retained pre-fix failure history replays against the new workflow
+patch without effects. This proves current-host cleanup after the tested worker
+death, not fencing a surviving partitioned worker or universal recovery.
+
+E81: Combined source `9058c73` passed the full service-enabled suite: **1854 passed,
+ten explicit Windows skips**, in 787.69 seconds, with actual PostgreSQL, Temporal
+and Docker. The disposable database was dropped and its absence verified. Ruff
+check/format (254 files), mypy (82 sources), locked dependency validation, package
+build, fresh wheel installation and new-commit/staged secret scanning passed.
+All checked local links across 82 Markdown documents resolved. This integrated
+scope includes E77–E80 and is not added to earlier counts. Subsequent isolated
+scoring implementation and exact-head hosted CI are separate evidence.

@@ -1,9 +1,10 @@
 # Recorded historical development attempts
 
-Observed 2026-09-28 at implementation revision `31788de`. Two real development
-candidates, `dbader/schedule` PR 463 / issue 175 and PR 404 / issue 304, reached
-protected v2 import and deterministic execution. PR 404 subsequently passed full
-qualification with two agreeing independent model reviews. PR 463 remains unqualified.
+Observed 2026-09-28 at implementation revisions `31788de` and the documentation
+checkpoint `4ae9697`. Three real development candidates from `dbader/schedule`
+reached protected v2 import and deterministic execution. PR 404 / issue 304 and
+PR 337 / issue 331 passed full qualification with two agreeing independent model
+reviews each. PR 463 / issue 175 remains unqualified.
 All earlier failed attempts are retained. No worker export, scoring or campaign run occurred.
 
 ## Frozen inputs and processing scope
@@ -105,6 +106,35 @@ The successful qualification artifact is
 Its current use remains subject to finite data, calibration and consumption authority;
 the digest alone grants no access or perpetual permission.
 
+## PR 337 outcomes
+
+A separate protected capture retained all 20 baseline files (80,629 bytes), one
+frozen acceptance node and 24 regression nodes. Provider metadata reports unedited
+requirements predating the accepted commit; the same MIT notice/history and four
+public-attribution markers were retained. The secret-pattern scan found zero
+configured matches. These remain bounded observations, not exhaustive clearance.
+
+The first accepted-tree acquisition hit the unauthenticated GitHub rate limit. A
+separately authorized operator transport completed five fixed-path public reads with
+finite request/byte/time limits, no redirects and credentials confined to that
+control-plane process. No credential entered a candidate runtime or model context.
+The original refusal remains retained; its failed request count was not instrumented.
+
+The first import wrapper refused because its disjoint output/worker directories did
+not exist, before data-grant construction or runtime/model effects. An explicit new
+attempt created those empty scopes, preserved the refusal and completed import with
+unchanged inputs. The existing pinned image then passed all thirteen deterministic
+operations: the acceptance node failed on the baseline and passed on the reference;
+all 24 original regressions passed on both, across three repetitions. Two independent
+model reviews agreed, and current authority validation admitted the development task.
+
+The two model calls used 120,755 input and 16,046 output tokens, costing 1,004,925
+microdollars. Infrastructure added 26 estimated microdollars, for **1,004,951
+microdollars ($1.004951)**. All fifteen operations settled with zero reservation.
+The qualification artifact is
+`5bd4b9a90fe30f9cfd946331b7cccc11c7fa041a8351346d418175903b51f7fa`.
+No worker export, scoring or campaign grant followed.
+
 ## Retained evidence and next step
 
 Protected import v16 result:
@@ -115,5 +145,5 @@ These references identify private evidence; they do not grant access or current 
 
 The original 36 metadata candidates remain unqualified. Development candidates are
 not counted again for environment or model-configuration versions. PR 463 remains
-rejected by the deterministic gate; PR 404 is one qualified development task. The
+rejected by the deterministic gate; PR 404 and PR 337 are two qualified development tasks. The
 30+ task corpus, paired campaign execution and complete release gates remain open.

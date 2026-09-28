@@ -15,7 +15,7 @@ Linear -> Requirements -> Risk policy -> Plan -> Isolated build
 Implemented and exercised locally: authenticated intake and plan approval, PostgreSQL
 inbox/outbox and audit storage, Temporal workflows, real Anthropic planning/build/review,
 bounded Docker execution, independent test runs, and digest-verified candidate artifacts.
-The recorded local suite at `f669d72` passed 1675 tests with actual PostgreSQL, Temporal and Docker, including
+The recorded local suite at `9058c73` passed 1854 tests with actual PostgreSQL, Temporal and Docker, including
 structured test-evidence validation, CI races, projection recovery, resource exhaustion and
 hostile dependency hooks; ten POSIX/symlink cases explicitly skipped on Windows.
 [A recorded hosted CI run passed](https://github.com/ahines99/agentic-delivery-os/actions/runs/36483021300)
@@ -46,12 +46,12 @@ validation. Cached recovery added no calls or charges. Synthetic fixtures remain
 from historical admission, worker export, scoring and campaign use. See the
 [recorded qualification](docs/evaluation-calibration.md#completed-synthetic-qualification).
 
-Protected acquisition and v2 import have now reached actual execution for two historical
+Protected acquisition and v2 import have now reached actual execution for three historical
 development candidates. The [recorded attempts](docs/historical-development-attempts.md)
 retain a deterministic rejection and a truncated model review whose cost was reconciled.
-After separate capacity calibration, the second candidate passed all deterministic checks,
-two independent model reviews and current authority validation. One development task is
-qualified; no historical task has been scored or used in a campaign.
+After separate capacity calibration, two candidates passed all deterministic checks,
+two independent model reviews each and current authority validation. Two development tasks
+are qualified; no historical task has been scored or used in a campaign.
 
 ## Local quickstart
 
@@ -101,6 +101,11 @@ skip without the runbook's service variables.
 | [docs/evaluation-campaign.md](docs/evaluation-campaign.md) | Qualified dataset/arm preregistration and frozen scheduling |
 | [docs/coverage-contexts.md](docs/coverage-contexts.md) | Revision-bound measured coverage hints and uncertainty |
 | [docs/active-cancellation.md](docs/active-cancellation.md) | Actual workload cancellation, expiry and cleanup-failure drills |
+| [docs/correction-loop.md](docs/correction-loop.md) | Controlled rejection, fresh repair evidence and exhausted-loop tests |
+| [docs/candidate-arms.md](docs/candidate-arms.md) | Shared builder-only and independent-review candidate engine |
+| [docs/worker-process-loss.md](docs/worker-process-loss.md) | Actual killed-worker cleanup and explicit uncertain outcomes |
+| [ADR-014](docs/adr/ADR-014-campaign-execution-budgets.md) | Separate immutable qualification and frozen campaign execution budgets |
+| [ADR-015](docs/adr/ADR-015-bounded-candidate-cleanup.md) | Bounded trusted cleanup following candidate activity failure |
 | [docs/operator-rotation.md](docs/operator-rotation.md) | Restart-based HTTP token rotation and paused-admission rehearsal |
 | [docs/artifact-retention.md](docs/artifact-retention.md) | Read-only artifact reachability planning and required scope |
 | [docs/qualification-runtime.md](docs/qualification-runtime.md) | Metered preflight and twelve-run deterministic checks with safe resume |

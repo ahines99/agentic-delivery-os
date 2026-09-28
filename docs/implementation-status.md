@@ -12,6 +12,28 @@ crash recovery or live-provider reconciliation.
 
 ## Implemented and exercised
 
+The [local correction-loop tests](correction-loop.md) now cover rejection, successful
+repair with fresh evidence and normal exhaustion. A [shared candidate engine](candidate-arms.md)
+adds a builder-only evaluation mode while keeping product delivery review-mandatory.
+It also protects conventional nested/suffix original-test layouts and refuses
+duplicate criterion verdicts. This is candidate generation, not campaign execution.
+
+An [actual worker-loss drill](worker-process-loss.md) found and then verified a fix
+for orphaned candidate containers: a separate bounded activity removes exact
+workflow-owned containers, or records cleanup as `UNKNOWN`. Pre-fix and current
+histories replay. The proof is for killed workers on the current host; distributed
+fencing remains open. [Schema-3 campaign freezing](evaluation-campaign.md#explicit-execution-budget-contract)
+separates immutable qualification budgets from comparison limits but grants no
+execution permission.
+
+The combined service-enabled suite at `9058c73` passed **1854 tests with ten explicit
+Windows skips** in 787.69 seconds. It exercised actual PostgreSQL, Temporal and Docker;
+the unique test database was removed and its absence verified. Ruff/format (254 files),
+mypy (82 sources), locked dependencies, package build, fresh wheel installation and
+new-commit/staged secret scans passed. All checked local links across 82 Markdown
+documents resolved. This local result precedes the next isolated scoring work and
+does not substitute for exact-head hosted CI or the remaining release gates.
+
 The latest acquisition-only extension passed 103 focused acquisition/import tests and
 56 actual service integration tests (213.08 seconds), plus Ruff/format, mypy, locked
 dependencies and fresh wheel installation. Its isolated offline whole suite passed
@@ -76,8 +98,9 @@ verification below remains recorded separately. See [E55–E56](completion-audit
   controller and current admission authority now connect the executed stages; export, scoring and
   campaign preparation require this authority. Legacy qualification/campaign records allow only
   explicit inspection. The offline CLI has no trusted authority loader and refuses current admission.
-  `human_minutes` is nullable; reported human-time savings remain null. No live historical agent
-  qualification or catalog admission is claimed, and human effort/benefit remains unmeasured.
+  `human_minutes` is nullable; reported human-time savings remain null. Two separately acquired
+  historical development tasks are qualified; the original 36 remain unqualified. No historical
+  scoring or campaign has run, and human effort/benefit remains unmeasured.
 - Pinned Compose development PostgreSQL/Temporal services, local CLI/API/worker entry points,
   tests and GitHub Actions quality/integration jobs.
 - `/readyz` checks database readiness; authenticated `/operations` exposes repository-scoped
@@ -107,7 +130,8 @@ execution controller remains missing. None of the 36 historical candidates has b
 clean checks with measured infrastructure accounting; [protected v2 review](qualification-v2.md)
 provides inspectable source/oracle evidence and sealed-output adjudication; [development calibration](evaluation-calibration.md)
 binds frozen cases to actual model-broker executions and recomputed metrics. Controlled transports
-exercise model stages; no new paid calibration or real historical admission has run. Infrastructure
+exercise model stages; paid owned-case calibration and two historical development admissions
+are recorded below. Infrastructure
 operations use zero model tokens and share an account ceiling with model calls. Individual stage
 results remain non-admitting; current consumption requires the complete integrated chain.
 
@@ -121,7 +145,7 @@ The actual Docker integration exercises the full qualification, source-only expo
 and cached resume using controlled model responses and synthetic task records. This is software
 verification, not live calibration or qualification of a historical candidate.
 
-The latest complete local verification on 2026-09-28 passed **1414 tests, seven explicit Windows
+An earlier complete local verification on 2026-09-28 passed **1414 tests, seven explicit Windows
 skips**, in 663.44 seconds with actual PostgreSQL, Temporal and Docker. The skips cover four POSIX
 FIFO regressions and three unprivileged symlink cases; Linux CI exercises those platform cases.
 Ruff check/format (215 files), mypy (75 source files), locked dependency validation, wheel build
@@ -255,9 +279,8 @@ No second review, adjudication, qualified task or campaign followed. See the
 The [offline historical importer](historical-import.md) now validates complete source
 inventories and exact acquisition/provenance bindings for already acquired protected
 bundles. It preserves original bytes and runs current preparation checks before
-freezing metadata. Protected live acquisition, real historical qualification and
-campaign execution remain separate unfinished work; no catalog candidate was imported
-by these synthetic tests.
+freezing metadata. Those synthetic tests imported no catalog candidate. Subsequent protected
+acquisition and historical qualification are recorded below; campaign execution remains open.
 
 A subsequent [protected public baseline acquisition](historical-acquisition.md#recorded-public-baseline-acquisition)
 captured one replacement lead: 43 cachetools files, 230,124 source bytes, with complete
@@ -304,7 +327,11 @@ thirteen deterministic operations and two agreeing independent reviews. Current
 authority validation admitted PR 404 as one historical development task. Its successful
 attempt cost 1,165,501 microdollars including estimated infrastructure, with zero
 reservation; all earlier failures remain retained. No historical task has been scored
-or used in a campaign.
+or used in a campaign. A third development lead, PR 337 / issue 331, subsequently
+passed all thirteen deterministic operations and two agreeing independent reviews,
+with current authority validation: two development tasks are now qualified. Its
+successful attempt cost 1,004,951 microdollars including estimated infrastructure,
+with zero reservation; earlier acquisition and import setup refusals remain recorded.
 
 Two [actual failing-baseline checks](baseline-failure.md) now preserve assertion and
 collection failures while proving the delivery pipeline makes no model call,

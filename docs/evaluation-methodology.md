@@ -1,6 +1,6 @@
 # Evaluation methodology
 
-Status: accepted protocol, revised 2026-09-28 under [ADR-007](adr/ADR-007-automated-benchmark-qualification.md). Partial manifest/scoring/curation tooling and a 36-candidate metadata catalog exist; no task is yet qualified and no historical campaign has run. This is the full protocol, not a claim that partial tooling implements it. This protocol owns evaluation choices; [the security model](security-model.md) owns execution controls.
+Status: accepted protocol, revised 2026-09-28 under [ADR-007](adr/ADR-007-automated-benchmark-qualification.md). Partial manifest/scoring/curation tooling exists. The original 36 metadata candidates remain unqualified; two separately acquired development tasks have passed qualification. No historical scoring or campaign has run. This is the full protocol, not a claim that partial tooling implements it. This protocol owns evaluation choices; [the security model](security-model.md) owns execution controls.
 
 Current consumer contract: historical export, scoring and campaign freeze require
 `independent-agents-v2` evidence and a concrete in-process current qualification
