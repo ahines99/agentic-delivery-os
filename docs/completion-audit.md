@@ -495,3 +495,26 @@ and Docker. Ruff/format checked 224 files and mypy checked 77 sources. Locked
 dependencies, wheel build and fresh installed-wheel imports passed. This full run
 includes issue acquisition and the deliberately failing delivery baselines; it
 precedes the subsequent optional donor-reuse change.
+
+E62: Optional protected donor reuse revalidates the complete donor inventory/source
+and matches recomputed Git blob hashes and sizes against the fresh complete target
+tree. It preserves existing result serialization and transfers no rights or authority.
+The final integrated acquisition/import/requirements suite passed **187 tests** in
+11.41 seconds; independent review passed all 27 new donor cases. The source-layout
+and versioned reference derivation in [ADR-013](adr/ADR-013-derived-historical-reference.md)
+remain accepted design, not implemented functionality.
+
+E63: [Accepted-tree acquisition](historical-acquisition.md#recorded-accepted-tree-acquisition-with-reuse)
+captured all 43 files/231,483 bytes at the candidate's accepted commit, using five
+snapshot requests and one parent-link check. Cached validation added no requests.
+A protected AST feasibility check found three added direct test candidates in the
+changed original test file, alongside one implementation-change candidate. No test
+identities or source/answer contents entered implementation context. No oracle,
+executable derived reference, rights grant, model/code execution or qualified task
+was produced. The full accepted tree remains protected reference evidence.
+
+E64: After donor integration, Ruff/format checked 225 files, mypy checked 77 sources,
+and the final wheel rebuilt and passed installed-package imports including the donor
+API. All 291 local links across 73 inspected documents resolved, and no managed
+container remained. The 1535-test service-enabled run and later 187-test acquisition
+run remain separate recorded scopes; no larger full local run is inferred from them.

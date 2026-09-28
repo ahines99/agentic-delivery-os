@@ -130,3 +130,24 @@ historical task base, oracle/reference reconstruction, imported task or qualific
 Subsequent protected [license observations](historical-input-provenance.md#recorded-protected-license-observations)
 bind the baseline's MIT text and provider-reported license history. They do not supply
 the remaining issue contribution, task projection or processing authorization evidence.
+
+## Recorded accepted-tree acquisition with reuse
+
+A subsequent protected producer used the baseline as a verified byte donor while
+acquiring accepted commit `4296bbde2be128341b17126e43a06271259ae477`. Its complete
+43-file tree contains 231,483 source bytes. Fresh repository/commit/tree validation
+and two changed blob reads required five requests. One additional bounded commit
+read verified that its sole reported parent is the historical baseline. Total transfer
+was 78,337 bytes across six requests, with no credentials, repository execution or
+model calls. Cached verification added no requests.
+
+The producer wraps the capture as `PROTECTED_ACCEPTED_COMMIT_EVIDENCE` and retains
+the separate historical baseline digest. The full accepted source remains protected
+reference material; it is not the executable benchmark reference. No task import,
+oracle, processing authorization or qualification resulted.
+
+A separate protected static AST check reported one implementation-change candidate,
+one changed original test file, and three added direct test candidates. No filenames,
+test identities or source/answer text entered implementation conversation. This is
+feasibility metadata only: dynamic collection, import behavior, risk, semantic relevance,
+actual fail-to-pass results and the versioned derivation remain unvalidated.

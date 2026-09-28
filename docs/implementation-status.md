@@ -273,6 +273,12 @@ code ran. The current title remains historically unverified. Protected
 also bind the MIT text and provider-reported earlier license change. These records
 do not themselves authorize processing or admit a historical task.
 
+Verified donor reuse then captured the complete accepted commit in five snapshot
+reads plus one parent-link check. Its 43 files/231,483 bytes remain protected
+reference evidence. A private static check found three added test candidates;
+collection and actual behavior remain unvalidated. [ADR-013](adr/ADR-013-derived-historical-reference.md)
+defines the pending explicit reference derivation and source-layout support.
+
 Two [actual failing-baseline checks](baseline-failure.md) now preserve assertion and
 collection failures while proving the delivery pipeline makes no model call,
 reservation or candidate. They exercise Docker and the production verifier, with
