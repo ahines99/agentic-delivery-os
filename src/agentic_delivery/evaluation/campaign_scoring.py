@@ -430,6 +430,13 @@ class CampaignScoringExecution:
             < min(grant.expires_at, attempt.deadline)
         )
         active_reserved = 0
+        # Only an in-flight semantic controller guard can present this private proof.
+        from agentic_delivery.evaluation.semantic_execution import _active_reservation
+
+        semantic_reserved = _active_reservation(self)
+        _require(active_operation_id is None or semantic_reserved is None)
+        if semantic_reserved is not None:
+            active_reserved = semantic_reserved
         if active_operation_id is not None:
             active = self.ledger.operation_receipt(grant.account_id, active_operation_id)
             _require(
