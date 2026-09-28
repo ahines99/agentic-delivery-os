@@ -121,3 +121,33 @@ both provider shapes, measured success/failure, private expected answers, policy
 held-out-split refusal, immutable resume, unknown reservations, a post-settlement crash,
 changed bindings, expiry and revocation. No paid calibration call or actual historical
 admission is claimed by those tests.
+
+
+## Recorded live development calibration
+
+On 2026-09-28, five original development contexts backed by 65 actual Docker operations
+were reviewed through the configured live Anthropic broker. The original frozen expected
+findings were unchanged. All five provider calls settled; recorded usage was 45,235 input and
+20,370 output tokens, costing **735,425 microdollars ($0.735425)** under the bound rate card.
+The exact five-call reservation ceiling was $1.183110, within a separate $5 stage cap.
+
+The result was **CALIBRATION_FAILED**: five of five verdicts and all expected finding statuses
+matched, but only one of five responses met the complete evidence contract. One response
+added an unexpected finding target; three omitted required eligibility citations. The valid
+case was the unresolved case. False admits were zero; the safety and false-admit mandatory
+cases failed their complete contract checks, giving two mandatory failures. These five toy
+cases do not estimate general benchmark accuracy.
+
+Cached resume reproduced the same evidence and accounting without another provider call.
+All five operations are settled, with zero remaining reservation. The failed result cannot
+authorize subsequent qualification; no fresh full qualification or historical campaign ran.
+Original provider records and diagnostic metadata remain private. The earlier unrelated
+provider probe remains unresolved and was not retried.
+
+An offline initialization failure preceded these calls: edge whitespace in the raw rubric
+conflicted with the normalized review contract. The shared prompt normalization fix preserved
+raw artifact identity and expectations. A prompt-only derivative specification and recovery
+of the original unused identity/deadline are documented in the
+[preparation record](synthetic-preparation-runtime.md#recorded-execution). Future prompt
+revisions require new frozen specifications and separately metered calibration; this failed
+run remains part of the development record.

@@ -88,3 +88,20 @@ and active expiry/revocation/cancellation cleanup. Model generation is patched t
 These tests establish software boundary behavior; actual Docker execution is a separately
 reported integration run. Neither constitutes completed model calibration or historical
 qualification.
+
+## Recorded execution
+
+On 2026-09-28, five fixtures constructed from `e5953c9` completed all **65 actual Docker
+operations**: five preflights and sixty repeated acceptance/regression checks. Every operation
+settled in the dedicated private evaluation ledger. The configured local duration estimate was
+130 microdollars; model calls, model cost and model tokens were zero. This estimate is not a
+provider invoice. An immediate resume returned the same result artifact and accounting without
+additional execution. The result remained `MODEL_CALIBRATION_NOT_RUN`, `admitted=false`.
+
+The subsequent offline calibration initialization exposed an edge-whitespace mismatch between
+the raw rubric artifact and its normalized review contract. No calibration account, operation or
+provider call existed at that failure. `fd66e83` aligns prompt normalization while preserving
+raw artifact bindings. A derived specification changed only the prompt artifact; original
+contexts, expected decisions, rubric bytes and preparation results remain retained. Initialization
+recovered the original allocated identity and deadline after checking that its ledger was empty.
+This repair does not alter any observed model response or expected outcome.

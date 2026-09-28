@@ -356,3 +356,22 @@ seconds with PostgreSQL, Temporal and Docker. Ruff check/format (207 files), myp
 locked dependencies, wheel build, installed-wheel imports, 247 local links across 64 documents
 and staged secret scanning passed. No managed test container remained. At this source checkpoint
 the real five-case preparation and paid calibration had not run; no historical task was qualified.
+
+
+E45: [Actual owned preparation](synthetic-preparation-runtime.md#recorded-execution) completed
+65 Docker operations with 130 microdollars of local infrastructure estimates and zero model
+usage. Cached resume added no effects. [Live calibration](evaluation-calibration.md#recorded-live-development-calibration)
+then settled five provider calls at $0.735425: five matching verdicts, one fully valid response,
+zero false admits and two mandatory failures. Status is **CALIBRATION_FAILED**; the strict
+evidence gate blocked qualification. All five operations settled and cached resume added no
+spending. Frozen expected findings were unchanged. The preceding offline prompt-whitespace
+repair retained original artifacts, unused identity and deadline. These results do not admit
+any of the 36 historical candidates or satisfy benchmark/pilot gates.
+
+
+E46: Final verification including the shared rubric/prompt normalization fix passed **1324
+tests, seven explicit Windows skips**, in 601.71 seconds against actual PostgreSQL, Temporal
+and Docker. The separate 136-test calibration/subject/v2/controller regression also passed
+(one actual Docker test deselected there and included in the full suite). Ruff, formatting,
+mypy, rebuilt installed-wheel prompt checks and locked dependencies passed. This software
+verification does not override E45's failed live calibration or close historical/pilot gates.
