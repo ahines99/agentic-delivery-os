@@ -96,6 +96,7 @@ jobs:
         run: |
           docker build -t delivery-sandbox:ci -f infra/docker/sandbox.Dockerfile infra/docker
           echo "TEST_SANDBOX_IMAGE=$(docker image inspect delivery-sandbox:ci --format '{{.Id}}')" >> "$GITHUB_ENV"
+          echo "TEST_SRC_SANDBOX_IMAGE=$(docker image inspect delivery-sandbox:ci --format '{{.Id}}')" >> "$GITHUB_ENV"
       - name: Test real service boundaries
         run: uv run --no-sync python -m pytest -m integration -q
       - name: Remove Temporal development container

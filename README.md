@@ -114,6 +114,8 @@ skip without the runbook's service variables.
 | [docs/historical-import.md](docs/historical-import.md) | Offline protected historical import with complete source inventory checks |
 | [docs/historical-acquisition.md](docs/historical-acquisition.md) | Bounded public GitHub baseline acquisition into protected evaluator storage |
 | [docs/historical-requirements.md](docs/historical-requirements.md) | Protected issue bodies with bounded provider-reported edit history |
+| [docs/historical-reference-derivation.md](docs/historical-reference-derivation.md) | Exact protected production deltas and whole-file test relocation |
+| [docs/src-layout-verification.md](docs/src-layout-verification.md) | Bounded operator-selected source imports in the trusted collector |
 | [docs/historical-input-provenance.md](docs/historical-input-provenance.md) | Source, issue and provider evidence for finite historical processing |
 | [docs/baseline-failure.md](docs/baseline-failure.md) | Actual failing-baseline checks that stop before model or candidate work |
 | [docs/synthetic-calibration-cases.md](docs/synthetic-calibration-cases.md) | Five original development cases with separately frozen expectations |

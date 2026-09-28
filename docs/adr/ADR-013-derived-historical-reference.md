@@ -1,7 +1,8 @@
 # ADR-013: Explicit historical reference derivation
 
-Date: 2026-09-28. Status: accepted design; implementation and historical execution
-remain pending. This decision does not admit the observed replacement candidate.
+Date: 2026-09-28. Status: source-layout execution and standalone protected derivation
+implemented; versioned import integration remains in progress. Historical runtime
+qualification remains pending. This decision does not admit a replacement candidate.
 
 ## Problem
 

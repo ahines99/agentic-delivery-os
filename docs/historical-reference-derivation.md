@@ -93,3 +93,34 @@ unchanged in this standalone step, so this record is not consumable as legacy pr
 Validation uses owned synthetic Git trees and HTTP fixtures. No historical payload,
 model call, Docker execution, task import, benchmark qualification or admission was used
 or claimed in implementing this producer.
+
+## Subsequent protected development observations
+
+After implementation and independent review, a protected attempt for the previously
+acquired `tkem/cachetools` PR 408 candidate refused the conventional test-filename
+predicate. That attempt and its sanitized implementation-location diagnostic remain
+retained. No derived oracle or reference was produced, and the profile was not changed
+to admit it.
+
+A metadata-only screen of the latest twelve previously observed, single-parent,
+issue-linked replacement PRs outside that repository found ten unsupported deltas
+and two potentially compatible deltas. It requested Git trees only, not source,
+issue bodies, patches or test answers. All outcomes remain retained; this convenience
+screen is not a representative sample or a qualified dataset.
+
+The first metadata-eligible lead, `dbader/schedule` PR 463 (issue 175), was then
+acquired into protected storage: all 29 baseline files, totaling 122,503 bytes, and
+the complete accepted tree. Thirty-seven unauthenticated requests transferred
+292,568 bytes. Derivation and independent reconstruction succeeded with two changed
+files, one whole accepted test file relocated, and two frozen acceptance selectors.
+The resulting record is `DERIVED_NOT_IMPORTED` and `NOT_AUTHORIZED`. No historical
+source, test identity, issue text or accepted implementation was exposed to the
+interactive implementation context. No historical code or model ran.
+
+Separate protected issue acquisition reported no edits, with requirements as of
+2017-11-09 preceding the PR's recorded 2022-04-10 merge. This remains provider-reported
+chronology, not archival proof. The root license matched SPDX MIT grant, conditions
+and disclaimer after whitespace normalization, with its notice retained; heuristic
+notice checks are not all-file rights clearance. Current processing authorization,
+accepted-fix linkage, runtime qualification and independent semantic reviews remain
+required. Neither replacement has been imported, qualified or added to the campaign.

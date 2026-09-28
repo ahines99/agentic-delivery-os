@@ -527,3 +527,20 @@ operator worklist/detail/audit visibility and successful history replay. Unauthe
 detail is denied; no model call/reservation, candidate, readiness or publication occurs,
 and no container for the run remains. This proves the technical local routing required
 by P-11, not actual human observation, live tracker onboarding or broader pilot completion.
+
+E66: At source `c35685d`, the integrated baseline-triage, source-layout, evidence-manifest,
+historical derivation, import, acquisition and requirements scope passed **342 tests,
+three explicit Windows symlink skips**, in 50.64 seconds. Actual PostgreSQL, Temporal,
+Docker and authenticated loopback HTTP exercised the durable failure route again.
+The new immutable collector image also exercised bounded source imports and flat-layout
+compatibility. Ruff/format checked 231 files and mypy checked 78 sources. This is a
+targeted suite, not a new full-suite count. CI now selects the built image for source-layout
+integration cases as well as ordinary sandbox cases.
+
+E67: The [protected development observations](historical-reference-derivation.md#subsequent-protected-development-observations)
+retain a cachetools derivation refusal and a subsequent schedule derivation success.
+A twelve-lead metadata-only screen retained ten unsupported and two potentially eligible
+outcomes. The first eligible schedule lead produced exact protected derivation with two
+frozen acceptance selectors, but no rights grant, task import, runtime qualification or
+model call. Separate issue and license observations remain evidence ingredients, not
+historical admission. All 36 original catalog candidates remain unqualified.

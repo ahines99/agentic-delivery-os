@@ -95,6 +95,11 @@ solution or oracle was fetched in that baseline run. Task-base selection, rights
 pre-solution requirements, reference/oracle mapping and full qualification remain
 unresolved. It has not replaced or promoted any of the 36 original candidates.
 
+The subsequent [protected derivation observations](historical-reference-derivation.md#subsequent-protected-development-observations)
+retain a refusal for that cachetools candidate and a successful standalone derivation
+for one `dbader/schedule` development lead. The latter remains unimported and
+unauthorized for execution; no original candidate or split has been replaced.
+
 ## Offline staging and automated qualification worklist
 
 ```sh

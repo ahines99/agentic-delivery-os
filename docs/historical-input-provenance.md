@@ -71,4 +71,6 @@ ingredients only: no usage authorization, task import or qualification resulted.
 
 For accepted changes that modify original tests, [ADR-013](adr/ADR-013-derived-historical-reference.md)
 specifies explicit derived-reference provenance and source-layout execution support.
-That design remains unimplemented; the existing importer still refuses such changes.
+Standalone derivation and source-layout execution are implemented. Versioned import
+integration remains separate; a derived artifact alone grants no processing rights,
+execution authority or qualification.
