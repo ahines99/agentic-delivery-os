@@ -20,18 +20,17 @@ merged PR whose merge commit equals that accepted commit. A complete bounded iss
 closed-event connection must contain exactly one event whose closer is that exact PR.
 The issue ID/number/URL and repository node/numeric IDs must match the protected issue
 requirements capture. Missing metadata, pagination, duplicate matching closure,
-commit-only closers, merge commits with multiple parents, redirects represented as
-changed identities, or inconsistent captures are unsupported and refuse the profile.
+commit-only or other unsupported closer kinds, merge commits with multiple parents,
+redirects represented as changed identities, or inconsistent captures refuse the profile.
 
 Acceptance time is the PR's `mergedAt`. The commit's `committedDate` must be no later,
 but is not substituted for acceptance time. Requirements creation/edit time must strictly
 precede that solution commit timestamp as well as merge; equality or later edits refuse
 the profile. Git timestamps/provider history still do not establish the earliest public
 solution disclosure or archival truth. The closing event must be no earlier than merge,
-and all capture times must
-be no later than current trusted time. Full baseline/accepted acquisitions are read and
-reconstructed through the derivation; neither snapshot capture alone asserts a parent
-or acceptance timestamp.
+and all capture times must be no later than current trusted time. Full baseline/accepted
+acquisitions are read and reconstructed through the derivation; neither snapshot capture
+alone asserts a parent or acceptance timestamp.
 
 The issue capture's body/title digests and complete recorded edit metadata are rechecked
 using the same requirements-capture rules. Its title remains explicitly current and not
@@ -67,9 +66,13 @@ The schema-2 acquisition envelope must bind the complete baseline inventory, ful
 accepted snapshot, exact derivation/linkage/requirements capture, pending task digest,
 source metadata and both authorization references. Preparation's schema-2 reference
 must name these same artifacts. Rehashed mismatched envelopes refuse before writes.
-The task description must equal the captured body after the domain contract's outer
-whitespace stripping; its title must be the neutral `Historical issue #<number>`.
+The importer requires the task description to equal the captured body after the domain
+contract's outer whitespace stripping; its title must be the neutral `Historical issue #<number>`.
 The current captured issue title is never promoted into historical task requirements.
+The same projection must be enforced at shared preparation/resolver/current-use entry
+points, because callers can prepare a task without importing it. Final shared projection
+and active-expiry guard validation is separate from the completed importer checks;
+the recorded importer tests alone do not establish that cross-route boundary.
 
 The separate `DerivedReferenceAuthorization` is an explicit controller data attestation
 for `HISTORICAL_EVALUATION_DATA_PROCESSING`. It binds the parent `UsageAuthorization`
@@ -94,3 +97,24 @@ resolver: model inputs retain the existing reviewed projection rather than recei
 accepted snapshots or provenance aggregates. Completing import does not establish a
 passing twelve-run matrix, calibration, independent review, current qualification,
 worker-export/scoring authority, or a historical benchmark result.
+
+## Recorded development evidence
+
+The owned synthetic test run covered 187 cases across v1/v2 import, derived rights,
+linkage, derivation and the initial shared resolver; Ruff and mypy passed. It used no
+historical payloads or code execution. Final shared guard/projection follow-ups were
+still pending when this documentation pass was prepared, so those test counts do not
+claim their completion or validation of later source revisions.
+
+Separately, after the reviewed linkage implementation, a protected capture for
+`dbader/schedule` PR 463 and issue 175 used two fixed metadata-only GraphQL queries:
+2,646 response bytes, with no issue text, accepted code, author names or model calls.
+Both responses agreed. Validation matched the accepted commit to the acquired tree
+and sole baseline parent, the merged PR to the issue's closing event, and the required
+pre-commit requirements/merge/capture chronology. Full trees, derived tests and
+requirements remained in protected storage; see the retained
+[development observations](historical-reference-derivation.md#subsequent-protected-development-observations).
+
+This capture grants no processing rights and imports no task. There are still zero
+actual historical imports or qualifications from these observations. Current data
+authorization, runtime and independent qualification gates remain open.

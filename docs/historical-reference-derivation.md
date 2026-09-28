@@ -1,8 +1,10 @@
 # Protected historical reference derivation
 
-`evaluation.historical_derivation` implements the first offline producer from
-[ADR-013](adr/ADR-013-derived-historical-reference.md). It is not wired into
-historical import, preparation, qualification, worker export or scoring. A record has
+`evaluation.historical_derivation` implements the offline producer from
+[ADR-013](adr/ADR-013-derived-historical-reference.md). The explicit
+[v2 import route](historical-import-v2.md) and shared preparation now revalidate its
+record, with versioned qualification-input resolution for review and authority checks.
+A derivation record itself has
 `DERIVED_NOT_IMPORTED`, `NOT_AUTHORIZED`, `admitted=false` and
 `execution_authorized=false`; none grants rights or spending authority.
 
@@ -29,7 +31,14 @@ Git inventories remain unchanged. Each is revalidated using content-addressed re
 complete Git tree reconstruction, per-path size/SHA-256 and recomputed Git blob hashes.
 The repositories and numeric identities must match, and commits must differ. This does
 not establish commit ancestry, accepted-fix linkage, chronology, requirements relevance,
-licenses or current data rights; versioned import still needs those separate bindings.
+licenses or current data rights. Versioned import and preparation require separate
+provider-linkage evidence and explicitly pinned data authorizations.
+
+`validate_reference_derivation` requires nonempty caller-declared worker/code scopes
+disjoint from protected storage. `validate_reference_derivation_content` performs the
+same full content reconstruction without a worker-scope claim and without writes.
+The resolver uses that content-only API; current preparation and execution authority
+retain their separate trusted scope checks. Neither API supplies authorization.
 
 The profile permits only modifications to existing Python implementation and existing
 conventional Python test files. Every changed file is partitioned, with original and
@@ -61,10 +70,11 @@ in the copied file but are not acceptance selectors. No selector is removed in r
 to an observed execution result. Syntax is parsed only; no code is imported or executed.
 
 A relocated test may fail to import or collect, particularly with relative imports or
-repository fixtures. Future integration must freeze explicit original regression paths
-excluding `__evaluation_oracle__`, use these exact acceptance selectors, and run the
-existing twelve-operation matrix. Every frozen acceptance node must call-fail on the
-baseline and pass on the reference; original regressions must remain stable and pass.
+repository fixtures. Shared v2 preparation requires explicit original regression files
+excluding `__evaluation_oracle__` and these exact acceptance selectors. Qualification
+still requires the existing twelve-operation matrix. Every frozen acceptance node must
+call-fail on the baseline and pass on the reference; original regressions must remain
+stable and pass.
 This producer constructs no command or execution grant and has not run that matrix.
 
 The executable baseline is original baseline plus oracle. The executable reference is
@@ -75,20 +85,23 @@ Errors contain one constant message. All validation and size checks precede writ
 an I/O failure can leave unreferenced protected artifacts but cannot return success.
 Protected storage must be disjoint from every nonempty caller-declared worker/code scope.
 
-## Required subsequent integration
+## Versioned integration and remaining gates
 
-Preserve existing `ReferenceProvenance` and historical import v1 serialization. Introduce
-an explicit versioned provenance/import branch requiring this reconstructed derivation;
-never label its executable reference as the accepted upstream tree. Bind the task's
-source/oracle/reference/patch, acceptance selectors, complete source inventory, issue,
-accepted commit and acquisition timestamps through that branch and current preparation.
+Existing `ReferenceProvenance` and historical import v1 serialization remain unchanged.
+The explicit schema-2 provenance/import branch requires reconstructed derivation and
+linkage, and names the executable reference separately from the accepted upstream tree.
+It binds source/oracle/reference/patch, exact acceptance selectors, complete baseline
+inventory, issue, accepted commit and capture chronology. Both the parent usage grant
+and a derived-data attestation covering baseline, accepted source, oracle, patch and
+reference must be pinned in the existing trusted policy and currently valid.
 
-The model-evidence exclusion closure must include the accepted snapshot and its capture
-and inventory, production patch, executable reference, derivation and any provenance or
-import aggregate that embeds accepted implementation. Existing reference exclusions alone
-are insufficient. Only the separately authorized oracle is eligible for protected review;
-worker export stays baseline-only. Shared contracts and exclusions are deliberately
-unchanged in this standalone step, so this record is not consumable as legacy provenance.
+The versioned input resolver reconstructs the derivation/linkage and excludes accepted
+snapshot/capture/inventory, production patch, executable reference, derivation and the
+related provenance/authorization aggregates from supporting model documents and rubrics.
+Only the separately authorized oracle is eligible for protected review; worker export
+stays baseline-only. A derived record is never consumed as legacy provenance. Current
+rights, runtime cleanup/expiry, requirements projection and controller-path guards need
+their own validation; passing the offline producer/import tests does not establish them.
 
 Validation uses owned synthetic Git trees and HTTP fixtures. No historical payload,
 model call, Docker execution, task import, benchmark qualification or admission was used
@@ -122,5 +135,10 @@ Separate protected issue acquisition reported no edits, with requirements as of
 chronology, not archival proof. The root license matched SPDX MIT grant, conditions
 and disclaimer after whitespace normalization, with its notice retained; heuristic
 notice checks are not all-file rights clearance. Current processing authorization,
-accepted-fix linkage, runtime qualification and independent semantic reviews remain
-required. Neither replacement has been imported, qualified or added to the campaign.
+runtime qualification and independent semantic reviews remain required. Subsequent
+metadata-only linkage capture used two fixed GraphQL queries totaling 2,646 response
+bytes. It matched PR 463's closure of issue 175, the accepted commit's sole baseline
+parent and acquired tree, and the required issue/commit/merge/capture chronology.
+That is provider-reported linkage, not a rights grant or archival proof. Neither
+replacement has been imported, qualified or added to the campaign; actual historical
+imports and qualifications remain zero.
