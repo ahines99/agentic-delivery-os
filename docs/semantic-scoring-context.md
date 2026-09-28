@@ -60,11 +60,12 @@ and denied until a later executor supplies authenticated sealed scorer receipts.
 
 ## Purpose and remaining work
 
-Current reconstruction supports only `HISTORICAL_CANDIDATE`. The explicit
-`OWNED_DEVELOPMENT_CALIBRATION` purpose is reserved and rejected by these validators;
-owned ambiguous calibration subjects must use a distinct deterministic-evidence
-adapter, never a falsely admitted historical task. Historical validation/test tasks
-cannot become development calibration merely by changing this field.
+Historical reconstruction supports only `HISTORICAL_CANDIDATE`. A separate concrete
+[owned context authority](owned-semantic-context.md) reconstructs the explicit
+`OWNED_DEVELOPMENT_CALIBRATION` evidence union from actual owned runtime receipts,
+never a falsely admitted historical task. Shared finding validation accepts either
+matching purpose; each authority rejects the other kind. Historical validation/test
+tasks cannot become development calibration merely by changing this field.
 
 A subsequent slice still needs an executed, budgeted development calibration;
 current prompt/schema/config/rubric binding; two separately metered scorer receipts;

@@ -18,6 +18,7 @@ from agentic_delivery.evaluation.qualification_admission import (
 from agentic_delivery.evaluation.qualification_input_resolution import resolve_qualification_input
 from agentic_delivery.evaluation.qualification_preparation import _files, _read, _scopes
 from agentic_delivery.evaluation.qualification_v2 import EvidenceCitationV2
+from agentic_delivery.evaluation.semantic_examples import SemanticCriterion
 from agentic_delivery.execution.files import validate_files
 from agentic_delivery.storage.artifacts import ArtifactStore
 from agentic_delivery.storage.store import digest_json
@@ -78,6 +79,39 @@ class FrozenSemanticEvidence(Contract):
     rubric_text: NonEmpty = Field(max_length=65536)
 
 
+class FrozenOwnedSemanticEvidence(Contract):
+    """Owned candidate checks; the included baseline is authored, never executed."""
+
+    schema_version: Literal[1] = 1
+    purpose: Literal["OWNED_DEVELOPMENT_CALIBRATION"] = "OWNED_DEVELOPMENT_CALIBRATION"
+    admitted: Literal[False] = False
+    baseline_executed: Literal[False] = False
+    subject_id: NonEmpty
+    subject_artifact: Digest
+    authorship: NonEmpty
+    requirements: NonEmpty
+    criteria: tuple[SemanticCriterion, ...] = Field(min_length=1, max_length=100)
+    source_snapshot_artifact: Digest
+    source_files: dict[str, str]
+    candidate_artifact: Digest
+    candidate_digest: Digest
+    candidate_files: dict[str, str]
+    oracle_artifact: Digest
+    oracle_files: dict[str, str]
+    diff: str
+    runtime_evidence_artifact: Digest
+    runtime_binding_artifact: Digest
+    request_digest: Digest
+    authorization_digest: Digest
+    executed_snapshot_digest: Digest
+    operation_receipt_digests: tuple[Digest, Digest, Digest]
+    image: NonEmpty
+    account_id: NonEmpty
+    executions: tuple[SemanticExecution, SemanticExecution]
+    rubric_artifact: Digest
+    rubric_text: NonEmpty = Field(max_length=65536)
+
+
 class SemanticScoringContext(Contract):
     schema_version: Literal[1] = 1
     kind: Literal["protected-final-candidate-scoring-context"] = (
@@ -88,7 +122,7 @@ class SemanticScoringContext(Contract):
     stage: Stage
     context_id: NonEmpty = Field(max_length=200)
     evidence_digest: Digest
-    evidence: FrozenSemanticEvidence
+    evidence: FrozenSemanticEvidence | FrozenOwnedSemanticEvidence = Field(discriminator="purpose")
     # Adjudication is reserved, never enabled by serialized self-attested peers.
     peer_reviews: tuple[()] = ()
 
@@ -331,7 +365,9 @@ def validate_semantic_context(
         raise SemanticScoringFailure("Protected semantic context reconstruction failed") from None
 
 
-def _citation(citation: EvidenceCitationV2, evidence: FrozenSemanticEvidence) -> None:
+def _citation(
+    citation: EvidenceCitationV2, evidence: FrozenSemanticEvidence | FrozenOwnedSemanticEvidence
+) -> None:
     files = {
         evidence.source_snapshot_artifact: evidence.source_files,
         evidence.candidate_artifact: evidence.candidate_files,
@@ -381,8 +417,8 @@ def validate_semantic_output_structure(
         output = SemanticScoringOutput.model_validate(output.model_dump(mode="json"))
         context = SemanticScoringContext.model_validate(context.model_dump(mode="json"))
         _stage(context.stage)
-        _require(context.purpose == "HISTORICAL_CANDIDATE")
         e = context.evidence
+        _require(context.purpose == e.purpose)
         validate_files(e.source_files)
         validate_files(e.candidate_files)
         validate_files(e.oracle_files)
@@ -393,9 +429,10 @@ def validate_semantic_output_structure(
         )
         _require(context.evidence_digest == digest_json(e.model_dump(mode="json")))
         keys = [(f.target_kind, f.target_id) for f in output.findings]
-        expected = {("criterion", c.id) for c in e.task_spec.acceptance_criteria} | {
-            ("integrity", k) for k in CHECKS
-        }
+        criteria = (
+            e.task_spec.acceptance_criteria if isinstance(e, FrozenSemanticEvidence) else e.criteria
+        )
+        expected = {("criterion", c.id) for c in criteria} | {("integrity", k) for k in CHECKS}
         _require(len(set(keys)) == len(keys) and set(keys) == expected)
         for finding in output.findings:
             for citation in finding.citations:
