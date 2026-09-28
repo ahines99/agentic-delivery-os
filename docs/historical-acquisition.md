@@ -100,3 +100,7 @@ per file, 512 KiB source/individual response, 2 MiB total transfer and 120 secon
 No repository code or model ran. Status remains **BASELINE_ONLY_NOT_IMPORTED**:
 this is a replacement lead, not a catalog promotion, rights authorization, verified
 historical task base, oracle/reference reconstruction, imported task or qualification.
+
+Subsequent protected [license observations](historical-input-provenance.md#recorded-protected-license-observations)
+bind the baseline's MIT text and provider-reported license history. They do not supply
+the remaining issue contribution, task projection or processing authorization evidence.

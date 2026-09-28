@@ -15,7 +15,7 @@ Linear -> Requirements -> Risk policy -> Plan -> Isolated build
 Implemented and exercised locally: authenticated intake and plan approval, PostgreSQL
 inbox/outbox and audit storage, Temporal workflows, real Anthropic planning/build/review,
 bounded Docker execution, independent test runs, and digest-verified candidate artifacts.
-The local suite passed 1414 tests with actual PostgreSQL, Temporal and Docker, including
+The recorded local suite at `abd4bb8` passed 1535 tests with actual PostgreSQL, Temporal and Docker, including
 structured test-evidence validation, CI races, projection recovery, resource exhaustion and
 hostile dependency hooks; seven POSIX/symlink cases explicitly skipped on Windows.
 [The preceding revision's hosted CI passed](https://github.com/ahines99/agentic-delivery-os/actions/runs/36469053647)
@@ -113,6 +113,9 @@ skip without the runbook's service variables.
 | [docs/synthetic-import.md](docs/synthetic-import.md) | Protected authored-case import and exact data authorization bindings |
 | [docs/historical-import.md](docs/historical-import.md) | Offline protected historical import with complete source inventory checks |
 | [docs/historical-acquisition.md](docs/historical-acquisition.md) | Bounded public GitHub baseline acquisition into protected evaluator storage |
+| [docs/historical-requirements.md](docs/historical-requirements.md) | Protected issue bodies with bounded provider-reported edit history |
+| [docs/historical-input-provenance.md](docs/historical-input-provenance.md) | Source, issue and provider evidence for finite historical processing |
+| [docs/baseline-failure.md](docs/baseline-failure.md) | Actual failing-baseline checks that stop before model or candidate work |
 | [docs/synthetic-calibration-cases.md](docs/synthetic-calibration-cases.md) | Five original development cases with separately frozen expectations |
 | [docs/calibration-subjects.md](docs/calibration-subjects.md) | Inert review subjects separated from safe executed fixtures |
 | [docs/qualification-inputs.md](docs/qualification-inputs.md) | Review inputs reconstructed from completed ledger evidence |

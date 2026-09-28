@@ -203,7 +203,7 @@ Every stable backlog ID appears below. Dependencies continue to apply even where
 | P-08 stop/budget | partial | E14/E25: finite reservations/CI deadlines, separate tracker gate and actual active Docker parent/child cancellation in 15.359s with durable CANCELLED, APPLIED command and no remaining labelled container. Cleanup uncertainty fails; approval expiry stops execution. | Extend to paid-model uncertainty, worker/daemon loss and complete no-post-ack effect/budget matrix; one bounded drill is not a general timing guarantee. |
 | P-09 injection/secrets | partial | Real malicious dependency hook cannot read broker canary, Docker socket or external endpoints; protected paths and risk heuristics exist. | Repository/ticket/log injection and malicious tests cannot expand capabilities, forge readiness or access withheld artifacts; actual runtime evidence. |
 | P-10 external outcome | external prerequisite | Signed observation code and fabricated merged/closed/stale tests exist. | Actual authorized product PR close/merge observation retained separately from agent status; no invented deployment status. |
-| P-11 baseline | partial | Code returns failed baseline before builder. Live baseline was passing. | Deliberately failing baseline with actual receipts, no builder call/readiness, explicit triage outcome and regression distinction. |
+| P-11 baseline | partial | E58: actual assertion/collection baseline failures retain receipts and stop before model calls, reservations, candidate or readiness. | End-to-end Temporal/operator triage routing remains unexercised; local failure evidence is not proof of human receipt or resolution. |
 | P-12 provider fault | partial | E30: actual PostgreSQL with controlled 429/503/lost-response/cancellation retains unknown reservations and refuses a duplicate request; committed settlement recovers cached output after lost acknowledgement. | Extend integrated Temporal/provider recovery and actual billing reconciliation; controlled responses are not real outages or invoice evidence. |
 
 No complete product gate is closed merely because its unit predicate passes. Some can be proved locally with controlled fault providers, but the integrated P-01/P-04/P-10 provider claims need actual onboarded systems.
@@ -460,3 +460,38 @@ rebuilt wheel and fresh installed-wheel acquisition/import/reconciliation import
 These split validation results are recorded separately from the earlier 1414-test full
 service-enabled suite and from the pre-final-guard offline suite; counts are not added
 into an invented single full-run total.
+
+E57: Exact-head [hosted CI at 3dda278](https://github.com/ahines99/agentic-delivery-os/actions/runs/36472528826)
+passed all four checks: **1428 passed, 55 skipped** on both Python 3.12 and 3.13,
+plus **56 actual-service integration tests**. Ruff/format checked 218 files and mypy
+checked 76 sources. This is the acquisition checkpoint before the next additions.
+
+E58: Two [deliberately failing baseline checks](baseline-failure.md) passed against
+the actual Docker pipeline in 6.64 seconds. Assertion and collection failures retain
+their real receipts, with no model generation/reservation, candidate or readiness.
+Both preflights and baselines ran, and all four exact containers were absent afterward.
+This closes the local failure-evidence gap, not Temporal/human-triage routing.
+
+E59: [Protected issue acquisition](historical-requirements.md) passed 57 synthetic
+tests and independent review; the combined requirements/baseline/import scope passed
+160 tests. A real three-query capture preserved the replacement issue's 2,956-byte
+body and matching provider-reported no-edit chronology before the supplied acceptance
+time. Cached validation added no requests. No historical text entered implementation
+context and no model/code execution occurred. The separate current title remains
+historically unverified; archival proof, rights clearance and admission remain false.
+
+E60: Protected [license observations](historical-input-provenance.md) bind matching
+MIT license text and an earlier provider-reported license change to the same baseline.
+Separate accepted-PR metadata identifies two modified paths, one an original test.
+The current reference contract preserves original tests, so an explicit derivation
+design is needed; silently omitting that change would not reproduce the accepted tree.
+Static metadata also identifies a source layout without configured pytest import paths.
+No accepted patch or test answer was inspected interactively. Historical imports and
+qualified tasks remain zero.
+
+E61: The complete local suite at source revision `abd4bb8` passed **1535 tests,
+seven explicit Windows skips**, in 656.85 seconds with actual PostgreSQL, Temporal
+and Docker. Ruff/format checked 224 files and mypy checked 77 sources. Locked
+dependencies, wheel build and fresh installed-wheel imports passed. This full run
+includes issue acquisition and the deliberately failing delivery baselines; it
+precedes the subsequent optional donor-reuse change.

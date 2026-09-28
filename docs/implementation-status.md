@@ -265,6 +265,19 @@ tree/blob verification and no code execution or model call. This advances baseli
 acquisition only. It does not supply the requirements, rights, accepted reference or
 oracle necessary for historical import and qualification.
 
+The subsequent [issue requirements capture](historical-requirements.md#recorded-protected-capture)
+stored the candidate's exact body privately after two matching provider-history
+observations. Three read-only queries transferred 7,403 bytes; no model or repository
+code ran. The current title remains historically unverified. Protected
+[license observations](historical-input-provenance.md#recorded-protected-license-observations)
+also bind the MIT text and provider-reported earlier license change. These records
+do not themselves authorize processing or admit a historical task.
+
+Two [actual failing-baseline checks](baseline-failure.md) now preserve assertion and
+collection failures while proving the delivery pipeline makes no model call,
+reservation or candidate. They exercise Docker and the production verifier, with
+all four created containers removed. End-to-end operator triage remains separate.
+
 1. Configure a GitHub App installation/private key for only the target repository, set branch
    protections without bot bypass, and exercise actual publication/head-change reconciliation.
    The user's authenticated CLI is used for maintaining this project, never as the product's PAT fallback.

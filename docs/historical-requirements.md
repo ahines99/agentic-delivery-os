@@ -88,3 +88,18 @@ permits only the separately authorized protected evaluator to inspect them.
 This capture is complementary to baseline acquisition. Combining it with a baseline
 still does not provide oracle/reference acquisition, semantic requirements validation,
 license or privacy clearance, independent qualification, or campaign admission.
+
+## Recorded protected capture
+
+On 2026-09-28, the integrated acquirer captured issue 405 from `tkem/cachetools`
+using an explicitly supplied operator research credential. The three fixed queries
+transferred 7,403 bytes; the preserved issue body contains 2,956 UTF-8 bytes.
+Both captures reported the strict no-edit combination, with creation/as-of time
+2026-07-18T18:15:55Z preceding the supplied acceptance time 2026-07-30T15:27:00Z.
+The body, current title and chronology evidence remain in protected evaluator storage.
+
+A cached read revalidated the result and artifact bindings with zero network calls.
+No body/title text was printed, repository code executed or model called. Status is
+`PROVIDER_REPORTED_PRE_SOLUTION_BODY`, with archival proof, rights clearance and
+admission all false. This does not verify the current title's historical wording or
+close the remaining reference/oracle, runtime and qualification requirements.
