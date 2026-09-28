@@ -17,6 +17,7 @@ from agentic_delivery.storage.artifacts import ArtifactStore
 from agentic_delivery.storage.store import digest_json
 
 if TYPE_CHECKING:
+    from agentic_delivery.evaluation.campaign_scoring import CampaignScoringExecution
     from agentic_delivery.evaluation.qualification_admission import (
         QualificationAuthority,
         ValidatedQualificationV2,
@@ -161,28 +162,17 @@ def load_manifest(path: Path) -> tuple[HistoricalTask, ...]:
     return tasks
 
 
-async def score_candidate(
+def _scoring_material(
     task: HistoricalTask,
     candidate: dict[str, str],
     protected_artifacts: ArtifactStore,
     output_artifacts: ArtifactStore,
-    *,
-    authority: "QualificationAuthority | None" = None,
-    execution: "ScoringExecution | None" = None,
-) -> dict[str, Any]:
-    from agentic_delivery.agents.evidence import ExecutionReceipt
-
+    authority: "QualificationAuthority | None",
+) -> tuple[dict[str, str], Any]:
     validated = task.validate_qualification(
         protected_artifacts, authority=authority, purpose="scoring"
     )
     qualification = validated.qualification_input
-
-    def guard() -> None:
-        current = task.validate_qualification(
-            protected_artifacts, authority=authority, purpose="scoring"
-        )
-        if current.qualification_input != qualification:
-            raise ValueError("Qualification changed during candidate scoring")
 
     protected_root = protected_artifacts.root.resolve()
     output_root = output_artifacts.root.resolve()
@@ -211,14 +201,90 @@ async def score_candidate(
     if source == candidate:
         raise ValueError("Candidate contains no change")
     check_candidate(source, candidate)
+    return {**candidate, **oracle}, qualification
+
+
+async def score_candidate(
+    task: HistoricalTask,
+    candidate: dict[str, str],
+    protected_artifacts: ArtifactStore,
+    output_artifacts: ArtifactStore,
+    *,
+    authority: "QualificationAuthority | None" = None,
+    execution: "ScoringExecution | None" = None,
+) -> dict[str, Any]:
+    return await _score_candidate(
+        task,
+        candidate,
+        protected_artifacts,
+        output_artifacts,
+        authority=authority,
+        execution=execution,
+        campaign=False,
+    )
+
+
+async def score_campaign_candidate(
+    task: HistoricalTask,
+    candidate: dict[str, str],
+    protected_artifacts: ArtifactStore,
+    output_artifacts: ArtifactStore,
+    *,
+    authority: "QualificationAuthority",
+    execution: "CampaignScoringExecution",
+) -> dict[str, Any]:
+    """Explicit schema-3 campaign consumer; a frozen campaign never grants spending."""
+    return await _score_candidate(
+        task,
+        candidate,
+        protected_artifacts,
+        output_artifacts,
+        authority=authority,
+        execution=execution,
+        campaign=True,
+    )
+
+
+async def _score_candidate(
+    task: HistoricalTask,
+    candidate: dict[str, str],
+    protected_artifacts: ArtifactStore,
+    output_artifacts: ArtifactStore,
+    *,
+    authority: "QualificationAuthority | None",
+    execution: "ScoringExecution | CampaignScoringExecution | None",
+    campaign: bool,
+) -> dict[str, Any]:
+    from agentic_delivery.agents.evidence import ExecutionReceipt
+    from agentic_delivery.evaluation.campaign_scoring import CampaignScoringExecution
     from agentic_delivery.evaluation.scoring_execution import ScoringExecution
 
-    if not isinstance(execution, ScoringExecution):
+    if campaign:
+        if not isinstance(execution, CampaignScoringExecution) or authority is None:
+            raise ValueError("Concrete campaign scoring execution is required")
+        execution.authorize(task, candidate, authority, output_artifacts)
+    files, qualification = _scoring_material(
+        task, candidate, protected_artifacts, output_artifacts, authority
+    )
+    if not isinstance(execution, (ScoringExecution, CampaignScoringExecution)) or (
+        not campaign and not isinstance(execution, ScoringExecution)
+    ):
         raise ValueError("Concrete budgeted scoring execution is required")
     assert authority is not None
 
-    files = {**candidate, **oracle}
+    def guard() -> None:
+        current = task.validate_qualification(
+            protected_artifacts, authority=authority, purpose="scoring"
+        )
+        if current.qualification_input != qualification:
+            raise ValueError("Qualification changed during candidate scoring")
+
     execution.validate(task, candidate, authority, output_artifacts)
+    command_seconds = (
+        execution.command_seconds
+        if isinstance(execution, CampaignScoringExecution)
+        else task.budget.command_seconds
+    )
     runner = DockerRunner(task.image)
 
     async def preflight(operation_id: str) -> dict[str, Any]:
@@ -231,7 +297,7 @@ async def score_candidate(
             commands,
             runner,
             output_artifacts,
-            timeout=task.budget.command_seconds,
+            timeout=command_seconds,
             workflow_id=operation_id,
         )
 

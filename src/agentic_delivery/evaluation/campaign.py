@@ -95,6 +95,11 @@ class FrozenTask(Contract):
     task_manifest_digest: Digest
     qualification_artifact: Digest
 
+    @property
+    def id(self) -> str:
+        """Scheduling identity without loading protected task contents."""
+        return self.task_id
+
 
 class ScheduledAttempt(Contract):
     ordinal: int = Field(strict=True, ge=0)
@@ -182,7 +187,9 @@ def _read(store: ArtifactStore, digest: str) -> Any:
     return json.loads(store.get(digest), object_pairs_hook=_pairs, parse_constant=invalid)
 
 
-def select_stability_tasks(tasks: tuple[HistoricalTask, ...], seed: int) -> tuple[str, ...]:
+def select_stability_tasks(
+    tasks: tuple[HistoricalTask | FrozenTask, ...], seed: int
+) -> tuple[str, ...]:
     """Select two per split using IDs only, before any execution results exist."""
     return tuple(
         task.id
@@ -195,7 +202,7 @@ def select_stability_tasks(tasks: tuple[HistoricalTask, ...], seed: int) -> tupl
 
 
 def _schedule(
-    tasks: tuple[HistoricalTask, ...], spec: CampaignSpecification
+    tasks: tuple[HistoricalTask | FrozenTask, ...], spec: CampaignSpecification
 ) -> tuple[ScheduledAttempt, ...]:
     attempts: list[ScheduledAttempt] = []
     # Split order preserves sealed-test staging; arm order is interleaved within tasks.

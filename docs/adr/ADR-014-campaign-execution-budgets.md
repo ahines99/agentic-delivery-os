@@ -39,8 +39,9 @@ policy. One ledger account per arm attempt will share model, token and infrastru
 limits across generation, review and all final scoring. Scoring cannot create extra
 capacity or send protected feedback back into the builder. A changed candidate
 requires newly bound evidence; qualification budgets are never silently substituted
-for execution limits. Existing schema-1 scoring authorization remains unchanged until
-an explicit versioned consumer implements this separation.
+for execution limits. Existing schema-1 scoring authorization remains unchanged. The explicit schema-2
+[scoring consumer](../campaign-scoring.md) implements this separation using an already
+allocated, checkpointed attempt account and current trusted controller authorization.
 
 The builder-only arm must make no independent-review call; it cannot fabricate an
 approval to reuse product readiness. Product delivery retains independent review and
@@ -57,6 +58,6 @@ authority revocation, retained task identities, cap/parity/corpus failures and
 deterministic output. Their injected authority boundary is not a real qualified
 corpus or a completed campaign.
 
-Actual execution still requires the controller, versioned scoring consumer,
-independent semantic-scoring calibration and complete qualified corpus. Until those
+Actual campaign execution still requires the controller, independent semantic-scoring
+calibration and complete qualified corpus. Until those
 exist, the new record remains `PREREGISTERED_NOT_EXECUTED` with spending unauthorized.
