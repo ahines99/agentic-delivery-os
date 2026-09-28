@@ -71,6 +71,23 @@ cross-repository links. The sealed-test candidacy has exposed only identifiers/b
 not specifications or answers. Do not open its tasks during development or model selection.
 Dataset source split `test` is upstream labeling and is distinct from our proposed three-way split.
 
+### Development compatibility screen
+
+A subsequent metadata-only [Git-tree screen](../evals/candidates/development-compatibility.json)
+on 2026-09-28 found that **all 12 proposed development candidates exceed the current
+full-source snapshot profile**: each pinned repository tree contains at least one
+tracked file larger than 256 KiB. The complete, nontruncated trees contain 413–578
+files, below the separate 1,000-file limit, and no links or submodules. All also
+contain runner-package paths requiring separate compatibility review. No source,
+issue, patch, oracle or held-out repository content was fetched by this screen.
+
+These candidates are unsupported by the current profile; none was imported or
+qualified. The original catalog and all observations remain retained. Before freezing
+development tasks, the protected acquisition process must either find and record
+supported replacements or validate an explicitly extended profile. Silently dropping
+large files, slicing repositories or relabeling modified snapshots as complete is not
+allowed. The 30-task, three-repository and held-out requirements remain unchanged.
+
 ## Offline staging and automated qualification worklist
 
 ```sh

@@ -114,18 +114,18 @@ The actual Docker integration exercises the full qualification, source-only expo
 and cached resume using controlled model responses and synthetic task records. This is software
 verification, not live calibration or qualification of a historical candidate.
 
-The latest complete local verification on 2026-09-28 passed **1328 tests, seven explicit Windows
-skips**, in 634.54 seconds with actual PostgreSQL, Temporal and Docker. The skips cover four POSIX
+The latest complete local verification on 2026-09-28 passed **1414 tests, seven explicit Windows
+skips**, in 663.44 seconds with actual PostgreSQL, Temporal and Docker. The skips cover four POSIX
 FIFO regressions and three unprivileged symlink cases; Linux CI exercises those platform cases.
-Ruff check/format (209 files), mypy (73 source files), locked dependency validation, wheel build
+Ruff check/format (215 files), mypy (75 source files), locked dependency validation, wheel build
 and installed-wheel imports passed. The staged secret scan and
 253 local links across 64 Markdown documents passed. Qualification/calibration tests use explicitly
 synthetic agent/rights records and controlled model transports; they do not admit historical tasks.
 Ten subsequent paid development calibration calls across two stages are recorded below; no historical benchmark ran.
 The earlier unresolved probe remains unchanged.
 The preceding complete checkpoint passed 1324 tests with seven Windows skips; all four hosted checks
-passed on [474b4c6](https://github.com/ahines99/agentic-delivery-os/actions/runs/36463724349), including
-1277 passing tests per Python version and 55 real-service integration tests. Counts from separate
+passed on [42477d6](https://github.com/ahines99/agentic-delivery-os/actions/runs/36467042704), including
+1281 passing tests per Python version and 55 real-service integration tests. Counts from separate
 full runs are not additive evidence.
 
 The earlier complete local verification passed **163 tests** with `TEST_DATABASE_URL`,
@@ -184,7 +184,7 @@ Further scoped operational evidence on 2026-09-28:
   inventory; it never authorizes or performs deletion. Ruff/format and targeted mypy passed.
 
 These counts overlap existing scopes and remain separate from historical full-suite results.
-The complete 1328-test verification above includes these changes. Scoped counts are not additive.
+The complete 1414-test verification above includes these changes. Scoped counts are not additive.
 
 ## Recorded live development runs
 
@@ -233,8 +233,17 @@ with complete evidence, at $0.760480 in configured model cost. The earlier faile
 calibration remains retained; neither run measures held-out benchmark accuracy. A
 subsequent synthetic qualification completed 13 Docker operations, then stopped when
 its first model review hit the 5,000-token output limit. Its 234,400-microdollar
-reservation remains unsettled at this checkpoint. No second review, adjudication,
-qualified task or campaign followed. See the [calibration execution record](evaluation-calibration.md#subsequent-qualification-stopped-at-a-truncated-review).
+reservation was subsequently reconciled to $0.168415 of configured-rate model usage
+through a distinct failed-call receipt, leaving no reservation for that operation.
+No second review, adjudication, qualified task or campaign followed. See the
+[calibration execution record](evaluation-calibration.md#subsequent-qualification-stopped-at-a-truncated-review).
+
+The [offline historical importer](historical-import.md) now validates complete source
+inventories and exact acquisition/provenance bindings for already acquired protected
+bundles. It preserves original bytes and runs current preparation checks before
+freezing metadata. Protected live acquisition, real historical qualification and
+campaign execution remain separate unfinished work; no catalog candidate was imported
+by these synthetic tests.
 
 1. Configure a GitHub App installation/private key for only the target repository, set branch
    protections without bot bypass, and exercise actual publication/head-change reconciliation.

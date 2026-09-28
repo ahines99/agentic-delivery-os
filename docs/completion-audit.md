@@ -393,3 +393,33 @@ HTTP 200 with `max_tokens`, reporting 8,683 input and 5,000 output tokens. Its
 review was accepted. No second review, adjudication or qualification result followed,
 and the operation was not retried or aliased. Cost-only failure reconciliation remains
 separate from successful model evidence. Historical qualification remains at zero.
+
+E49: [Evaluation-only failure reconciliation](model-failure-reconciliation.md) now
+requires the exact original request, configuration, observation and reservation.
+Forty-five focused tests passed, including actual PostgreSQL concurrent callers;
+independent review and a separate 44-test run also passed. Applied to E48, it settled
+168,415 microdollars of configured-rate model cost, with zero remaining reservation.
+The failed receipt has no output or retry authority; cached reconciliation changed
+nothing and made no provider call. Including 26 infrastructure microdollars, the
+failed attempt cost 168,441 microdollars. The unrelated old probe remains unresolved.
+
+E50: The [offline historical importer](historical-import.md) checks exact full-source
+inventory, unchanged bytes, revision/reference/issue-time bindings and existing current
+preparation policy before freezing metadata. Forty-one new synthetic tests plus the
+preparation suite passed 118 tests with one explicit Windows skip. This imports already
+acquired protected bundles only; it neither fetches real historical cases nor creates
+rights, execution permission or admission. All 36 catalog candidates remain unqualified.
+
+E51: A [metadata-only compatibility screen](evaluation-curation.md#development-compatibility-screen)
+queried complete Git trees at the 12 proposed development bases. Every tree contains
+at least one tracked file above the current 256-KiB per-file snapshot limit, so all
+12 are unsupported under the existing full-source profile. No source/issue/answer
+bytes or held-out repository content were read. Original candidates remain retained;
+supported replacements or a validated profile extension are required before freeze.
+
+E52: Complete local verification including the historical importer and failure-accounting
+path passed **1414 tests, seven explicit Windows skips**, in 663.44 seconds with actual
+PostgreSQL, Temporal and Docker. Ruff/format (215 files), mypy (75 source files), locked
+dependencies, wheel build and fresh installed-wheel imports passed. All 268 local
+document links and staged secret scanning passed. These software checks do not turn
+the failed review into a qualification or resolve the historical compatibility gates.

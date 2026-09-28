@@ -183,3 +183,12 @@ The private driver stopped without retrying or aliasing the operation. Reported
 usage alone is not a successful review receipt; explicit failed-call reconciliation
 is separate work. This does not alter the preceding five-case calibration result.
 Its current-use grant must still be valid for any later qualification attempt.
+
+The later [failed-call reconciliation](model-failure-reconciliation.md) matched the
+original sealed request, immutable provider observation, configuration and reservation.
+It settled **168,415 microdollars ($0.168415)** of configured-rate model usage and
+released the remaining reservation. Combined with infrastructure, that failed attempt
+cost 168,441 microdollars. The receipt explicitly records failure and grants no retry.
+Reapplying reconciliation returned the same receipt without calls or accounting changes.
+The truncated review remains unusable for qualification. The earlier unrelated probe
+still has an unresolved reservation and was not touched.
