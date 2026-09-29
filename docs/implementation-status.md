@@ -19,6 +19,14 @@ an already-authorized phase without promoting it or retrying uncertainty. Aggreg
 numerical promotion and actual historical phase execution remain open. Earlier live calibration and data grants are historical evidence;
 expired authority cannot authorize current consumption or new runs.
 
+[Accounting inspection and preparation inventories](campaign-accounting.md) passed
+26 focused tests, including actual SQLite/PostgreSQL snapshot behavior under concurrent
+settlement. A bounded real metadata inventory then captured 33 accounts/214 operations
+across the three previously enumerated evaluation SQLite ledgers. It retained 9,424,997
+settled microdollars and 948,834 reserved microdollars across five unresolved operations,
+without reading model result payloads, mutating ledgers or making paid calls. Full program
+inventory coverage, per-attempt aggregate reporting and cost promotion remain open.
+
 The [transaction/outbox fault matrix](postgres-faults.md) also passed 12 scoped actual
 PostgreSQL/Temporal cases, and [model-provider ledger faults](model-provider-faults.md) passed
 five PostgreSQL cases with controlled HTTP responses. These preserve rollback, deduplication and

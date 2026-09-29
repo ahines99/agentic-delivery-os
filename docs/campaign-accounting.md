@@ -63,3 +63,31 @@ SQL observation forbids payload-column reads, and class-wide write guards cover 
 The PostgreSQL test verifies its actual isolation/read-only modes, uses a unique disposable
 database and verifies removal. These tests establish accounting metadata behavior, not a
 historical scoring campaign, a complete invoice or phase promotion.
+
+## Recorded preparation metadata inventory
+
+A finite metadata-only capture at source `47d739e` completed on 2026-09-29 at
+20:55:57 UTC. It captured and reconciled all 33 accounts and 214 operations in the
+three evaluation SQLite ledgers already enumerated by the earlier v52 inventory.
+Selected accounting metadata was unchanged across capture and reconciliation;
+no model results were read and no ledger mutation or paid request occurred.
+
+| Recorded category | Microdollars |
+| --- | ---: |
+| Settled model cost | 9,424,699 |
+| Settled infrastructure cost | 298 |
+| Unresolved model reservation | 948,834 |
+| Unresolved infrastructure reservation | 0 |
+
+Of 214 operations, 209 were settled and five remained unresolved. Settled usage
+was 733,879 input and 237,672 output tokens; reservations retained 43,737 input and
+32,762 output tokens. These values match the earlier aggregate accounting snapshot
+while adding immutable per-account inventory and resource separation.
+
+The protected report artifact is
+`0e57f93014123a1d3bcd97e855a05573e506f39d2007baaa3c55a5936bb4cd62`;
+the ordered inventory-reference digest is
+`4444dab4583d676eae7a9d0f0e369b4211983a856980423d0d7d9b450c4dcb4a`.
+The five reservations remain unchanged. This scope excludes product planning,
+external invoices, unlisted ledgers and future attempts. It neither claims all
+program charges are known nor closes the complete campaign-cost release gate.

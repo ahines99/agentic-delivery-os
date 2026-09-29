@@ -1140,3 +1140,19 @@ exclusion, original-authority pinning, expiry, stopped metadata and forged compl
 acknowledgements. The driver does not promote phases or turn scheduling metadata into
 scoring/accounting proof. Historical execution, aggregate reporting, complete preparation
 costs, numerical gates and incomplete-worker reconciliation remain open.
+
+E138: Metadata-only accounting and exact preparation inventories passed 26 focused tests
+with actual SQLite and PostgreSQL in 2.10 seconds. Coverage includes consistent reads during
+concurrent settlement, current guard denial, resource separation, unknown reservations,
+missing accounts, counter corruption, inventory scope/term changes and forbidden writes.
+Ruff/format (343 files), mypy (108 sources) and staged secret scanning passed. The reader
+does not load model result payloads or establish complete campaign inventory coverage.
+
+E139: At frozen source `47d739e`, a finite metadata-only capture reconciled 33 accounts and
+214 operations from the three existing v52 evaluation ledgers. It preserved 209 settled
+operations (9,424,699 model plus 298 infrastructure microdollars), five unresolved operations
+and 948,834 reserved model microdollars. Before/after metadata matched; no ledger write,
+model payload access, historical task execution or paid request occurred. Exact inventory
+references and private metadata reports were retained. [The accounting record](campaign-accounting.md)
+includes digests, token counts and explicit exclusions; this is not complete campaign cost
+or provider invoice reconciliation.
