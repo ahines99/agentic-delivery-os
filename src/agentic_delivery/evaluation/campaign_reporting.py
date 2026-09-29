@@ -20,6 +20,11 @@ from agentic_delivery.evaluation.campaign_attempt_inspection import (
     validate_completed_attempt_consumption,
 )
 from agentic_delivery.evaluation.campaign_journal import CampaignJournal, JournalEvent
+from agentic_delivery.evaluation.campaign_ledger_coverage import (
+    CampaignLedgerCoverage,
+    match_ledger_coverage,
+    read_declared_ledgers,
+)
 from agentic_delivery.evaluation.campaign_reporting_policy import validate_reporting_policy
 from agentic_delivery.evaluation.execution_store import EvaluationExecutionStore
 from agentic_delivery.evaluation.harness import HistoricalTask
@@ -58,6 +63,9 @@ class CampaignReportContext:
     # enforce their own exact current data, calibration and report permissions.
     current_guard: Callable[[], None]
     attempt_input: Callable[[ScheduledAttempt], AttemptReportInput | None]
+    # Separate trusted permission for whole-ledger enumeration, including accounts
+    # outside the campaign's selected IDs. Absence never broadens metadata access.
+    ledger_census_guard: Callable[[tuple[str, ...]], None] | None = None
 
 
 JournalState = Literal[
@@ -114,6 +122,8 @@ class CampaignAggregateReport(Contract):
     all_assignment_proof_available: bool = Field(strict=True)
     all_selected_accounts_settled: bool = Field(strict=True)
     no_active_dispatches: bool = Field(strict=True)
+    ledger_coverage: CampaignLedgerCoverage | None = None
+    ledger_coverage_status: Literal["NOT_REQUESTED", "UNAVAILABLE", "OBSERVED"] = "NOT_REQUESTED"
     # The declared selection still needs complete program-ledger inventory attestation,
     # numerical/operational promotion and pilot signoff; this reader cannot supply them.
     complete_program_inventory: Literal[False] = False
@@ -217,6 +227,29 @@ async def generate_campaign_report(
             )
 
         before = accounting()
+        census = None
+        census_ledgers = dict(context.preparation_ledgers)
+        if context.ledger_census_guard is not None:
+            _require(
+                journal.ledger_identity not in census_ledgers
+                or census_ledgers[journal.ledger_identity] is journal.ledger
+            )
+        census_ledgers[journal.ledger_identity] = journal.ledger
+
+        def census_guard() -> None:
+            guard()
+            _require(context.ledger_census_guard is not None)
+            assert context.ledger_census_guard is not None
+            context.ledger_census_guard(tuple(sorted(census_ledgers)))
+
+        if context.ledger_census_guard is not None:
+            # Explicitly requested census must fail on revoked authority. Corrupt or
+            # unavailable ledger evidence may be reported unavailable, never complete.
+            census_guard()
+            try:
+                census = read_declared_ledgers(census_ledgers, current_guard=census_guard)
+            except Exception:
+                census_guard()
         accounts_by_id = {a.account_id: a for a in before.accounts}
         rows = []
         validated_inputs: dict[int, AttemptReportInput] = {}
@@ -338,6 +371,17 @@ async def generate_campaign_report(
         _require(
             before.model_dump(exclude={"observed_at"}) == after.model_dump(exclude={"observed_at"})
         )
+        coverage = None
+        if census is not None:
+            final_census = read_declared_ledgers(census_ledgers, current_guard=census_guard)
+            _require(
+                [s.model_dump(exclude={"observed_at"}) for s in census]
+                == [s.model_dump(exclude={"observed_at"}) for s in final_census]
+            )
+            if preparation is not None:
+                coverage = match_ledger_coverage(
+                    final_census, attempts=after, preparation=preparation
+                )
         _require(journal.inspect(campaign_artifact) == (registration, history))
         _require(
             validate_reporting_policy(
@@ -357,6 +401,8 @@ async def generate_campaign_report(
             }
         )
         guard()
+        if context.ledger_census_guard is not None:
+            census_guard()
         return CampaignAggregateReport(
             campaign_artifact=campaign_artifact,
             registration_digest=registration.registration_digest,
@@ -377,6 +423,14 @@ async def generate_campaign_report(
                 and preparation.selected_accounts_settled
             ),
             no_active_dispatches=not any(r.journal_state == "DISPATCH_OPEN" for r in rows),
+            ledger_coverage=coverage,
+            ledger_coverage_status=(
+                "OBSERVED"
+                if coverage is not None
+                else "UNAVAILABLE"
+                if context.ledger_census_guard is not None
+                else "NOT_REQUESTED"
+            ),
         )
     except Exception:
         raise CampaignReportingFailure(

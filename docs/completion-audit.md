@@ -1190,3 +1190,21 @@ passed all four jobs. Python 3.12 passed 2,772 tests with 88 explicit skips in 1
 seconds; Python 3.13 passed the same counts in 1,293.65 seconds. Actual service integration
 passed 88 tests in 262.61 seconds; secret scanning passed. This includes the phase driver.
 The subsequent accounting/policy/aggregate-report changes require their own final-head CI.
+
+E144: The full Windows suite at unchanged `6b5179a` completed with 2,762 passed and 98
+explicit skips in 3,850.61 seconds. The skips include unavailable service configuration and
+POSIX-only cases; this run is not service integration evidence. Earlier exact-head hosted
+CI supplies its separately recorded service checks. The root checkout then advanced through
+the four existing commits to `9c72b37` without altering their identities or merging PR #1.
+
+E145: Whole-ledger census and report coverage passed a combined 61 accounting, preparation,
+census and aggregate-report checks in 144.67 seconds, including actual PostgreSQL selected
+and whole-ledger repeatable-read/read-only checks in disposable databases. After a final
+compatibility adjustment and corrupt-unselected-account case, all nine coverage tests passed
+in 19.47 seconds. Coverage includes omitted zero-cost/unknown accounts, duplicate account IDs
+across ledgers, orphan operations, bounded-size refusal, concurrent settlement/account creation,
+separate whole-ledger authority and changed scope during reporting. No historical source,
+model-result payload, paid request or existing preparation ledger was consumed or changed.
+Ruff/format (352 files), mypy (111 sources) and wheel/sdist builds passed. This verifies
+coverage inside declared ledgers, not complete program-registry authority or cost promotion;
+those remain open. Final-head hosted verification remains required.

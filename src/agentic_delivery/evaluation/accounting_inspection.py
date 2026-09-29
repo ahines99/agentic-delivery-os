@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from typing import Annotated, Any, Literal
 
 from pydantic import AwareDatetime, Field
-from sqlalchemy import Connection, select
+from sqlalchemy import Connection, select, true
 
 from agentic_delivery.domain.models import Contract
 from agentic_delivery.evaluation.campaign_allocation import ledger_target_identity
@@ -72,6 +72,7 @@ class AccountingSnapshot(Contract):
     schema_version: Literal[1] = 1
     kind: Literal["evaluation-accounting-metadata"] = "evaluation-accounting-metadata"
     ledger_identity: Digest
+    scope: Literal["SELECTED_ACCOUNTS", "ENTIRE_LEDGER"] = "SELECTED_ACCOUNTS"
     observed_at: AwareDatetime
     requested_account_ids: tuple[str, ...]
     missing_account_ids: tuple[str, ...]
@@ -200,14 +201,50 @@ def read_accounting_snapshot(
     current_guard: Callable[[], None],
 ) -> AccountingSnapshot:
     """Trusted caller authorizes metadata access; this supplies no inventory-completeness proof."""
+    _require(isinstance(account_ids, tuple) and 0 < len(account_ids) <= 10000)
+    return _read_snapshot(
+        store,
+        expected_ledger_identity=expected_ledger_identity,
+        account_ids=account_ids,
+        current_guard=current_guard,
+    )
+
+
+def read_ledger_accounting_snapshot(
+    store: EvaluationExecutionStore,
+    *,
+    expected_ledger_identity: str,
+    current_guard: Callable[[], None],
+) -> AccountingSnapshot:
+    """Census one entire declared ledger in one snapshot, including orphan detection.
+
+    This requires authority to inspect the whole ledger. It does not establish that
+    the caller declared every program ledger, or reconcile external provider invoices.
+    """
+    return _read_snapshot(
+        store,
+        expected_ledger_identity=expected_ledger_identity,
+        account_ids=None,
+        current_guard=current_guard,
+    )
+
+
+def _read_snapshot(
+    store: EvaluationExecutionStore,
+    *,
+    expected_ledger_identity: str,
+    account_ids: tuple[str, ...] | None,
+    current_guard: Callable[[], None],
+) -> AccountingSnapshot:
     try:
         current_guard()
         _require(type(store) is EvaluationExecutionStore)
         _require(ledger_target_identity(store) == expected_ledger_identity)
-        _require(0 < len(account_ids) <= 10000 and len(set(account_ids)) == len(account_ids))
-        for account in account_ids:
-            _identity(account)
-        requested = tuple(sorted(account_ids))
+        if account_ids is not None:
+            _require(len(set(account_ids)) == len(account_ids))
+            for account in account_ids:
+                _identity(account)
+        requested = tuple(sorted(account_ids or ()))
         with _read_transaction(store) as connection:
             # All columns are explicitly allowlisted. Never SELECT operation.result,
             # receipt payloads, checkpoints, task text, source or reference artifacts.
@@ -222,16 +259,24 @@ def read_accounting_snapshot(
                         accounts.c.input_tokens,
                         accounts.c.output_tokens,
                     )
-                    .where(accounts.c.id.in_(requested))
+                    .where(accounts.c.id.in_(requested) if account_ids is not None else true())
                     .order_by(accounts.c.id)
+                    .limit(10001)
                 )
                 .mappings()
                 .all()
             )
+            _require(len(account_rows) <= 10000)
+            if account_ids is None:
+                requested = tuple(row["id"] for row in account_rows)
             operation_rows = (
                 connection.execute(
                     select(*(operations.c[name] for name in OperationUsage.model_fields))
-                    .where(operations.c.account_id.in_(requested))
+                    .where(
+                        operations.c.account_id.in_(requested)
+                        if account_ids is not None
+                        else true()
+                    )
                     .order_by(operations.c.id)
                     .limit(100001)
                 )
@@ -259,6 +304,7 @@ def read_accounting_snapshot(
         missing = tuple(account for account in requested if account not in grouped)
         result = AccountingSnapshot(
             ledger_identity=expected_ledger_identity,
+            scope="ENTIRE_LEDGER" if account_ids is None else "SELECTED_ACCOUNTS",
             observed_at=now,
             requested_account_ids=requested,
             missing_account_ids=missing,

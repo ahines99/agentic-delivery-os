@@ -51,6 +51,23 @@ when they can be reconciled. Missing preparation proof is labeled `UNAVAILABLE`;
 attempt totals remain a partial sum rather than a claim of zero preparation spend. Reserved
 and settled model/infrastructure costs remain distinct, including retained uncertainty.
 
+An optional `ledger_census_guard` separately authorizes metadata enumeration over the exact
+sorted ledger identities supplied by the trusted controller. Without it, the report retains
+`ledger_coverage_status=NOT_REQUESTED` and never broadens selected-account access. With it,
+the report enumerates the execution ledger and every supplied preparation ledger before and
+after reconstruction. Changed metadata invalidates the report; revoked census authority
+cannot be swallowed as a successful partial result. Missing or corrupt census/preparation
+evidence yields `UNAVAILABLE`, never complete coverage.
+
+`OBSERVED` means the census was reconstructed and matched to concrete selected metadata.
+Inspect `all_declared_accounts_covered`, `unaccounted_accounts`, and
+`duplicate_account_ids` to determine whether all observed accounts are explained. Unknown
+charges remain in census totals even when they are outside selected inventories. Future
+unallocated canonical assignments stay missing in the assignment report; they do not make
+the present ledger census incomplete. Coverage does not imply completed assignments,
+settled costs, complete program-ledger selection, or promotion. Ledger snapshots retain
+individual times and do not become a distributed atomic snapshot.
+
 The report deliberately does not attest that the selected ledgers cover the entire preparation
 program. Complete program inventory coverage, numerical and operational promotion, statistical
 comparison, remaining time/criterion/regression metrics and human pilot signoff remain required.

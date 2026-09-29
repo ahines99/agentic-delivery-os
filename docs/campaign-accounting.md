@@ -52,6 +52,28 @@ campaign completeness: the controller still must establish that its registered i
 covers the entire preparation program, link every campaign attempt and apply the frozen
 cost limit. Arbitrarily selecting a cheap subset cannot prove that gate.
 
+## Declared-ledger census
+
+`read_ledger_accounting_snapshot(...)` enumerates every account and operation in one
+explicitly authorized ledger using the same read-only transaction boundary. Its snapshot
+has `scope=ENTIRE_LEDGER`; selected reads retain `scope=SELECTED_ACCOUNTS`. Empty ledgers
+are explicit observations. More than 10,000 accounts or 100,000 operations causes refusal,
+not truncation. An operation whose account is missing also causes refusal, including an
+orphan outside every selected account ID. No result payload or checkpoint is read.
+
+The [campaign report](campaign-reporting.md) can compare a complete census of its declared
+ledgers against the concrete selected account metadata. Extra accounts, including accounts
+with no operations or zero cost, remain visible as unaccounted. Duplicate account IDs across
+ledgers prevent verified coverage. Census totals include these extra accounts and preserve
+reservations; they are separate from selected totals and must not be added to them. When
+duplicate identities exist, these are physical ledger totals, not deduplicated program cost.
+
+This detects omissions inside declared databases. It does not establish that the controller
+declared every database used by the program, or that external invoices match configured-rate
+accounting. Prospective registry/enforcement of all preparation and execution targets, full
+program authority, and numerical cost promotion remain open. Complete program inventory and
+execution-authorized flags remain false. No historical inventory is refreshed by this change.
+
 ## Verification
 
 Twenty-six focused tests passed with actual SQLite and PostgreSQL (2.10 seconds). They cover
@@ -63,6 +85,13 @@ SQL observation forbids payload-column reads, and class-wide write guards cover 
 The PostgreSQL test verifies its actual isolation/read-only modes, uses a unique disposable
 database and verifies removal. These tests establish accounting metadata behavior, not a
 historical scoring campaign, a complete invoice or phase promotion.
+
+The later census/report extension passed 61 combined accounting and reporting checks in
+144.67 seconds, including both selected and full-ledger PostgreSQL transactions. A final
+nine-case coverage run passed in 19.47 seconds after adding corrupt unselected-account
+handling. The checks retain concurrent account creation until the next census, detect
+orphan operations and account-count overflow, forbid payload reads/writes, and exercise
+omitted accounts, duplicate identities, changed scope and separate whole-ledger permission.
 
 ## Recorded preparation metadata inventory
 

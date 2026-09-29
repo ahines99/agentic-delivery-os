@@ -27,6 +27,13 @@ settled microdollars and 948,834 reserved microdollars across five unresolved op
 without reading model result payloads, mutating ledgers or making paid calls. Full program
 inventory coverage and cost promotion remain open.
 
+An optional whole-ledger census now checks for accounts omitted from the selected inventory,
+including zero-cost accounts, and detects duplicate account IDs across declared ledgers.
+The aggregate report requires separate whole-ledger permission, compares metadata before
+and after reconstruction, and keeps census totals separate from selected totals. It still
+cannot attest that every program ledger was declared; prospective registry enforcement and
+cost promotion remain open. See [accounting scope](campaign-accounting.md#declared-ledger-census).
+
 The [prospective readiness policy](adr/ADR-018-prospective-readiness-reporting.md) passed
 15 focused tests. It pins A/B candidate-status declarations before phase opening or
 allocation and refuses retrospective insertion. This supplies the frozen reporting rule;

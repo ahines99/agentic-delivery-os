@@ -15,6 +15,7 @@ from agentic_delivery.config import Budget
 from agentic_delivery.evaluation.accounting_inspection import (
     AccountingInspectionFailure,
     read_accounting_snapshot,
+    read_ledger_accounting_snapshot,
 )
 from agentic_delivery.evaluation.campaign_allocation import ledger_target_identity
 from agentic_delivery.evaluation.execution_store import (
@@ -182,7 +183,7 @@ def test_snapshot_is_canonical_and_metadata_digest_changes_on_settlement(ledger)
     assert settled.totals.model_reserved_microdollars == 0
 
 
-def concurrent_settlement(store):
+def concurrent_settlement(store, reader=snapshot):
     create(store)
     store.reserve("qualification", "op", 10, 10, 10)
     called = False
@@ -199,12 +200,12 @@ def concurrent_settlement(store):
 
     event.listen(store.engine, "after_cursor_execute", settle_during_read)
     try:
-        original = snapshot(store)
+        original = reader(store)
     finally:
         event.remove(store.engine, "after_cursor_execute", settle_during_read)
     assert called and original.totals.unresolved_operations == 1
     assert original.totals.model_reserved_microdollars == 10
-    current = snapshot(store)
+    current = reader(store)
     assert current.all_requested_accounts_settled and current.totals.model_spent_microdollars == 2
 
 
@@ -215,7 +216,8 @@ def test_sqlite_snapshot_does_not_mix_pre_and_post_settlement_rows(ledger):
 
 
 @pytest.mark.integration
-def test_postgres_repeatable_read_and_read_only_transaction():
+@pytest.mark.parametrize("whole_ledger", [False, True])
+def test_postgres_repeatable_read_and_read_only_transaction(whole_ledger):
     configured = os.environ.get("TEST_DATABASE_URL")
     if not configured or make_url(configured).get_backend_name() != "postgresql":
         pytest.skip("TEST_DATABASE_URL PostgreSQL required for disposable evaluation database")
@@ -235,7 +237,17 @@ def test_postgres_repeatable_read_and_read_only_transaction():
         store = EvaluationExecutionStore(
             base.set(database=name).render_as_string(hide_password=False)
         )
-        concurrent_settlement(store)
+
+        def reader(store):
+            if whole_ledger:
+                return read_ledger_accounting_snapshot(
+                    store,
+                    expected_ledger_identity=ledger_target_identity(store),
+                    current_guard=lambda: None,
+                )
+            return snapshot(store)
+
+        concurrent_settlement(store, reader=reader)
         observed_modes = []
 
         def modes(connection, cursor, statement, parameters, context, many):
@@ -249,7 +261,7 @@ def test_postgres_repeatable_read_and_read_only_transaction():
 
         event.listen(store.engine, "after_cursor_execute", modes)
         try:
-            snapshot(store)
+            reader(store)
         finally:
             event.remove(store.engine, "after_cursor_execute", modes)
         assert observed_modes == [("repeatable read", "on")]
