@@ -390,6 +390,36 @@ class StructuredModel:
 
 def anthropic_schema(schema: dict[str, Any]) -> dict[str, Any]:
     """Remove unsupported generation constraints; Pydantic enforces them after generation."""
+    # Pydantic fixed tuples use prefixItems. Anthropic's generation subset uses
+    # items instead; only homogeneous, exact-cardinality tuples have this narrow
+    # projection. Original Pydantic validation remains the acceptance authority.
+    if "prefixItems" in schema and (
+        schema.get("type") == "array" or isinstance(schema["prefixItems"], list)
+    ):
+        prefix = schema["prefixItems"]
+        if (
+            schema.get("type") != "array"
+            or not isinstance(prefix, list)
+            or not prefix
+            or not all(isinstance(item, dict) and item for item in prefix)
+            or type(schema.get("minItems")) is not int
+            or type(schema.get("maxItems")) is not int
+            or schema["minItems"] != len(prefix)
+            or schema["maxItems"] != len(prefix)
+            or ("items" in schema and schema["items"] is not False)
+            or any(key in schema for key in ("additionalItems", "unevaluatedItems", "contains"))
+            or not isinstance(schema.get("description", ""), str)
+        ):
+            raise ValueError("Unsupported Anthropic fixed tuple schema")
+        canonical = [json.dumps(item, sort_keys=True, allow_nan=False) for item in prefix]
+        if len(set(canonical)) != 1:
+            raise ValueError("Unsupported Anthropic fixed tuple schema")
+        schema = {key: value for key, value in schema.items() if key != "prefixItems"}
+        schema["items"] = prefix[0]
+        prior = schema.get("description", "")
+        schema["description"] = (
+            prior + " " if prior else ""
+        ) + f"Must contain exactly {len(prefix)} items."
     removed = {
         "minimum",
         "maximum",
