@@ -1279,3 +1279,35 @@ inventory metadata. Ruff/format (361 files), mypy (114 sources), package builds,
 documentation links and staged secret scanning passed. New-head hosted CI and independent
 review remain required. No historical payloads, paid calls, renewed grants or release success
 are established by these changes.
+
+
+E152: [Hosted CI at `7138173`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36640615411)
+passed all four jobs. Python 3.12 passed 2,882 tests and 90 explicit skips in 2,112.07 seconds;
+Python 3.13 passed the same counts in 1,486.86 seconds. Actual PostgreSQL/Temporal/Docker
+integration passed 90 tests in 257.46 seconds; secret scanning passed. This verifies prospective
+phase statistics and requirement inventories. Criterion judgments at `503ed5e` were pushed
+only after this run finished and have their own subsequent hosted run.
+
+E153: [Prospective program-budget envelopes](program-budget.md), under
+[ADR-020](adr/ADR-020-prospective-program-budget-envelopes.md), now compose a shared registry
+with new schema-2 evaluation ledgers. One transaction holds an account's maximum liability
+before local creation. Model/infrastructure reservations require an ACTIVE envelope and OPEN
+local account. Concrete irreversible closure and receipt-matched cost precede release of unused
+capacity. Missing or unknown outcomes, partial creation/activation/closure, wrong targets,
+revocation and malformed state cannot silently release or recreate capacity. Schema-1 ledgers
+remain unchanged and cannot acquire coverage retrospectively.
+
+The initial 64-pass/one-skip and expanded 123-pass/one-skip scopes were followed by 128 passing
+registry, legacy accounting, metadata snapshot and allocation tests in 14.43 seconds, with
+actual PostgreSQL and no skips. The tests cover concurrent cross-ledger admission, recovery,
+closure/reservation races, shared infrastructure costs, identity/schema/counter denial,
+readers without new-spending authority, and actual v1/v2 campaign allocator capacity checks.
+Temporary PostgreSQL databases were removed and absence verified. These are owned fixtures;
+no actual historical ledger was enrolled and no paid call, grant renewal or migration occurred.
+Historical liability incorporation, campaign-required enrollment, complete program report
+reconciliation and cost promotion remain open. Final hardening retains canonical budget terms and recomputes every envelope ceiling during
+registry transactions, so an understated ceiling cannot create false available capacity.
+The expanded 131-test scope passed in 15.84 seconds with PostgreSQL and no skips. Ruff/format
+(365 files), mypy (115 sources), package builds and 494 local documentation links passed.
+New-head full CI and independent review remain required; the registry does not authorize
+execution or establish complete program cost.

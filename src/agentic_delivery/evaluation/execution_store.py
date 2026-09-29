@@ -28,6 +28,7 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.exc import IntegrityError
 
 from agentic_delivery.config import Budget
+from agentic_delivery.evaluation.program_budget import ProgramBudgetRegistry
 
 metadata = MetaData()
 ledger = Table(
@@ -70,6 +71,24 @@ checkpoints = Table(
     Column("stage", String(200), primary_key=True),
     Column("artifact_digest", String(64), nullable=False),
     Column("created_at", String(40), nullable=False),
+)
+
+program_metadata = MetaData()
+for _table in metadata.tables.values():
+    _table.to_metadata(program_metadata)
+program_binding = Table(
+    "evaluation_program_binding",
+    program_metadata,
+    Column("id", String(20), primary_key=True),
+    Column("registry_identity", String(64), nullable=False),
+    Column("target_nonce", String(32), nullable=False),
+)
+program_account_states = Table(
+    "evaluation_program_accounts",
+    program_metadata,
+    Column("account_id", ForeignKey("evaluation_accounts.id"), primary_key=True),
+    Column("state", String(20), nullable=False),
+    Column("closed_microdollars", BigInteger),
 )
 
 INFRA_TERMS = "evaluation_infrastructure_terms"
@@ -232,9 +251,9 @@ def _enable_sqlite_foreign_keys(connection: Any, *_: Any) -> None:
         cursor.close()
 
 
-def _validate_schema(connection: Connection) -> None:
+def _validate_schema(connection: Connection, expected: MetaData = metadata) -> None:
     inspector = inspect(connection)
-    for name, table in metadata.tables.items():
+    for name, table in expected.tables.items():
         observed_columns = {
             column["name"]: (
                 column["type"].compile(dialect=connection.dialect).upper(),
@@ -285,7 +304,11 @@ def _validate_schema(connection: Connection) -> None:
 
 
 class EvaluationExecutionStore:
-    def __init__(self, url: str) -> None:
+    def __init__(self, url: str, *, program_budget: ProgramBudgetRegistry | None = None) -> None:
+        if program_budget is not None and type(program_budget) is not ProgramBudgetRegistry:
+            raise ValueError("Concrete program budget registry required")
+        self.program_budget = program_budget
+        self.program_bound = False
         parsed = make_url(url)
         backend = parsed.get_backend_name()
         if backend == "sqlite":
@@ -333,17 +356,57 @@ class EvaluationExecutionStore:
                             )
                         ):
                             raise ValueError("Evaluation database contains foreign schema objects")
-                if found and found != set(metadata.tables):
+                if found and found not in (set(metadata.tables), set(program_metadata.tables)):
                     raise ValueError("Refusing non-evaluation or incomplete database schema")
-                if not found:
-                    metadata.create_all(connection)
-                    connection.execute(
-                        ledger.insert().values(id="evaluation-only", schema_version="1")
+                self.program_bound = (
+                    found == set(program_metadata.tables)
+                    or not found
+                    and program_budget is not None
+                )
+                if program_budget is not None and found == set(metadata.tables):
+                    raise ValueError(
+                        "Existing legacy ledgers cannot acquire prospective program authority"
                     )
+                expected = program_metadata if self.program_bound else metadata
+                if not found:
+                    nonce = None
+                    if program_budget is not None:
+                        from agentic_delivery.evaluation.campaign_allocation import (
+                            ledger_target_identity,
+                        )
+
+                        nonce = program_budget.bind_empty_target(ledger_target_identity(self))
+                    expected.create_all(connection)
+                    connection.execute(
+                        ledger.insert().values(
+                            id="evaluation-only", schema_version="2" if self.program_bound else "1"
+                        )
+                    )
+                    if program_budget is not None:
+                        connection.execute(
+                            program_binding.insert().values(
+                                id="program",
+                                registry_identity=program_budget.identity,
+                                target_nonce=nonce,
+                            )
+                        )
                 else:
-                    _validate_schema(connection)
-                    if connection.execute(select(ledger)).all() != [("evaluation-only", "1")]:
+                    _validate_schema(connection, expected)
+                    if connection.execute(select(ledger)).all() != [
+                        ("evaluation-only", "2" if self.program_bound else "1")
+                    ]:
                         raise ValueError("Unsupported evaluation ledger schema marker")
+                if self.program_bound:
+                    binding = connection.execute(select(program_binding)).all()
+                    if (
+                        len(binding) != 1
+                        or binding[0][0] != "program"
+                        or re.fullmatch(r"[0-9a-f]{64}", binding[0][1]) is None
+                        or re.fullmatch(r"[0-9a-f]{32}", binding[0][2]) is None
+                        or program_budget is not None
+                        and binding[0][1] != program_budget.identity
+                    ):
+                        raise ValueError("Invalid program registry binding")
         except BaseException:
             self.engine.dispose()
             raise
@@ -361,6 +424,117 @@ class EvaluationExecutionStore:
             except BaseException:
                 connection.rollback()
                 raise
+
+    def _program(self, connection: Connection) -> tuple[ProgramBudgetRegistry, str, str]:
+        from agentic_delivery.evaluation.campaign_allocation import ledger_target_identity
+
+        registry = self.program_budget
+        if not self.program_bound or type(registry) is not ProgramBudgetRegistry:
+            raise EvaluationConflict("Current concrete program registry required for new work")
+        assert registry is not None
+        rows = connection.execute(select(program_binding)).all()
+        if len(rows) != 1 or rows[0][0:2] != ("program", registry.identity):
+            raise EvaluationConflict("Program registry binding changed")
+        return registry, ledger_target_identity(self), rows[0][2]
+
+    def _require_program_active(self, connection: Connection, account: Mapping[Any, Any]) -> None:
+        if not self.program_bound:
+            return
+        registry, target, nonce = self._program(connection)
+        state = connection.execute(
+            select(program_account_states).where(
+                program_account_states.c.account_id == account["id"]
+            )
+        ).first()
+        if state != (account["id"], "OPEN", None):
+            raise EvaluationConflict("Program account is closed to new reservations")
+        registry.require_active(target, nonce, account["id"], account["budget"])
+
+    def close_program_account(self, account_id: str) -> None:
+        """Close new reservations locally before releasing any unused global envelope."""
+        _identity(account_id)
+        with self._transaction() as connection:
+            registry, _, _ = self._program(connection)
+            account = (
+                connection.execute(
+                    select(accounts).where(accounts.c.id == account_id).with_for_update()
+                )
+                .mappings()
+                .first()
+            )
+            state = connection.execute(
+                select(program_account_states).where(
+                    program_account_states.c.account_id == account_id
+                )
+            ).first()
+            if account is None or state is None:
+                raise EvaluationConflict("Program account does not exist")
+            if state[1] == "OPEN":
+                self._require_program_active(connection, account)
+                unfinished = connection.scalar(
+                    select(operations.c.id)
+                    .where(operations.c.account_id == account_id, operations.c.status != "SETTLED")
+                    .limit(1)
+                )
+                if unfinished is not None or account["reserved_microdollars"] != 0:
+                    raise EvaluationConflict("Unknown program usage retains the full envelope")
+                connection.execute(
+                    update(program_account_states)
+                    .where(program_account_states.c.account_id == account_id)
+                    .values(state="CLOSED", closed_microdollars=account["spent_microdollars"])
+                )
+            elif state[1] != "CLOSED" or state[2] != account["spent_microdollars"]:
+                raise EvaluationConflict("Program closure metadata is inconsistent")
+        registry.close_account(self, account_id)
+
+    def _closed_program_summary(self, account_id: str) -> tuple[str, str, dict[str, Any], int]:
+        with self._transaction() as connection:
+            _, target, nonce = self._program(connection)
+            account = (
+                connection.execute(
+                    select(accounts).where(accounts.c.id == account_id).with_for_update()
+                )
+                .mappings()
+                .first()
+            )
+            state = connection.execute(
+                select(program_account_states).where(
+                    program_account_states.c.account_id == account_id
+                )
+            ).first()
+            if (
+                account is None
+                or state is None
+                or state[1] != "CLOSED"
+                or state[2] != account["spent_microdollars"]
+                or account["reserved_microdollars"] != 0
+                or connection.scalar(
+                    select(operations.c.id)
+                    .where(operations.c.account_id == account_id, operations.c.status != "SETTLED")
+                    .limit(1)
+                )
+                is not None
+            ):
+                raise EvaluationConflict("Concrete closed program account proof is unavailable")
+            costs = connection.execute(
+                select(operations.c.actual_microdollars, operations.c.reserved_microdollars).where(
+                    operations.c.account_id == account_id
+                )
+            ).all()
+            actual_total = 0
+            for actual, reserved in costs:
+                if (
+                    type(actual) is not int
+                    or type(reserved) is not int
+                    or not 0 <= actual <= reserved
+                ):
+                    raise EvaluationConflict(
+                        "Closed program cost does not match operation receipts"
+                    )
+                actual_total += actual
+            if actual_total != state[2]:
+                raise EvaluationConflict("Closed program cost does not match operation receipts")
+            return target, nonce, dict(account["budget"]), int(state[2])
 
     def create_account(
         self,
@@ -391,6 +565,26 @@ class EvaluationExecutionStore:
                     .mappings()
                     .first()
                 )
+                if self.program_bound:
+                    registry, target, nonce = self._program(connection)
+                    _, infrastructure = _budget_terms(budget_json)
+                    ceiling = (
+                        budget.model_microdollars
+                        if infrastructure is None
+                        else min(
+                            infrastructure["total_microdollars"],
+                            budget.model_microdollars
+                            + infrastructure["infrastructure_microdollars"],
+                        )
+                    )
+                    registry.hold_account(
+                        target,
+                        nonce,
+                        account_id,
+                        budget_json,
+                        ceiling,
+                        account_exists=old is not None,
+                    )
                 if old:
                     if old["budget"] != budget_json:
                         raise EvaluationConflict("Account budget is immutable")
@@ -406,9 +600,19 @@ class EvaluationExecutionStore:
                             output_tokens=0,
                         )
                     )
+                    if self.program_bound:
+                        connection.execute(
+                            program_account_states.insert().values(
+                                account_id=account_id, state="OPEN", closed_microdollars=None
+                            )
+                        )
         except IntegrityError:
             if self.account(account_id)["budget"] != budget_json:
                 raise EvaluationConflict("Concurrent incompatible account creation") from None
+        if self.program_bound:
+            with self._transaction() as connection:
+                registry, target, nonce = self._program(connection)
+                registry.activate(target, nonce, account_id, budget_json)
         return self.account(account_id)
 
     def account(self, account_id: str) -> dict[str, Any]:
@@ -477,6 +681,7 @@ class EvaluationExecutionStore:
                     raise EvaluationConflict(
                         "Prior operation outcome is UNKNOWN; reservation retained"
                     )
+                self._require_program_active(connection, account)
                 budget = _admit_cost(connection, account, cost, infrastructure=False)
                 if (
                     account["input_tokens"] + input_tokens > budget.input_tokens
@@ -558,6 +763,7 @@ class EvaluationExecutionStore:
                     raise EvaluationConflict(
                         "Prior infrastructure outcome is UNKNOWN; reservation retained"
                     )
+                self._require_program_active(connection, account)
                 _admit_cost(connection, account, cost, infrastructure=True)
                 connection.execute(
                     update(accounts)

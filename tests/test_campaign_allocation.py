@@ -438,6 +438,55 @@ def test_postgres_target_identity_has_explicit_defaults_and_no_password():
     explicit.engine.url = explicit.engine.url.set(query={"password": "fixture-query"})
     with pytest.raises(AllocationFailure):
         ledger_target_identity(explicit)
+
     explicit.engine.url = explicit.engine.url.set(query={}, host="/tmp/OwnedSocket")
     with pytest.raises(AllocationFailure):
         ledger_target_identity(explicit)
+
+
+@pytest.mark.parametrize("campaign_scoring", ["v1", "v2"], indirect=True)
+@pytest.mark.parametrize("capacity", [True, False])
+def test_concrete_allocator_obeys_prospective_program_envelope(allocation_case, tmp_path, capacity):
+    from agentic_delivery.evaluation.campaign_allocation import configured_ledger_identity
+    from agentic_delivery.evaluation.program_budget import (
+        ProgramBudgetPolicy,
+        ProgramBudgetRegistry,
+    )
+
+    c = allocation_case
+    url = f"sqlite+pysqlite:///{tmp_path / 'delivery_eval_program_target.sqlite'}"
+    identity = configured_ledger_identity(url)
+    limits = c.case.arm.limits
+    ceiling = limits.model_microdollars + limits.infrastructure_microdollars
+    registry = ProgramBudgetRegistry.create(
+        tmp_path / "delivery_eval_program_allocator.sqlite",
+        ProgramBudgetPolicy(
+            program_id="owned-allocator",
+            authorization_digest="a" * 64,
+            cap_microdollars=ceiling if capacity else ceiling - 1,
+            approved_ledger_identities=(identity,),
+        ),
+        current_guard=lambda: None,
+    )
+    store = EvaluationExecutionStore(url, program_budget=registry)
+    try:
+        c.state["policy"] = c.state["policy"].model_copy(update={"ledger_identity": identity})
+        c.state["grant"] = c.state["grant"].model_copy(
+            update={
+                "ledger_identity": identity,
+                "allocation_policy_digest": digest_json(c.state["policy"].model_dump(mode="json")),
+            }
+        )
+        allocator = c.create(store)
+        if capacity:
+            allocation = allocator.allocate(c.case.task)
+            assert allocator.validate(c.case.task) == allocation
+            assert registry.snapshot().held_microdollars == ceiling
+            assert count_accounts(store) == 1
+        else:
+            with pytest.raises(AllocationFailure):
+                allocator.allocate(c.case.task)
+            assert count_accounts(store) == 0 and registry.snapshot().held_microdollars == 0
+        assert c.case.calls == []
+    finally:
+        store.engine.dispose()

@@ -70,8 +70,9 @@ duplicate identities exist, these are physical ledger totals, not deduplicated p
 
 This detects omissions inside declared databases. It does not establish that the controller
 declared every database used by the program, or that external invoices match configured-rate
-accounting. Prospective registry/enforcement of all preparation and execution targets, full
-program authority, and numerical cost promotion remain open. Complete program inventory and
+accounting. A [prospective registry](program-budget.md) now enforces account envelopes on
+new enrolled preparation/execution ledgers. Historical liability incorporation, campaign-required
+enrollment, full program authority/reporting and numerical cost promotion remain open. Complete program inventory and
 execution-authorized flags remain false. No historical inventory is refreshed by this change.
 
 ## Verification

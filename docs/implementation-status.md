@@ -4,8 +4,8 @@ Updated 2026-09-29 UTC during continued controlled implementation. This is the c
 the original milestone documents remain the release targets. Source code alone is not a passed
 integration or production release gate.
 
-Latest complete hosted verification: [CI at `1c0ba98`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36637230360)
-passed both Python versions (2,847 tests and 90 explicit skips each), 90 actual service
+Latest complete hosted verification: [CI at `7138173`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36640615411)
+passed both Python versions (2,882 tests and 90 explicit skips each), 90 actual service
 integration tests and secret scanning. This includes the [campaign journal](campaign-journal.md),
 [completed semantic reader](semantic-consumption.md) and [whole-attempt reader](completed-attempt-reporting.md).
 They reconstruct original outcomes, early failures and optional exact adjudication under
@@ -34,6 +34,14 @@ and after reconstruction, and keeps census totals separate from selected totals.
 cannot attest that every program ledger was declared; prospective registry enforcement and
 cost promotion remain open. See [accounting scope](campaign-accounting.md#declared-ledger-census).
 
+A [prospective program budget registry](program-budget.md) now reserves account envelopes
+across approved SQLite/PostgreSQL ledger targets before account creation. New reservations
+require an active envelope; irreversible local closure and concrete settled-cost proof precede
+capacity release. Partial creation/closure and unknown usage retain their liability. Legacy
+ledgers remain unchanged. All 131 registry/accounting/allocation checks passed with real
+PostgreSQL, including campaign allocator admission under both protocols. Historical liability
+incorporation, mandatory campaign enrollment and complete program-cost promotion remain open.
+
 The [prospective readiness policy](adr/ADR-018-prospective-readiness-reporting.md) passed
 15 focused tests. It pins A/B candidate-status declarations before phase opening or
 allocation and refuses retrospective insertion. This supplies the frozen reporting rule;
@@ -46,8 +54,9 @@ inventories. Seventeen focused cases cover missing outcomes, retained uncertaint
 successful/failed scoring and exact adjudication. Three existing execution/consumption checks
 also passed. It does not attest complete program-ledger coverage or supply numerical,
 statistical, operational or pilot promotion. The hosted result above includes this report.
-This hosted result also includes the whole-ledger census. Later prospective phase-statistics
-and requirement-inventory changes require their own exact-head hosted verification.
+This hosted result includes the whole-ledger census, prospective phase statistics and
+requirement inventory. Later criterion-judgment and program-budget changes require their
+own exact-head hosted verification.
 
 Prospective [phase statistics](adr/ADR-019-prospective-phase-statistics.md) now pin the bootstrap
 method and campaign seed before execution. The version-2 completed-attempt reader exposes

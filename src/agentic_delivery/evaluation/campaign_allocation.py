@@ -11,6 +11,7 @@ from typing import Annotated, Any, Literal
 
 from pydantic import AwareDatetime, Field, TypeAdapter
 from sqlalchemy import select
+from sqlalchemy.engine import URL, make_url
 
 from agentic_delivery.config import Budget
 from agentic_delivery.domain.models import Contract
@@ -59,9 +60,14 @@ def _require(condition: bool) -> None:
 
 def ledger_target_identity(ledger: EvaluationExecutionStore) -> str:
     """Trusted connection target, not cryptographic identity of database contents."""
-    url = ledger.engine.url
+    return configured_ledger_identity(ledger.engine.url)
+
+
+def configured_ledger_identity(target_url: str | URL) -> str:
+    """Derive an approved target pin without creating or opening its database."""
+    url = make_url(target_url)
     _require(not url.query)
-    if ledger.sqlite:
+    if url.get_backend_name() == "sqlite":
         _require(url.database is not None)
         target = {
             "backend": "sqlite",
