@@ -13,6 +13,7 @@ from agentic_delivery.evaluation.semantic_examples import SemanticCriterion
 from agentic_delivery.evaluation.semantic_scoring import (
     CHECKS,
     MAX_CONTEXT_BYTES,
+    FrozenOwnedSemanticEvidence,
     FrozenSemanticEvidence,
     SemanticFinding,
     SemanticScoringContext,
@@ -117,7 +118,35 @@ class HistoricalAdjudicationContextClaim(Contract):
     authority_validated: Literal[False] = False
 
 
-AdjudicationContext = OwnedAuthoredAdjudicationContext | HistoricalAdjudicationContextClaim
+class ExecutedOwnedAdjudicationContext(Contract):
+    """Actual owned execution evidence; the two peer judgments remain authored hypotheses."""
+
+    schema_version: Literal[1] = 1
+    kind: Literal["executed-owned-adjudication-context"] = "executed-owned-adjudication-context"
+    purpose: Literal["OWNED_EXECUTED_ADJUDICATION_CALIBRATION"] = (
+        "OWNED_EXECUTED_ADJUDICATION_CALIBRATION"
+    )
+    context_id: NonEmpty = Field(max_length=200)
+    authored_context_artifact: Digest
+    evidence: FrozenOwnedSemanticEvidence
+    evidence_digest: Digest
+    peers: tuple[AuthoredAdjudicationPeer, AuthoredAdjudicationPeer]
+    calibrated: Literal[False] = False
+    admitted: Literal[False] = False
+
+
+AdjudicationContext = (
+    OwnedAuthoredAdjudicationContext
+    | HistoricalAdjudicationContextClaim
+    | ExecutedOwnedAdjudicationContext
+)
+
+
+def _authored_material(evidence: FrozenOwnedSemanticEvidence) -> AuthoredAdjudicationMaterial:
+    fields = AuthoredAdjudicationMaterial.model_fields
+    return AuthoredAdjudicationMaterial.model_validate(
+        {key: value for key, value in evidence.model_dump(mode="json").items() if key in fields}
+    )
 
 
 class PeerFindingReference(Contract):
@@ -224,7 +253,9 @@ def _owned_citations(
 
 
 def _historical_citations(
-    citations: tuple[EvidenceCitationV2, ...], evidence: FrozenSemanticEvidence, key: Key
+    citations: tuple[EvidenceCitationV2, ...],
+    evidence: FrozenSemanticEvidence | FrozenOwnedSemanticEvidence,
+    key: Key,
 ) -> None:
     for citation in citations:
         _citation(citation, evidence)
@@ -254,8 +285,13 @@ def _context(
     _require(context.evidence_digest == digest_json(context.evidence.model_dump(mode="json")))
     _require(len(json.dumps(context.model_dump(mode="json")).encode()) <= MAX_CONTEXT_BYTES)
     _require(context.peers[0].peer_id != context.peers[1].peer_id)
-    if isinstance(context, OwnedAuthoredAdjudicationContext):
-        _material(context.evidence)
+    if isinstance(context, (OwnedAuthoredAdjudicationContext, ExecutedOwnedAdjudicationContext)):
+        material = (
+            context.evidence
+            if isinstance(context, OwnedAuthoredAdjudicationContext)
+            else _authored_material(context.evidence)
+        )
+        _material(material)
         expected = {("criterion", row.id) for row in context.evidence.criteria} | {
             ("integrity", key) for key in CHECKS
         }
@@ -266,7 +302,7 @@ def _context(
                 peer.output.verdict == _verdict({finding.status for finding in mapped.values()})
             )
             for key, finding in mapped.items():
-                _owned_citations(finding.citations, context.evidence, key)
+                _owned_citations(finding.citations, material, key)
     else:
         _require(tuple(peer.stage for peer in context.peers) == ("scorer_a", "scorer_b"))
         for name in (
@@ -301,6 +337,10 @@ def disputed_targets(context: AdjudicationContext) -> tuple[Key, ...]:
             context = OwnedAuthoredAdjudicationContext.model_validate(
                 context.model_dump(mode="json")
             )
+        elif isinstance(context, ExecutedOwnedAdjudicationContext):
+            context = ExecutedOwnedAdjudicationContext.model_validate(
+                context.model_dump(mode="json")
+            )
         else:
             context = HistoricalAdjudicationContextClaim.model_validate(
                 context.model_dump(mode="json")
@@ -320,6 +360,10 @@ def merge_adjudication_structure(
     try:
         if isinstance(context, OwnedAuthoredAdjudicationContext):
             context = OwnedAuthoredAdjudicationContext.model_validate(
+                context.model_dump(mode="json")
+            )
+        elif isinstance(context, ExecutedOwnedAdjudicationContext):
+            context = ExecutedOwnedAdjudicationContext.model_validate(
                 context.model_dump(mode="json")
             )
         else:
