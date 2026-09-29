@@ -68,7 +68,8 @@ use the [runbook](runbook.md) for their configuration and operation.
 
 GitHub App publication and Linear integration code are contract/fixture tested. Authorized
 Linear credentials now pass live read-only discovery, and local workspace/team/assignee/review-state
-mapping is configured. Signed webhook intake and live status handoff remain open, as does
+mapping is configured. One controlled real ticket passed signed intake and exact replay through
+a temporary HTTPS gateway; live status handoff and durable ingress remain open, as does
 GitHub App/private-key onboarding. OpenAI's
 wire adapter is contract tested; the recorded live model runs used Anthropic. Tests of named
 Docker controls do not establish general hostile-code isolation. Complete recovery, identity,

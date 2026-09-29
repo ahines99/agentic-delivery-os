@@ -965,3 +965,38 @@ queries verified workspace/team discovery, active owner membership and In Review
 all returned connection pages were complete. The ignored local configuration now binds this
 repository to those exact IDs and retains publication disabled. No provider mutation, issue
 delivery, signed webhook or live handoff was performed by these read-only checks.
+
+E118: [Anthropic fixed-tuple projection](anthropic-tuple-schema.md), source `d00caff`
+integrated as `5d2e983`, changes only homogeneous fixed-tuple generation syntax. The author
+passed 118 model/forecast/receipt tests and 29 final new controls; root passed those 29 in
+2.25 seconds. Non-tuple wire/receipt goldens remain unchanged, invalid original cardinality
+still fails locally, and old tuple receipts cannot bind to the new request. Current v38
+initial-scorer required-pass readback succeeded with no mutations or calls after integration.
+Ruff/format (316 files), mypy (99 sources), package build and committed secret scanning passed.
+
+E119: Separate prospective [adjudicator calibration v44](semantic-adjudication-calibration.md#recorded-live-owned-calibration)
+passed five valid/exact cases, dispute maps and merged verdicts, with zero mandatory failures,
+false-ready or new concerns. Five operations settled for 380,444 microdollars (52,826 input,
+8,457 output), with no reservation or cached recovery changes. Current required-pass readback
+succeeded with artifact/account/checkpoint/reserve/settle writes forbidden and unchanged totals.
+The original v41/v42 HTTP failures and reservations remain retained. This owned calibration
+is separate from initial scoring and confers no historical spending or campaign authority.
+
+E120: [Historical adjudication execution](semantic-adjudication-execution.md), source
+`e0924ed` integrated as `adc3175`, reconstructs two sealed actual reviews and permits one
+exact third operation under a private controller continuation. It retains the original
+account/deadline, same frozen model, separate current v2 calibration and unchanged agreements.
+The author passed 39 new cases, 79 prior regressions and two final-source smoke cases.
+Independent review passed 19 cases in 253.98 seconds; root passed three selected cases in
+65.12 seconds. Current concrete adjudication authority consumed passing v44 evidence with
+writes forbidden and unchanged accounting. Tests use controlled provider transports and
+substituted admission/calibration fixtures, not actual historical inputs or phase execution.
+
+E121: [Linear-only ingress](linear-ingress.md), source `1bf4880` integrated as `94d83c5`,
+passed 40 owned route/header/body/timeout tests and actual loopback/public negative checks.
+One actual Issue-only webhook delivered controlled ticket PER-5 into PostgreSQL with one
+workflow/start command and zero model operations at intake. A real non-content update plus
+an exact hash-matched signed replay left two inbox receipts and still one workflow/command/
+outbox record. No additional execution budget was created. The initial description-comparison
+refusal made zero mutations and remains recorded. This proves bounded live intake/replay,
+not durable ingress, provider-triggered retries, review-state handoff or GitHub delivery.

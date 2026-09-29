@@ -413,9 +413,9 @@ unmeasured.
 1. Configure a GitHub App installation/private key for only the target repository, set branch
    protections without bot bypass, and exercise actual publication/head-change reconciliation.
    The user's authenticated CLI is used for maintaining this project, never as the product's PAT fallback.
-2. Complete Linear signing-secret/HTTPS webhook setup and actual delivery/replay/status fixtures.
-   The authorized personal key now passes live read-only discovery, and local organization/team/
-   assignee/review-state mapping is configured; existing processes still need the updated environment.
+2. Complete durable Linear ingress and actual review-state handoff. The authorized personal key,
+   local mapping and temporary Issue-only webhook now pass discovery, actual signed intake,
+   non-content update and exact replay checks. Full ticket-to-plan/build/PR delivery remains open.
 3. Extend security qualification beyond the exercised memory/PID/disk/dependency-hook controls.
    Current Docker tests do not establish general runtime-escape resistance or hostile multi-tenant isolation.
 4. Qualify the implemented check-run/suite ingestion and REST readiness gate with the live product App.
@@ -508,3 +508,22 @@ Linear's owner-supplied personal key now passes actual read-only workspace/team/
 discovery through the product adapter. Local configuration pins the matching team, active
 assignee and In Review state. No Linear write, signed webhook delivery or product handoff
 is implied. GitHub App onboarding remains open.
+
+After the narrow homogeneous fixed-tuple projection, a separately frozen live owned
+adjudicator calibration passed all five exact dispute maps and verdicts, with no false-ready,
+mandatory failure or new concern. Five calls settled for 380,444 microdollars with zero
+reservation; cached recovery and required-pass readback with writes forbidden succeeded.
+The [full record](semantic-adjudication-calibration.md#recorded-live-owned-calibration)
+retains the earlier HTTP failures and their unknown reservations. Historical adjudication,
+corpus qualification and phase execution still need their separate authority and evidence.
+
+The historical adjudication executor is now implemented and independently reviewed, with
+current calibration consumed successfully and controlled exact-tail/recovery tests passing.
+It has not adjudicated a historical task. Its separate result still needs downstream campaign
+composition and phase reporting.
+
+Actual Linear signed intake is now exercised through the narrow temporary HTTPS gateway:
+controlled ticket PER-5 created one durable workflow/start command. A real non-content update
+and exact signed replay preserved that single workflow and budget. Private routes and unsigned
+requests were rejected externally. These checks do not establish durable hosting or live
+GitHub/Linear review-state handoff; see [the detailed evidence](linear-ingress.md).

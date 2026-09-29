@@ -47,7 +47,10 @@ and [permission selection](https://docs.github.com/en/apps/creating-github-apps/
 On 2026-09-29, the owner's locally supplied personal key passed actual adapter reads for
 workspace, team, active assignee and workflow states. The ignored local configuration maps
 this repository to that team and its In Review state. This establishes read access and
-configuration only; no provider mutation, signed webhook or end-to-end handoff was tested.
+configuration. A subsequent temporary Issue-only webhook delivered a controlled owner-assigned
+ticket into the durable inbox; a non-content update and exact signed replay preserved one workflow
+and start command. See [the ingress record](linear-ingress.md). Durable hosting, actual review-state
+handoff and complete Linear-to-GitHub delivery remain open.
 The key stays in the ignored `.local/linear.env`; service processes must receive it through
 their environment, without logging it. Reading a local dotenv file does not configure an
 already running worker automatically.

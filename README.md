@@ -24,8 +24,9 @@ A synthetic customer task reached `LOCAL_REVIEW_READY`; its durable workflow sto
 `POLICY_BLOCKED` because publication was disabled. No PR, merge, or deployment is implied.
 
 GitHub App publication and Linear adapters exist and have contract/fixture tests. The authorized
-Linear key now passes live read-only workspace/team discovery, and its local repository mapping
-is configured; signed webhook intake and status handoff remain unverified. GitHub App credentials
+Linear key now passes live workspace/team discovery, and a controlled real ticket passed signed
+webhook intake, a non-content update and exact signed replay through a temporary HTTPS gateway.
+One workflow/start command was retained. Status handoff remains unverified. GitHub App credentials
 are still absent. Complete
 recovery/security qualification and the independently scored 30+ historical-task evaluation
 remain release gates. The Docker checks establish named controls, not safety against arbitrary
@@ -56,6 +57,8 @@ two independent model reviews each and current authority validation. Two develop
 are qualified; no historical task has been scored or used in a campaign. A separately
 frozen final-scorer configuration passed all five owned development anchors; this is
 [calibration evidence](docs/semantic-calibration.md), not historical accuracy.
+A separate [owned adjudicator calibration](docs/semantic-adjudication-calibration.md#recorded-live-owned-calibration)
+also passed all five dispute anchors; historical adjudication and campaign execution remain open.
 
 ## Local quickstart
 
@@ -112,6 +115,8 @@ skip without the runbook's service variables.
 | [docs/protocol-v2-implementation.md](docs/protocol-v2-implementation.md) | Explicit prospective protocol contracts with strict v1 compatibility |
 | [docs/single-attempt-coordinator.md](docs/single-attempt-coordinator.md) | Shared-account candidate, deterministic and two-scorer composition |
 | [docs/historical-merge-linkage.md](docs/historical-merge-linkage.md) | Explicit first-parent merge metadata with unchanged current authorization |
+| [docs/semantic-adjudication-execution.md](docs/semantic-adjudication-execution.md) | One separately authorized third review of sealed disagreements |
+| [docs/linear-ingress.md](docs/linear-ingress.md) | Bounded Linear-only gateway and temporary live intake evidence |
 | [ADR-016](docs/adr/ADR-016-prospective-campaign-token-ceilings.md) | Prospective explicit token ceilings with unchanged financial caps |
 | [ADR-015](docs/adr/ADR-015-bounded-candidate-cleanup.md) | Bounded trusted cleanup following candidate activity failure |
 | [docs/operator-rotation.md](docs/operator-rotation.md) | Restart-based HTTP token rotation and paused-admission rehearsal |

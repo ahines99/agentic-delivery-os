@@ -108,3 +108,41 @@ Unit/contract tests use the actual broker and evaluation ledger with explicitly 
 transports and runtime fixtures. The opt-in Docker test uses real owned runtime checks plus the
 same controlled model responses; it does not spend provider money or establish judge accuracy.
 Production storage/controller integrity and semantic correctness remain external trust limits.
+
+## Recorded live owned calibration
+
+On 2026-09-29, prospective run v44 passed all five original owned cases at source
+`d00cafff367f30d0f76640a925a2a2ab8f09fb99`. It used the shared v2 prompt and the same
+Opus 5.5/6,000-output configuration as the passing initial-scorer calibration. The
+[fixed-tuple wire projection](anthropic-tuple-schema.md) changed generation syntax only;
+the original output contract, rubric, authored peers, expectations and validators remained
+unchanged. Runtime evidence was reconstructed from the original actual owned executions.
+
+| Bound evidence | Value |
+| --- | --- |
+| Specification | `1ad5ebbf981005eb4124eb704235c83673aa2a288378a720e98a9b5a6e510fe5` |
+| Result | `21c154d88df0a4edea684d23062eae3ff2c9e4f3fcb11e6261d8ee52448fd789` |
+| Configuration | `39f84911608c87fd8c11820b116b257bd7a8d78f96b83d77ab347b04b966b91d` |
+| Prompt | `cb9b66c148f4dc60346c5b5774f46b3b729226cbb40d962a82c0b18cf34f6f67` |
+| Rubric | `5b8a7a093755a1b9ad21af411cf414a9ffad01980fda629c1c2b4f17b8183899` |
+
+The finite grant allowed five calls, 127,602 upper-bound input tokens, 30,000 output tokens,
+1,110,408 microdollars and 1,800 seconds. Execution ran from 01:40:37.151662 to
+01:42:43.562615 UTC. All five operations settled: 52,826 reported input tokens, 8,457
+output tokens and 380,444 microdollars ($0.380444), with zero remaining reservation.
+All five outputs, exact dispute maps, complete cases and merged verdicts matched; there
+were zero new concerns, mandatory failures or false-ready observations. Cached recovery
+preserved the same evidence and accounting with no new calls. Current required-pass
+readback also succeeded with artifact writes, account creation, checkpoint writes,
+reservation and settlement forbidden, and unchanged account totals.
+
+The earlier v41 first call returned HTTP 400 with unknown usage and retains its 218,940-
+microdollar reservation. Separate schema-only diagnostic v42 reported unsupported
+`prefixItems`, also with unknown usage; its 136,664-microdollar reservation remains.
+Neither operation was reissued or retrospectively converted into zero-cost success.
+V44 is a separately frozen corrected wire request, not a rewrite of those failed records.
+
+This is passing calibration for five owned dispute anchors. It establishes neither
+historical task admission nor held-out judge accuracy, campaign success or permission
+to spend on historical adjudication. Current runtime/calibration authority and a separate
+exact historical execution grant remain required at consumption.
