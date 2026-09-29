@@ -724,3 +724,92 @@ fifteen actual Docker operations with 30 estimated infrastructure microdollars,
 zero model calls and zero remaining reservation. Exact cached recovery changed
 neither operations nor charges. Its status is `EXECUTED_NOT_CALIBRATED`; it admits
 no historical task and supplies no final-scoring calibration or campaign result.
+
+E88: [Hosted CI at `81e588c`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36497999987)
+passed all four checks: 1926 tests with 81 skips on each Python version (200.08 and
+165.23 seconds), plus 82 actual PostgreSQL/Temporal/Docker tests in 231.60 seconds.
+The checkpoint retains source `3956b29`. These scopes overlap E86 and are not summed.
+
+E89: [Canonical allocation](campaign-allocation.md) now creates one finite account
+per frozen campaign ordinal on an exact trusted ledger target. Owned SQLite and
+six-controller actual PostgreSQL tests cover concurrency, partial-write recovery,
+original deadlines and unchanged capacity. Independent review found and fixed
+zero-cost prior operations being overlooked during partial allocation recovery.
+The exact disposable PostgreSQL database was removed after its passing test.
+
+E90: [Owned context authority](owned-semantic-context.md) reconstructs current
+runtime evidence and exact projections without impersonating a historical task.
+Independent review found no remaining blocker. Root integration of the context,
+allocator and existing scorer passed 148 focused tests in 101.17 seconds; the
+dedicated PostgreSQL case skipped there and passed separately as E89 records.
+This scope included the actual owned-context Docker case and overlaps earlier tests.
+
+E91: [Final-scorer calibration machinery](semantic-calibration.md) passed 33 tests
+in 210.17 seconds, including five actual Docker preparations with controlled model
+responses; four additional current-policy revocation tests passed separately.
+Review found and fixed a missing-operation resume bug that could repeat a completed
+call, plus active reservation token reconciliation. The reviewer independently
+passed three focused regressions. These are machinery tests, not live model accuracy.
+
+E92: The first [live final-scorer calibration](semantic-calibration.md#first-live-development-attempt)
+stopped on the third call with HTTP 400. Two calls settled for 240,050 microdollars;
+the third retains a 558,270 microdollar reservation without usage evidence. A separate
+single-call capability diagnostic returned the same HTTP status and a billing-limit
+hint, retaining its 20,495 microdollar reservation. Neither account was reset or
+retried. No final-scorer calibration passed and no historical scoring was authorized.
+
+E93: The service-enabled run at `5480789` completed with 2093 passed, eleven skips
+and one failure in 1186.90 seconds. Ten skips are Windows-specific; one needs the
+separate allocation database. That allocation case passed separately on actual
+PostgreSQL in 2.76 seconds, with its database removed and absence verified. The
+failure exposed an actual-clock test fixture retaining a hardcoded data-use expiry:
+advancing its clock 31 minutes crossed midnight and correctly triggered rejection.
+Commit `613c1d1` gives this fixture dates relative to construction, without changing
+production expiry rules. All 37 affected qualification tests then passed in 192.86
+seconds; one actual integration case was deselected in that focused run. A new full
+combined result is required; the earlier run is retained as failed evidence.
+
+E94: [Canonical A/B candidate execution](campaign-candidate.md) passed 41 focused
+tests, including actual Docker builder-only and independent-review rejection/repair
+paths. A separate 120-case affected engine/allocation/scoring scope passed. Independent
+review caught and fixed replay after missing settled rows; the reviewer passed four
+recovery regressions. Frozen model/rate fields now bind cached receipts explicitly.
+All model responses in these tests are controlled, with no paid or historical work.
+
+E95: [Two initial final scorers](semantic-execution.md) passed 119 combined tests
+(31 new plus existing scorer/context cases) in 159.32 seconds. Independent review
+passed twelve lease, cancellation, accounting and tamper cases. A private parent-task
+lease permits only the exact planned active reservation while public readers remain
+idle-only. Current calibration and authority, original capacity/deadline and immutable
+receipts are required. Two agreeing reviews may establish the scoped semantic result;
+disagreement remains unresolved. No adjudication or historical score was executed.
+
+E96: Root integration of the candidate and two-initial-scorer executors passed 72
+focused tests in 116.05 seconds, including actual Docker A/B repair paths with
+controlled model responses. This overlaps E94/E95 and is not a full-suite result.
+
+E97: [Read-only candidate inspection](candidate-inspection.md) reconstructs exact
+A/B contexts, operation receipts, infrastructure accounting, collector nonces and
+final bytes under separate current consumption authority. It performs no credential
+lookup, provider call, execution, write or repair. Forty-three owned tests passed in
+42.37 seconds; independent review passed the preceding forty-test scope and verified
+the corrected infrastructure reservation binding. Expired execution may be inspected
+only with current qualification/data-use permission; it cannot resume spending.
+
+E98: After user-confirmed billing restoration, a fresh one-call diagnostic succeeded
+for 1,670 microdollars. A separately authorized five-case final-scorer calibration
+then completed at `48bb0de`, settling 597,710 microdollars with zero reservation and
+unchanged cached recovery. It failed calibration: five overall verdict matches,
+three valid exact matches, two mandatory structural failures and zero false-ready.
+A fixed-code diagnostic identified one file-line-range and two acceptance-node
+citation violations, without exposing outputs. Original failed attempts/reservations
+remain retained. This is development evidence, not historical accuracy or admission.
+
+E99: Separate [adjudication contracts](semantic-adjudication-contracts.md) distinguish
+authored original peer findings from unverified historical receipt claims. Structural
+merge resolves exactly disputed targets, preserves agreed statuses and lets cited new
+concerns block a would-be PASS without establishing authority or strict success.
+Five authored dispute anchors retain expectations separately. Independent review and
+root integration each passed all 55 focused tests (1.16 and 0.91 seconds). No model,
+container, historical adjudication or adjudicator calibration ran in this slice.
+Root static checks passed with 290 formatted files and 94 typed source files.

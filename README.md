@@ -18,7 +18,7 @@ bounded Docker execution, independent test runs, and digest-verified candidate a
 The recorded local suite at `3956b29` passed 1997 tests with actual PostgreSQL, Temporal and Docker, including
 structured test-evidence validation, CI races, projection recovery, resource exhaustion and
 hostile dependency hooks; ten POSIX/symlink cases explicitly skipped on Windows.
-[A recorded hosted CI run passed](https://github.com/ahines99/agentic-delivery-os/actions/runs/36494661795)
+[A recorded hosted CI run passed](https://github.com/ahines99/agentic-delivery-os/actions/runs/36497999987)
 on Python 3.12/3.13, real service integration and secret scanning.
 A synthetic customer task reached `LOCAL_REVIEW_READY`; its durable workflow stopped at
 `POLICY_BLOCKED` because publication was disabled. No PR, merge, or deployment is implied.
@@ -113,9 +113,16 @@ skip without the runbook's service variables.
 | [docs/qualification-admission.md](docs/qualification-admission.md) | Executed evidence, current consumption authority and legacy inspection |
 | [docs/scoring-execution.md](docs/scoring-execution.md) | Separate candidate scoring grants, accounting and revocation |
 | [docs/campaign-scoring.md](docs/campaign-scoring.md) | Explicit frozen-arm scoring on existing shared attempt accounts |
+| [docs/campaign-allocation.md](docs/campaign-allocation.md) | Canonical per-attempt capacity on one pinned ledger |
+| [docs/campaign-candidate.md](docs/campaign-candidate.md) | Metered A/B candidate generation on existing attempt accounts |
+| [docs/candidate-inspection.md](docs/candidate-inspection.md) | Read-only reconstruction under fresh consumption authority |
 | [docs/semantic-scoring-context.md](docs/semantic-scoring-context.md) | Protected candidate evidence and structurally validated scorer findings |
 | [docs/semantic-scoring-examples.md](docs/semantic-scoring-examples.md) | Five original subjects with separate expected outcomes |
 | [docs/owned-semantic-runtime.md](docs/owned-semantic-runtime.md) | Actual bounded owned-example checks without historical admission |
+| [docs/owned-semantic-context.md](docs/owned-semantic-context.md) | Current owned-example evidence without historical task impersonation |
+| [docs/semantic-calibration.md](docs/semantic-calibration.md) | Separate five-case final-scorer calibration and immutable receipts |
+| [docs/semantic-execution.md](docs/semantic-execution.md) | Two calibrated initial scorers with agreement and unresolved outcomes |
+| [docs/semantic-adjudication-contracts.md](docs/semantic-adjudication-contracts.md) | Separate authored dispute contracts and conservative structural merge |
 | [docs/qualification-v2.md](docs/qualification-v2.md) | Protected semantic evidence, independent reviews and adjudication |
 | [docs/qualifier-prompt-contract.md](docs/qualifier-prompt-contract.md) | Explicit finding and citation requirements with prompt provenance |
 | [docs/evaluation-calibration.md](docs/evaluation-calibration.md) | Executed development cases and recomputed calibration metrics |
@@ -135,6 +142,7 @@ skip without the runbook's service variables.
 | [docs/qualification-inputs.md](docs/qualification-inputs.md) | Review inputs reconstructed from completed ledger evidence |
 | [docs/model-request-forecast.md](docs/model-request-forecast.md) | Pure exact reservation forecasting without model effects |
 | [docs/model-failure-reconciliation.md](docs/model-failure-reconciliation.md) | Cost-only accounting for a narrowly evidenced failed evaluation call |
+| [docs/provider-failure-operations.md](docs/provider-failure-operations.md) | Provider failure diagnosis, retained uncertainty and recovery limits |
 | [docs/qualification-preparation.md](docs/qualification-preparation.md) | Offline evidence preparation without admission or spending |
 | [docs/evaluation-execution-store.md](docs/evaluation-execution-store.md) | Separate evaluation accounts, immutable usage and checkpoints |
 | [docs/model-operation-receipts.md](docs/model-operation-receipts.md) | Bound model provenance and retained uncertain outcomes |

@@ -1,6 +1,6 @@
 # Implementation and verification status
 
-Updated 2026-09-28 during continued controlled implementation. This is the current capability record;
+Updated 2026-09-29 UTC during continued controlled implementation. This is the current capability record;
 the original milestone documents remain the release targets. Source code alone is not a passed
 integration or production release gate.
 
@@ -33,9 +33,9 @@ mypy (86 sources), locked dependencies, package build and new-commit secret scan
 passed. This includes the versioned scoring, protected context and owned runtime
 changes below. It does not substitute for exact-head hosted CI or remaining release gates.
 
-Hosted [CI at `373cf34`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36494661795)
-previously passed all four checks: 1788 tests with 76 skips on each Python version,
-and 77 actual service integration tests. These overlapping scopes are not summed.
+Hosted [CI at `81e588c`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36497999987)
+passed all four checks: 1926 tests with 81 skips on each Python version,
+and 82 actual service integration tests. These overlapping scopes are not summed.
 
 The [versioned scoring consumer](campaign-scoring.md) uses an existing frozen
 attempt account and original deadline; it creates no additional spending capacity
@@ -44,8 +44,40 @@ reconstruct candidate/receipt evidence and validate complete cited findings, but
 do not execute independent scorers or establish semantic success. Five separately
 authored [owned examples](semantic-scoring-examples.md) have also passed actual
 [Docker preparation](owned-semantic-runtime.md), retaining exact receipts and costs.
-They remain distinct from historical admission and model calibration. Campaign
-allocation/execution and executed final-scoring calibration are still open.
+They remain distinct from historical admission and model calibration.
+[Canonical campaign allocation](campaign-allocation.md) now binds each ordinal to
+one account on a pinned ledger, preserving its original deadline and capacity.
+Owned tests include six concurrent PostgreSQL controllers. Partial recovery rejects
+prior operations even if their recorded cost is zero. [Owned contexts](owned-semantic-context.md)
+reconstruct the original runtime evidence under current policy. These integrated
+changes passed 148 focused tests with one dedicated-PostgreSQL test skipped; its
+separate actual PostgreSQL run passed. Full campaign execution and historical final
+scoring remain unverified. [Purpose-specific calibration](semantic-calibration.md) has controlled
+broker and actual owned Docker tests; its live outcome is recorded separately.
+The first live calibration stopped on its third request with HTTP 400; a separate
+small diagnostic returned a billing/spending-limit hint. Paid and unresolved usage
+remain retained. After the user restored billing, a fresh one-call diagnostic
+succeeded and a separately authorized five-case calibration completed. It failed:
+three of five outputs were fully valid matches, with two citation-contract failures
+and zero observed false-ready verdicts. The run settled 597,710 microdollars with
+zero reservation. Live final scoring remains gated on a passing calibration.
+
+The [A/B execution adapter](campaign-candidate.md) now connects canonical allocation
+to the shared engine, real broker accounting and Docker. Actual owned A and B repair
+paths pass; full-source contexts must fit existing caps. The
+[two-scorer executor](semantic-execution.md) uses two isolated initial contexts,
+current concrete calibration and the same original attempt account/deadline.
+Agreement may produce a semantic result; disagreement stays unresolved and invalid
+or unknown reviews cannot be replaced. These are controlled execution capabilities,
+not historical campaign results. The integrated candidate/scorer scope passed 72
+tests, including actual Docker paths. [Read-only candidate inspection](candidate-inspection.md)
+then passed all 43 tests after integration, without credentials or execution effects.
+[Adjudication contracts and original dispute fixtures](semantic-adjudication-contracts.md)
+passed 55 tests and independent review, but perform no model execution or calibration.
+Adjudication execution and the complete campaign remain open. A compatible per-call output
+configuration and context profile must also fit the frozen total attempt caps; the
+20,000-output calibration profile cannot reserve two final scorers inside a
+20,000-output total attempt.
 
 The latest acquisition-only extension passed 103 focused acquisition/import tests and
 56 actual service integration tests (213.08 seconds), plus Ruff/format, mypy, locked

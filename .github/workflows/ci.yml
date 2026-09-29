@@ -76,6 +76,7 @@ jobs:
           --health-interval 5s --health-timeout 3s --health-retries 10
     env:
       TEST_DATABASE_URL: postgresql+psycopg://delivery:ci-local-only@127.0.0.1:5432/delivery
+      TEST_CAMPAIGN_ALLOCATION_POSTGRES_URL: postgresql+psycopg://delivery:ci-local-only@127.0.0.1:5432/delivery_eval_allocation_ci
       TEST_TEMPORAL_ADDRESS: 127.0.0.1:7233
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -87,6 +88,16 @@ jobs:
           python-version: "3.12"
           enable-cache: false
       - run: uv sync --locked --extra dev
+      - name: Provision isolated campaign allocation database
+        run: |
+          uv run --no-sync python - <<'PY'
+          import psycopg
+          with psycopg.connect(
+              host="127.0.0.1", port=5432, dbname="delivery",
+              user="delivery", password="ci-local-only", autocommit=True,
+          ) as connection:
+              connection.execute("CREATE DATABASE delivery_eval_allocation_ci")
+          PY
       - name: Start Temporal development server
         run: >-
           docker run --detach --name delivery-temporal -p 127.0.0.1:7233:7233
@@ -102,3 +113,14 @@ jobs:
       - name: Remove Temporal development container
         if: always()
         run: docker rm -f delivery-temporal || true
+      - name: Remove isolated campaign allocation database
+        if: always()
+        run: |
+          uv run --no-sync python - <<'PY'
+          import psycopg
+          with psycopg.connect(
+              host="127.0.0.1", port=5432, dbname="delivery",
+              user="delivery", password="ci-local-only", autocommit=True,
+          ) as connection:
+              connection.execute("DROP DATABASE IF EXISTS delivery_eval_allocation_ci WITH (FORCE)")
+          PY

@@ -92,8 +92,8 @@ not the later two-pass historical scoring/adjudication procedure.
 The tests use actual owned runtime ledger/receipt chains and controlled HTTP through
 `StructuredModel`. An optional Docker case executes all five subjects before those
 controlled model responses. These tests validate accounting, bindings and rejection
-paths; scripted responses do not establish a live model's judgment accuracy. No live
-paid calibration or historical scoring is claimed by this implementation.
+paths; scripted responses do not establish a live model's judgment accuracy. Live development calibration outcomes are recorded below; the test suite itself
+claims no paid execution or historical scoring.
 
 ```sh
 uv run --no-sync python -m pytest tests/test_semantic_calibration.py -q
@@ -101,3 +101,56 @@ uv run --no-sync python -m pytest tests/test_semantic_calibration.py -q
 
 The Docker case requires a previously built immutable `TEST_SANDBOX_IMAGE`; it
 explicitly skips when unavailable. No test uses a real provider credential or network.
+
+## First live development attempt
+
+On 2026-09-28 the controller froze five original contexts, separate expectations,
+rubric, prompt, schema and an Opus 5 configuration before authorizing a finite
+five-call run. Exact worst-case reservation was 2,792,015 microdollars, with 58,403
+upper-bound input tokens, 100,000 output tokens and an original 1,800-second deadline.
+The first two calls settled at 240,050 microdollars (9,235 input and 7,755 output
+tokens). The third returned HTTP 400 without usage metadata, retaining a 558,270
+microdollar reservation. Execution stopped; no retry, completed calibration or
+historical scoring authority followed.
+
+A separately authorized one-call capability diagnostic used only a small original
+input and retained an immutable plan. It also returned HTTP 400, with an allowlisted
+`invalid_request_error` and a billing/spending-limit text hint. Its 20,495 microdollar
+reservation remains unresolved. The hint does not determine the earlier call's
+cause or establish a zero charge. No raw provider error text or credentials were
+published. [Provider documentation](https://platform.claude.com/docs/en/api/errors)
+allows multiple causes for HTTP 400, including configured spending limits.
+Both original accounts are retained unchanged. Later capacity restoration does not
+settle their unknown reservations or change the original failed outcome.
+
+## Subsequent completed development calibration
+
+After the user reported billing restored, a separately bounded one-call diagnostic
+returned HTTP 200: 279 input tokens, 11 output tokens and 1,670 microdollars, with
+zero remaining reservation. It supplied no calibration authority.
+
+On 2026-09-29 UTC, a fresh five-case run at source `48bb0de` retained the original
+owned runtime evidence, expectations, rubric, prompt and 20,000-output model
+configuration. New immutable context/operation identities and a separate finite
+grant reserved at most 2,792,015 microdollars on the original ledger. All five calls
+settled, using 23,287 input and 19,251 output tokens for 597,710 microdollars.
+Read-only validation and cached recovery left the ledger unchanged and no reservation.
+
+The result was **CALIBRATION_FAILED**: all five overall verdicts matched, but only
+three outputs were structurally valid exact finding-map matches; two mandatory
+controls failed the required structural checks. The observed false-ready count was
+zero. A read-only fixed-code diagnostic reported one out-of-range file citation and
+two missing acceptance-node citations across the two invalid outputs. No output
+prose, source bytes or expected labels were exposed by that diagnostic. These
+formatting failures remain failed calibration evidence, not corrected model results.
+
+The evidence reference is `dd479e1789600e7271cf09ae7a2601298e453d0f4213cb842a8c302fb7573fea`.
+The original partial run and failed diagnostic remain separately retained, including
+their unresolved reservations. No final scorer is calibrated by this run and no
+historical scoring is authorized. Future prompt changes require distinct frozen
+artifacts and a new calibration; the original prompt must remain reconstructable.
+
+Separately, this development profile cannot reserve two 20,000-output scorer calls
+inside the campaign's 20,000-output total attempt ceiling. Before any campaign, a
+compatible preregistered per-call configuration and context profile must pass fresh
+calibration and all existing total budget checks. No cap is raised by this result.
