@@ -1103,3 +1103,9 @@ two changed files, one relocated whole test file and one frozen acceptance selec
 It completed `DERIVED_NOT_IMPORTED`, with no model call, repository execution, rights grant,
 worker export or qualification. Historical source, patch and oracle content stayed protected.
 See [the acquisition record](historical-development-attempts.md#markdownify-development-acquisition).
+
+The protected partial-context inventory measured 261,183 compact-JSON bytes across the
+executable baseline/reference and oracle, without emitting contents or measuring a full model
+context. Subsequent metadata-only screens made 20 requests (125,219 bytes), retaining six
+unsupported changes and four further markdownify candidates. Those candidates remain
+unacquired and unqualified; their metadata cannot establish independent task families.

@@ -184,3 +184,15 @@ ran, and no qualification, scoring, worker export or campaign admission occurred
 review, protected issue capture/import, runtime/dependency compatibility, full-context
 feasibility and current independently calibrated qualification remain prerequisites.
 Earlier expired data/calibration grants cannot authorize this new candidate.
+
+A separate protected size inventory measured 120,147 bytes for the executable baseline,
+120,185 for the executable reference and 20,851 for the oracle under compact JSON encoding
+(261,183 combined). It emitted only counts and digests. This is a partial evidence-size
+screen, not a complete model context, token forecast or execution authorization.
+
+Further bounded metadata screening retained two unsupported inflection changes and four
+unsupported markdownify changes. Four additional markdownify pairs passed metadata checks:
+PR 230/issue 226, PR 214/issue 212, PR 202/issue 201 and PR 200/issue 199. These follow-ups
+made 20 requests totaling 125,219 bytes, without source, patch or issue-body retrieval.
+The four additional candidates have not been acquired or qualified. Related-task grouping,
+edited-issue provenance and executable relevance remain qualification obligations.
