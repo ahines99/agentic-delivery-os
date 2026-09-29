@@ -50,7 +50,7 @@ def validate_derived_authorization(
     from agentic_delivery.evaluation.historical_derivation import (
         validate_reference_derivation_content,
     )
-    from agentic_delivery.evaluation.historical_linkage import validate_historical_linkage
+    from agentic_delivery.evaluation.historical_linkage import validate_historical_linkage_record
     from agentic_delivery.evaluation.qualification_preparation import UsageAuthorization, _read
 
     try:
@@ -62,7 +62,7 @@ def validate_derived_authorization(
         actual = validate_reference_derivation_content(
             record.derivation_artifact, protected_artifacts=protected_artifacts
         )
-        linkage = validate_historical_linkage(
+        linkage = validate_historical_linkage_record(
             linkage_artifact,
             protected_artifacts=protected_artifacts,
             derivation=derivation,

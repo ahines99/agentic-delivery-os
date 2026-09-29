@@ -311,7 +311,7 @@ def _import_historical_task_v2(
     from agentic_delivery.evaluation.historical_acquisition import BaselineAcquisition
     from agentic_delivery.evaluation.historical_authorization import validate_derived_authorization
     from agentic_delivery.evaluation.historical_derivation import validate_reference_derivation
-    from agentic_delivery.evaluation.historical_linkage import validate_historical_linkage
+    from agentic_delivery.evaluation.historical_linkage import validate_historical_linkage_record
     from agentic_delivery.evaluation.qualification_preparation import (
         ReferenceProvenanceV2,
         UsageAuthorization,
@@ -338,7 +338,7 @@ def _import_historical_task_v2(
         protected_artifacts=store,
         worker_roots=(output_root, worker_root),
     )
-    linkage = validate_historical_linkage(
+    linkage = validate_historical_linkage_record(
         acquired.linkage_artifact, protected_artifacts=store, derivation=derivation, now=now
     )
     baseline = BaselineAcquisition.model_validate(

@@ -29,7 +29,7 @@ from agentic_delivery.storage.store import digest_json
 
 if TYPE_CHECKING:
     from agentic_delivery.evaluation.historical_derivation import ReferenceDerivation
-    from agentic_delivery.evaluation.historical_linkage import HistoricalLinkageEvidence
+    from agentic_delivery.evaluation.historical_linkage import HistoricalLinkageRecord
 
 MAX_PATCH_BYTES = 1024 * 1024
 MAX_JSON_BYTES = 4 * 1024 * 1024
@@ -122,7 +122,7 @@ class ReferenceProvenanceV2(Contract):
 
 
 def validate_derived_requirements(
-    task: HistoricalTask, linkage: "HistoricalLinkageEvidence", artifacts: ArtifactStore
+    task: HistoricalTask, linkage: "HistoricalLinkageRecord", artifacts: ArtifactStore
 ) -> None:
     """Require the captured pre-acceptance body and neutral title on every derived route."""
     _require(
@@ -146,7 +146,7 @@ def validate_derived_reference_provenance(
     worker_roots: tuple[Path, ...] | None = None,
     protected_paths: tuple[str, ...] | None = None,
     now: datetime | None = None,
-) -> tuple["ReferenceDerivation", "HistoricalLinkageEvidence"]:
+) -> tuple["ReferenceDerivation", "HistoricalLinkageRecord"]:
     """Reconstruct identity/content; scope/current policy require trusted caller inputs.
 
     Protected semantic readers have no worker scope or live policy and use content-only
@@ -156,7 +156,7 @@ def validate_derived_reference_provenance(
         validate_reference_derivation,
         validate_reference_derivation_content,
     )
-    from agentic_delivery.evaluation.historical_linkage import validate_historical_linkage
+    from agentic_delivery.evaluation.historical_linkage import validate_historical_linkage_record
 
     reference = ReferenceProvenanceV2.model_validate(reference.model_dump(mode="json"))
     derivation = (
@@ -170,7 +170,7 @@ def validate_derived_reference_provenance(
             worker_roots=worker_roots,
         )
     )
-    linkage = validate_historical_linkage(
+    linkage = validate_historical_linkage_record(
         reference.linkage_artifact,
         protected_artifacts=protected_artifacts,
         derivation=derivation,

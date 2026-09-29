@@ -5,7 +5,7 @@ import json
 import re
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 from pydantic import AwareDatetime, Field, TypeAdapter
 
@@ -76,6 +76,51 @@ class HistoricalLinkageEvidence(Contract):
     closed_at: AwareDatetime
     first_captured_at: AwareDatetime
     captured_at: AwareDatetime
+
+
+class HistoricalMergeLinkageEvidenceV2(Contract):
+    """Explicit ordered first-parent merge profile; no authenticity or authority claim."""
+
+    schema_version: Literal[2] = 2
+    kind: Literal["provider-reported-first-parent-merge-linkage-v2"] = (
+        "provider-reported-first-parent-merge-linkage-v2"
+    )
+    transport_basis: Literal["TRUSTED_CALLER_FIXED_GITHUB_GRAPHQL"] = (
+        "TRUSTED_CALLER_FIXED_GITHUB_GRAPHQL"
+    )
+    cryptographic_authenticity: Literal[False] = False
+    rights_cleared: Literal[False] = False
+    admitted: Literal[False] = False
+    derivation_artifact: Digest
+    requirements_capture_artifact: Digest
+    provider_evidence_artifact: Digest
+    query_digest: Digest
+    repository: str = Field(strict=True, min_length=1)
+    repository_id: int = Field(strict=True, gt=0)
+    base_sha: CommitSHA
+    accepted_commit: CommitSHA
+    accepted_tree: CommitSHA
+    pull_request_number: int = Field(strict=True, gt=0)
+    pull_request_url: str = Field(strict=True, min_length=1)
+    issue_url: str = Field(strict=True, min_length=1)
+    issue_node_id: str = Field(strict=True, min_length=1, max_length=256)
+    issue_number: int = Field(strict=True, gt=0)
+    issue_created_at: AwareDatetime
+    requirements_artifact: Digest
+    requirements_as_of: AwareDatetime
+    committed_at: AwareDatetime
+    accepted_at: AwareDatetime
+    closed_at: AwareDatetime
+    first_captured_at: AwareDatetime
+    captured_at: AwareDatetime
+
+    parent_profile: Literal["FIRST_PARENT_BASELINE_TWO_PARENTS"] = (
+        "FIRST_PARENT_BASELINE_TWO_PARENTS"
+    )
+    accepted_parents: tuple[CommitSHA, CommitSHA]
+
+
+HistoricalLinkageRecord = HistoricalLinkageEvidence | HistoricalMergeLinkageEvidenceV2
 
 
 def _require(condition: bool) -> None:
@@ -195,12 +240,12 @@ def _requirements(artifact: str, store: ArtifactStore, now: datetime) -> Any:
     return capture
 
 
-def _reconstruct(
-    evidence: HistoricalLinkageEvidence,
+def _reconstruct[LinkageT: HistoricalLinkageRecord](
+    evidence: LinkageT,
     store: ArtifactStore,
     derivation: "ReferenceDerivation",
     now: datetime,
-) -> HistoricalLinkageEvidence:
+) -> LinkageT:
     from agentic_delivery.evaluation.historical_acquisition import BaselineAcquisition
     from agentic_delivery.evaluation.historical_derivation import (
         validate_reference_derivation_content,
@@ -238,7 +283,21 @@ def _reconstruct(
     tree = _keys(commit["tree"], {"oid"})["oid"]
     _require(tree == accepted.tree_sha)
     parents = _connection(commit["parents"], 2)
-    _require(len(parents) == 1 and _keys(parents[0], {"oid"})["oid"] == derivation.base_sha)
+    if isinstance(evidence, HistoricalMergeLinkageEvidenceV2):
+        _require(len(parents) == 2)
+        ordered = tuple(
+            TypeAdapter(CommitSHA).validate_python(_keys(parent, {"oid"})["oid"])
+            for parent in parents
+        )
+        _require(
+            len(set(ordered)) == 2
+            and ordered[0] == derivation.base_sha
+            and derivation.accepted_commit not in ordered
+            and "0" * 40 not in ordered
+            and ordered == evidence.accepted_parents
+        )
+    else:
+        _require(len(parents) == 1 and _keys(parents[0], {"oid"})["oid"] == derivation.base_sha)
     pr = _keys(repo["pullRequest"], {"id", "number", "url", "merged", "mergedAt", "mergeCommit"})
     _require(type(pr["number"]) is int and pr["number"] > 0 and pr["merged"] is True)
     _require(isinstance(pr["id"], str) and 0 < len(pr["id"]) <= 256)
@@ -318,25 +377,28 @@ def _reconstruct(
     _require(
         accepted_at <= baseline.acquired_at <= now and accepted_at <= accepted.acquired_at <= now
     )
-    return evidence.model_copy(
-        update={
-            "repository": derivation.repository,
-            "repository_id": derivation.repository_id,
-            "base_sha": derivation.base_sha,
-            "accepted_commit": derivation.accepted_commit,
-            "accepted_tree": tree,
-            "pull_request_number": pr["number"],
-            "pull_request_url": pr["url"],
-            "issue_url": capture.issue_url,
-            "issue_node_id": capture.issue_node_id,
-            "issue_number": capture.issue_number,
-            "issue_created_at": capture.issue_created_at,
-            "requirements_artifact": capture.body_artifact,
-            "requirements_as_of": capture.requirements_as_of,
-            "committed_at": committed_at,
-            "accepted_at": accepted_at,
-            "closed_at": matched[0],
-        }
+    return cast(
+        LinkageT,
+        evidence.model_copy(
+            update={
+                "repository": derivation.repository,
+                "repository_id": derivation.repository_id,
+                "base_sha": derivation.base_sha,
+                "accepted_commit": derivation.accepted_commit,
+                "accepted_tree": tree,
+                "pull_request_number": pr["number"],
+                "pull_request_url": pr["url"],
+                "issue_url": capture.issue_url,
+                "issue_node_id": capture.issue_node_id,
+                "issue_number": capture.issue_number,
+                "issue_created_at": capture.issue_created_at,
+                "requirements_artifact": capture.body_artifact,
+                "requirements_as_of": capture.requirements_as_of,
+                "committed_at": committed_at,
+                "accepted_at": accepted_at,
+                "closed_at": matched[0],
+            }
+        ),
     )
 
 
@@ -395,6 +457,129 @@ def freeze_historical_linkage(
         capture = _requirements(requirements_capture_artifact, staged, current)
         accepted = _read(staged, derivation.request.accepted_acquisition_artifact)
         seed = HistoricalLinkageEvidence(
+            derivation_artifact=derivation_artifact,
+            requirements_capture_artifact=requirements_capture_artifact,
+            provider_evidence_artifact=digest,
+            query_digest=hashlib.sha256(LINKAGE_QUERY.encode()).hexdigest(),
+            repository=derivation.repository,
+            repository_id=derivation.repository_id,
+            base_sha=derivation.base_sha,
+            accepted_commit=derivation.accepted_commit,
+            accepted_tree=accepted["tree_sha"],
+            pull_request_number=1,
+            pull_request_url="pending",
+            issue_url=capture.issue_url,
+            issue_node_id=capture.issue_node_id,
+            issue_number=capture.issue_number,
+            issue_created_at=capture.issue_created_at,
+            requirements_artifact=capture.body_artifact,
+            requirements_as_of=capture.requirements_as_of,
+            committed_at=capture.accepted_at,
+            accepted_at=capture.accepted_at,
+            closed_at=capture.accepted_at,
+            first_captured_at=first_captured_at,
+            captured_at=captured_at,
+        )
+        result = _reconstruct(seed, staged, derivation, current)
+        raw = json.dumps(result.model_dump(mode="json"), sort_keys=True, allow_nan=False).encode()
+        _require(len(raw) <= protected_artifacts.max_bytes)
+        _require(protected_artifacts.put(payload) == digest)
+        return protected_artifacts.put(raw)
+    except Exception:
+        raise HistoricalLinkageFailure("Historical linkage refused") from None
+
+
+def validate_historical_merge_linkage(
+    artifact: str,
+    *,
+    protected_artifacts: ArtifactStore,
+    derivation: "ReferenceDerivation",
+    now: datetime | None = None,
+) -> HistoricalMergeLinkageEvidenceV2:
+    """Validate only the explicit two-parent profile, never reinterpret a v1 record."""
+    from agentic_delivery.evaluation.qualification_preparation import _read
+
+    try:
+        current = TypeAdapter(AwareDatetime).validate_python(now or datetime.now(UTC))
+        document = _read(protected_artifacts, artifact)
+        _require(set(document) == set(HistoricalMergeLinkageEvidenceV2.model_fields))
+        _require(type(document["schema_version"]) is int)
+        evidence = HistoricalMergeLinkageEvidenceV2.model_validate(document)
+        _require(_reconstruct(evidence, protected_artifacts, derivation, current) == evidence)
+        return evidence
+    except Exception:
+        raise HistoricalLinkageFailure("Historical merge linkage refused") from None
+
+
+def validate_historical_linkage_record(
+    artifact: str,
+    *,
+    protected_artifacts: ArtifactStore,
+    derivation: "ReferenceDerivation",
+    now: datetime | None = None,
+) -> HistoricalLinkageRecord:
+    """Exact version/kind dispatch for current consumers; unknown records never fall back."""
+    from agentic_delivery.evaluation.qualification_preparation import _read
+
+    try:
+        document = _read(protected_artifacts, artifact)
+        _require(type(document.get("schema_version")) is int)
+        identity = (document["schema_version"], document.get("kind"))
+        if identity == (1, "provider-reported-merged-pr-linkage-v1"):
+            return validate_historical_linkage(
+                artifact, protected_artifacts=protected_artifacts, derivation=derivation, now=now
+            )
+        if identity == (2, "provider-reported-first-parent-merge-linkage-v2"):
+            return validate_historical_merge_linkage(
+                artifact, protected_artifacts=protected_artifacts, derivation=derivation, now=now
+            )
+        raise HistoricalLinkageFailure("Historical linkage refused")
+    except Exception:
+        raise HistoricalLinkageFailure("Historical linkage refused") from None
+
+
+def freeze_historical_merge_linkage(
+    first_response: dict[str, Any],
+    second_response: dict[str, Any],
+    *,
+    derivation_artifact: str,
+    requirements_capture_artifact: str,
+    first_captured_at: datetime,
+    captured_at: datetime,
+    protected_artifacts: ArtifactStore,
+    worker_roots: tuple[Path, ...],
+    now: datetime | None = None,
+) -> str:
+    """Freeze explicitly trusted caller captures; no network, credentials or code execution."""
+    from agentic_delivery.evaluation.historical_derivation import validate_reference_derivation
+    from agentic_delivery.evaluation.qualification_preparation import _read
+
+    try:
+        current = TypeAdapter(AwareDatetime).validate_python(now or datetime.now(UTC))
+        derivation = validate_reference_derivation(
+            derivation_artifact, protected_artifacts=protected_artifacts, worker_roots=worker_roots
+        )
+        payload = json.dumps(
+            {"first": first_response, "second": second_response}, sort_keys=True, allow_nan=False
+        ).encode()
+        _require(0 < len(payload) <= min(protected_artifacts.max_bytes, 256 * 1024))
+        digest = hashlib.sha256(payload).hexdigest()
+
+        # A temporary read-through view keeps all real artifact writes after validation.
+        class StagedStore(ArtifactStore):
+            def get(self, requested: str) -> bytes:
+                return payload if requested == digest else protected_artifacts.get(requested)
+
+        staged = StagedStore(protected_artifacts.root, max_bytes=protected_artifacts.max_bytes)
+        capture = _requirements(requirements_capture_artifact, staged, current)
+        accepted = _read(staged, derivation.request.accepted_acquisition_artifact)
+        seed = HistoricalMergeLinkageEvidenceV2(
+            accepted_parents=tuple(
+                TypeAdapter(CommitSHA).validate_python(_keys(parent, {"oid"})["oid"])
+                for parent in _connection(
+                    first_response["data"]["repository"]["accepted"]["parents"], 2
+                )
+            ),
             derivation_artifact=derivation_artifact,
             requirements_capture_artifact=requirements_capture_artifact,
             provider_evidence_artifact=digest,

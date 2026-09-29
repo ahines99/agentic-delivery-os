@@ -281,6 +281,7 @@ def _supporting_text(artifacts: ArtifactStore, digest: str, *, derived: bool) ->
                 "derived-historical-import",
                 "imported-derived-historical-task",
                 "provider-reported-merged-pr-linkage-v1",
+                "provider-reported-first-parent-merge-linkage-v2",
                 "historical-reference-derivation-v1",
             },
             "Derived reference containers cannot be supporting model evidence",
