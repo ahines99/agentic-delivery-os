@@ -18,7 +18,7 @@ bounded Docker execution, independent test runs, and digest-verified candidate a
 The recorded local suite at `3956b29` passed 1997 tests with actual PostgreSQL, Temporal and Docker, including
 structured test-evidence validation, CI races, projection recovery, resource exhaustion and
 hostile dependency hooks; ten POSIX/symlink cases explicitly skipped on Windows.
-[A recorded hosted CI run passed](https://github.com/ahines99/agentic-delivery-os/actions/runs/36497999987)
+[A recorded hosted CI run passed](https://github.com/ahines99/agentic-delivery-os/actions/runs/36502328714)
 on Python 3.12/3.13, real service integration and secret scanning.
 A synthetic customer task reached `LOCAL_REVIEW_READY`; its durable workflow stopped at
 `POLICY_BLOCKED` because publication was disabled. No PR, merge, or deployment is implied.
@@ -105,6 +105,7 @@ skip without the runbook's service variables.
 | [docs/candidate-arms.md](docs/candidate-arms.md) | Shared builder-only and independent-review candidate engine |
 | [docs/worker-process-loss.md](docs/worker-process-loss.md) | Actual killed-worker cleanup and explicit uncertain outcomes |
 | [ADR-014](docs/adr/ADR-014-campaign-execution-budgets.md) | Separate immutable qualification and frozen campaign execution budgets |
+| [ADR-016](docs/adr/ADR-016-prospective-campaign-token-ceilings.md) | Prospective explicit token ceilings with unchanged financial caps |
 | [ADR-015](docs/adr/ADR-015-bounded-candidate-cleanup.md) | Bounded trusted cleanup following candidate activity failure |
 | [docs/operator-rotation.md](docs/operator-rotation.md) | Restart-based HTTP token rotation and paused-admission rehearsal |
 | [docs/artifact-retention.md](docs/artifact-retention.md) | Read-only artifact reachability planning and required scope |
@@ -122,6 +123,10 @@ skip without the runbook's service variables.
 | [docs/owned-semantic-context.md](docs/owned-semantic-context.md) | Current owned-example evidence without historical task impersonation |
 | [docs/semantic-calibration.md](docs/semantic-calibration.md) | Separate five-case final-scorer calibration and immutable receipts |
 | [docs/semantic-execution.md](docs/semantic-execution.md) | Two calibrated initial scorers with agreement and unresolved outcomes |
+| [docs/semantic-owned-adjudication.md](docs/semantic-owned-adjudication.md) | Actual owned runtime evidence with unchanged hypothetical peer findings |
+| [docs/scoring-inspection.md](docs/scoring-inspection.md) | Current read-only reconstruction of completed deterministic scores |
+| [docs/semantic-file-pool.md](docs/semantic-file-pool.md) | Pure lossless context codec; model wire integration remains pending |
+| [docs/semantic-prompt-versions.md](docs/semantic-prompt-versions.md) | Explicit prompt selection preserving previous artifact bytes |
 | [docs/semantic-adjudication-contracts.md](docs/semantic-adjudication-contracts.md) | Separate authored dispute contracts and conservative structural merge |
 | [docs/qualification-v2.md](docs/qualification-v2.md) | Protected semantic evidence, independent reviews and adjudication |
 | [docs/qualifier-prompt-contract.md](docs/qualifier-prompt-contract.md) | Explicit finding and citation requirements with prompt provenance |

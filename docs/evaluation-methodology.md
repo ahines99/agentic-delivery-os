@@ -89,6 +89,15 @@ Default v1 ceilings per attempt: **30 minutes active wall time**, **10 minutes p
 
 The planned campaign ceiling is **USD 1,000 total measured model and infrastructure cost**, including qualification and repeats; this is a design cap, **not authorization to spend money now**. At the per-attempt maximum, 144 attempts cost at most USD 864, leaving USD 136 for qualification. If qualification or reserved costs cannot fit, stop before starting scored runs and preregister a smaller valid campaign or request a later budget decision. Never drop expensive failures after observing outcomes. Agent qualification, both scoring passes, adjudication, retries and calibration are metered within the campaign cap, including preparation costs. Any actually observed human intervention is recorded separately; absent participation is unmeasured human benefit, never an estimated saving. The user's automation preference does not authorize unlimited or previously unauthorized spend.
 
+Prospective protocol decision: [ADR-016](adr/ADR-016-prospective-campaign-token-ceilings.md)
+adds explicitly selected `agentic-historical-v2` with 500,000 total input and 64,000
+total output tokens. Every monetary, time, command, repair, retry, corpus and promotion
+limit above stays unchanged. Implementation and activation are pending; v1 defaults
+and frozen records remain unchanged. All stages share the original attempt account.
+Use the full USD 6 attempt cap for campaign reservations, retain prior preparation and
+unknown costs, and report versions separately. New configuration or context profiles
+require matching successful calibration; this decision supplies no execution grant.
+
 ## Outcomes and denominators
 
 All rates include integer numerators and denominators. Report each split/arm separately; the release headline uses sealed test only. The development/validation counts establish the 30+ historical-task coverage but are not an unbiased headline.

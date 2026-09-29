@@ -33,9 +33,16 @@ mypy (86 sources), locked dependencies, package build and new-commit secret scan
 passed. This includes the versioned scoring, protected context and owned runtime
 changes below. It does not substitute for exact-head hosted CI or remaining release gates.
 
-Hosted [CI at `81e588c`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36497999987)
-passed all four checks: 1926 tests with 81 skips on each Python version,
-and 82 actual service integration tests. These overlapping scopes are not summed.
+Hosted [CI at `9438b47`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36502328714)
+passed all four checks: 2165 tests with 86 explicit skips on each Python version,
+and 87 actual service integration tests. It retains production source `8555fcf`,
+including the candidate/scoring executors, read-only inspection and adjudication
+contracts. These overlapping scopes are not summed. Local full verification at `8555fcf`
+finished with 2240 passed, ten Windows skips and one allocation-test setup failure: the
+private driver used a database name outside the required `delivery_eval_` prefix.
+The exact PostgreSQL allocation case then passed in 3.76 seconds with the corrected
+dedicated database. Both original databases and the rerun database were dropped and
+absence verified. The original full-run failure remains retained.
 
 The [versioned scoring consumer](campaign-scoring.md) uses an existing frozen
 attempt account and original deadline; it creates no additional spending capacity
@@ -60,7 +67,12 @@ remain retained. After the user restored billing, a fresh one-call diagnostic
 succeeded and a separately authorized five-case calibration completed. It failed:
 three of five outputs were fully valid matches, with two citation-contract failures
 and zero observed false-ready verdicts. The run settled 597,710 microdollars with
-zero reservation. Live final scoring remains gated on a passing calibration.
+zero reservation. A later v2 citation-prompt run at 4,000 output tokens stopped at
+truncation and was reconciled for cost only. The subsequent 6,000-output profile
+completed all five valid outputs, with five overall verdict matches but four exact
+finding-map matches and one mandatory failure. It settled 572,270 microdollars with
+zero reservation. Both remain failed calibration evidence; live final scoring is
+still gated on a passing matching calibration. See the full [record](semantic-calibration.md).
 
 The [A/B execution adapter](campaign-candidate.md) now connects canonical allocation
 to the shared engine, real broker accounting and Docker. Actual owned A and B repair
@@ -74,6 +86,10 @@ tests, including actual Docker paths. [Read-only candidate inspection](candidate
 then passed all 43 tests after integration, without credentials or execution effects.
 [Adjudication contracts and original dispute fixtures](semantic-adjudication-contracts.md)
 passed 55 tests and independent review, but perform no model execution or calibration.
+The [owned adjudication adapter](semantic-owned-adjudication.md) now binds those
+unchanged hypothetical peer findings to verified actual owned runtime evidence,
+without inventing reviewer operations. Root integration of the adapter, protected-path
+scoring checks and affected consumers passed 138 tests with one optional Docker skip.
 Adjudication execution and the complete campaign remain open. A compatible per-call output
 configuration and context profile must also fit the frozen total attempt caps; the
 20,000-output calibration profile cannot reserve two final scorers inside a
@@ -423,3 +439,12 @@ PostgreSQL for workflow `2abb68f2-d32f-4ceb-90e9-5b8f53e9b322`; output SHA-256
 It contains allowlisted metadata, not artifact bytes or secrets. This advances M4-03 only within
 that scope; coordinated retention/deletion, a full telemetry service and cross-system recovery
 remain open despite the separate bounded read-only retention planner.
+
+
+## Prospective protocol decision
+
+[ADR-016](adr/ADR-016-prospective-campaign-token-ceilings.md) accepts an explicitly
+selected 500,000-input/64,000-output protocol while retaining all financial, time,
+corpus and promotion limits. Implementation and activation remain pending. Existing
+v1 types, grants, costs and frozen records are unchanged; the decision supplies no
+calibration or execution authority.

@@ -154,3 +154,50 @@ Separately, this development profile cannot reserve two 20,000-output scorer cal
 inside the campaign's 20,000-output total attempt ceiling. Before any campaign, a
 compatible preregistered per-call configuration and context profile must pass fresh
 calibration and all existing total budget checks. No cap is raised by this result.
+
+## Explicit citation prompt and bounded output experiment
+
+An explicit v2 prompt adds generic per-finding citation construction checks while
+preserving the original v1 prompt bytes, output schema, expectations and validators.
+The reviewed implementation passed 96 controlled regression tests with one optional
+Docker skip; an independent 23-case version/rebinding scope passed. Unknown prompt
+bytes and attempts to rebind completed v1 operations to v2 are rejected.
+
+A new five-case calibration at reviewed source `5ca56d3` used v2 with a 4,000-token
+per-call output limit. It stopped on its fourth operation: the provider returned
+HTTP 200 with `max_tokens`, reporting 5,435 input and 4,000 output tokens. Three
+prior calls had settled 333,790 microdollars. Exact original request/observation
+reconciliation recorded the fourth call as financial failure for 127,175 microdollars,
+without producing a valid answer, retrying or continuing to the fifth case.
+
+The failed attempt totals 460,965 microdollars, 21,623 input and 14,114 output tokens,
+with zero remaining reservation. Its cost-only receipt is
+`6499204ceaa6b062bc724c1921bd2772e0502a749506cf76ed184ce3a4b301ef`.
+The original stopped result is unchanged; separate reconciliation evidence closes
+accounting only. This establishes that the tested 4,000-output profile did not
+complete calibration, not that the remaining cases or historical tasks passed.
+
+
+## Completed 6,000-output development profile
+
+A separately frozen five-call run at the same reviewed source `5ca56d3` retained v2
+citation instructions and the original expectations, using a 6,000-token output
+limit per call. All five calls completed with valid structured outputs. All overall
+verdicts matched, but only four exact finding maps matched; one mandatory control
+failed. The result remains **CALIBRATION_FAILED**, with zero observed false-ready.
+
+The run used 27,109 input and 17,469 output tokens and settled 572,270 microdollars.
+No reservation remains and cached recovery changed neither ledger nor results.
+Its evidence reference is
+`8e5267ba09401d84e3d92987220ebad3036838f91393aa15d90a939783c0264a`.
+A fixed-code read-only diagnostic reported one criterion mismatch without exposing
+case identities, expected labels or model findings/prose. No answers were corrected.
+
+An independent review of the public prompt and authored subjects found that relative
+ordering and retention were already explicitly separate. It identified a general
+clarity gap: the prompt does not explicitly prohibit propagating an integrity or
+overall failure into unrelated criterion findings. A prospective atomic-grading
+clarification may address that gap; the aggregate diagnostic does not establish that
+it caused this failure or that clarification will pass calibration. Expectations and
+validators remain unchanged. Historical scoring still requires a passing matching
+calibration and all independent authority/budget checks.

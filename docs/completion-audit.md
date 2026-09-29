@@ -813,3 +813,61 @@ Five authored dispute anchors retain expectations separately. Independent review
 root integration each passed all 55 focused tests (1.16 and 0.91 seconds). No model,
 container, historical adjudication or adjudicator calibration ran in this slice.
 Root static checks passed with 290 formatted files and 94 typed source files.
+
+E100: [Hosted CI at `9438b47`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36502328714)
+passed all four checks: 2165 tests with 86 explicit skips on Python 3.12 and 3.13
+(357.57 and 266.39 seconds), plus 87 actual PostgreSQL/Temporal/Docker tests in
+233.43 seconds. This checkpoint retains production source `8555fcf`, including
+canonical candidate execution, both initial scorers, read-only candidate inspection
+and authored adjudication contracts. The dedicated allocation database was provisioned
+and removed by CI. Secret scanning, lint, formatting, typing and package builds passed.
+These scopes overlap; they are not summed. E102 records the completed local full
+suite and its separate setup correction; no live calibration success or historical
+campaign is implied.
+
+E101: Explicit v2 citation instructions preserve original v1 prompt bytes and require
+exact artifact resolution in both calibration and initial semantic execution. At
+reviewed source `5ca56d3`, 96 controlled tests passed with one optional Docker skip;
+root independently passed 23 version/rebinding controls in 11.75 seconds. A fresh
+4,000-output calibration stopped at the fourth call's reported `max_tokens` limit.
+Cost-only reconciliation retained failure and settled 460,965 total microdollars,
+with zero reservation and no retry/answer recovery. No passing calibration followed.
+
+
+E102: The local service-enabled full suite at `8555fcf` finished with 2240 passed,
+ten Windows skips and one allocation-test setup failure in 1435.70 seconds. Its
+private driver created an allocation database without the required `delivery_eval_`
+prefix; the constructor denied it before concurrency execution. The exact case
+passed with a corrected dedicated PostgreSQL database in 3.76 seconds. All three
+owned databases were dropped and absence verified. This scoped environment correction
+does not rewrite the original failed full-suite result; E100 separately records
+passing hosted full/service checks at the retained production source.
+
+E103: Root integration of explicit prompt versions, read-only completed scoring
+inspection and the pure lossless file-pool codec passed 149 focused tests in 78.63
+seconds at `e09d5e1`. The codec is unwired: no request profile or historical context
+changed. These controls neither authorize execution nor establish calibrated scoring.
+
+E104: A fresh five-case v2-prompt calibration with a 6,000-output per-call limit
+completed at reviewed source `5ca56d3`: five valid outputs and overall verdict matches,
+four exact finding-map matches, one mandatory failure and zero observed false-ready.
+It remains CALIBRATION_FAILED. All five operations settled for 572,270 microdollars,
+27,109 input and 17,469 output tokens, with zero reservation and unchanged cached
+recovery. A read-only fixed-code diagnostic reported one criterion mismatch without
+case IDs, labels, findings or prose. No historical score or passing calibration follows.
+
+
+E105: Root integration at `e56828d` passed 138 affected scoring/adjudication/inspection
+tests in 47.72 seconds, with the one optional actual Docker case explicitly skipped
+in this run. Current repository-specific protected paths now join fixed execution
+controls when rejecting candidate edits. The owned adjudication adapter reconstructs
+current actual runtime evidence while preserving hypothetical authored peer findings;
+it supplies no adjudicator calibration. Independent review cleared both changes.
+Ruff/format (303 files), mypy (97 sources) and diff whitespace checks passed.
+
+
+E106: With the pinned owned-runtime Docker image configured, the adapter's actual
+evidence scope passed 12 tests in 12.11 seconds (23 unrelated cases deselected),
+including the real-container context case omitted in E105. Model responses were
+not executed. All 398 local links across 102 Markdown documents resolved. These
+scopes overlap E105 and do not establish live adjudicator calibration.

@@ -152,6 +152,14 @@ cancellation; it does not silently merge, delete branches, or roll back producti
 
 ## Evaluation and promotion
 
+[ADR-016](adr/ADR-016-prospective-campaign-token-ceilings.md) accepts a prospective,
+explicitly selected `agentic-historical-v2`: 500,000 input and 64,000 output tokens
+per attempt, with unchanged USD 5 model, USD 1 infrastructure, 30-minute and USD 1,000
+campaign ceilings. Implementation and activation remain pending. Existing v1 contracts,
+records, grants and costs are unchanged; new runs need explicit protocol selection,
+matching calibrated configuration and finite authority. This is a material protocol
+change, not a claim of identical experimental conditions or a passing campaign.
+
 Treat independent review and impact analysis as hypotheses. Compare configurations under declared
 matched budgets. Keep public-patch leakage and hidden tests out of campaign builder/reviewer context.
 Score behavior, regressions and false readiness with deterministic checks and a calibrated automated

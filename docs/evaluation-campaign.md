@@ -160,3 +160,13 @@ and campaign-cap checks. Seven owned contract cases and the existing campaign su
 passed together (58 tests); the authority injection remains a test boundary, not a
 qualified corpus. Schema 3 still creates no account or execution permission. Its
 execution controller and versioned scoring consumer remain required before use.
+
+
+## Prospective explicit protocol v2
+
+[ADR-016](adr/ADR-016-prospective-campaign-token-ceilings.md) accepts new explicit
+500,000-input/64,000-output attempt ceilings with unchanged money/time/corpus limits.
+Implementation and activation remain pending. V1 defaults and serialized records
+remain unchanged. The prospective variant is limited to schema-3 execution campaigns
+and requires matching tagged arms/policies, successful matching calibration and new
+finite execution authority; no existing account or grant is widened.
