@@ -84,7 +84,8 @@ This composes individual A/B attempts and optional adjudication. The bounded
 [phase driver](campaign-phase.md) now schedules one already-authorized phase. The
 [readiness mapping](adr/ADR-018-prospective-readiness-reporting.md) can be pinned prospectively,
 and [selected preparation inventories](campaign-accounting.md) can be reconciled.
-All-assignment aggregate reporting, complete preparation-program coverage,
+The [all-assignment report](campaign-reporting.md) consumes those concrete proofs.
+Complete preparation-program coverage, remaining evaluation metrics,
 numerical promotion and restricted-pilot decisions remain required. Sealed-case access
 retains the journal's ordering/exposure checks and separate current authorization. No
 historical campaign, model accuracy, human benefit or complete MVP follows from this API.

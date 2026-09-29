@@ -110,6 +110,9 @@ skip without the runbook's service variables.
 | [docs/semantic-consumption.md](docs/semantic-consumption.md) | Read-only completed review and adjudication evidence under current authority |
 | [docs/completed-attempt-reporting.md](docs/completed-attempt-reporting.md) | Whole-attempt reconstruction, retained failures and exact adjudication accounting |
 | [docs/campaign-dispatch.md](docs/campaign-dispatch.md) | Serial attempt execution, optional adjudication and durable uncertainty fencing |
+| [docs/campaign-phase.md](docs/campaign-phase.md) | Bounded scheduling under the original phase authorization |
+| [docs/campaign-accounting.md](docs/campaign-accounting.md) | Consistent metadata reads, retained reservations and exact preparation inventories |
+| [docs/campaign-reporting.md](docs/campaign-reporting.md) | All-assignment proof consumption, frozen readiness and explicit missing evidence |
 | [docs/coverage-contexts.md](docs/coverage-contexts.md) | Revision-bound measured coverage hints and uncertainty |
 | [docs/active-cancellation.md](docs/active-cancellation.md) | Actual workload cancellation, expiry and cleanup-failure drills |
 | [docs/correction-loop.md](docs/correction-loop.md) | Controlled rejection, fresh repair evidence and exhausted-loop tests |

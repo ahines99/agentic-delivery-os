@@ -43,8 +43,9 @@ STOPPED observation may close an ordinal without producing a finished dispatch; 
 make that distinction visible. `NO_PENDING_ASSIGNMENTS` describes the frozen scheduling queue.
 It is not a claim that every candidate passed, every cost is known or the phase may be promoted.
 
-Aggregate correctness, readiness and complete cost reporting still require concrete current
-proof consumers, preparation-account reconciliation and explicit frozen readiness mapping.
+The [all-assignment report](campaign-reporting.md) consumes current proof, selected
+preparation-account inventories and the frozen readiness mapping. Complete program cost
+coverage and the remaining evaluation metrics still require their separate evidence.
 Numerical promotion, operational controls and human pilot signoff remain separate gates.
 
 ## Verification scope

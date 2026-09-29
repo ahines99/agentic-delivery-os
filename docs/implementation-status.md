@@ -4,8 +4,8 @@ Updated 2026-09-29 UTC during continued controlled implementation. This is the c
 the original milestone documents remain the release targets. Source code alone is not a passed
 integration or production release gate.
 
-Latest complete hosted verification: [CI at `f1d6d17`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36627522389)
-passed both Python versions (2,755 tests and 88 explicit skips each), 88 actual service
+Latest complete hosted verification: [CI at `6b5179a`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36630852603)
+passed both Python versions (2,772 tests and 88 explicit skips each), 88 actual service
 integration tests and secret scanning. This includes the [campaign journal](campaign-journal.md),
 [completed semantic reader](semantic-consumption.md) and [whole-attempt reader](completed-attempt-reporting.md).
 They reconstruct original outcomes, early failures and optional exact adjudication under
@@ -15,7 +15,7 @@ including process exit, cancellation, revoked authority, optional adjudication a
 completion acknowledgement. Ruff/format (335 files), mypy (105 sources) and package build
 passed, followed by the hosted result above. The [bounded phase driver](campaign-phase.md)
 then passed 17 focused tests, including one concrete dispatcher/coordinator path. It schedules
-an already-authorized phase without promoting it or retrying uncertainty. Aggregate reporting,
+an already-authorized phase without promoting it or retrying uncertainty. Complete evaluation reporting,
 numerical promotion and actual historical phase execution remain open. Earlier live calibration and data grants are historical evidence;
 expired authority cannot authorize current consumption or new runs.
 
@@ -25,13 +25,20 @@ settlement. A bounded real metadata inventory then captured 33 accounts/214 oper
 across the three previously enumerated evaluation SQLite ledgers. It retained 9,424,997
 settled microdollars and 948,834 reserved microdollars across five unresolved operations,
 without reading model result payloads, mutating ledgers or making paid calls. Full program
-inventory coverage, per-attempt aggregate reporting and cost promotion remain open.
+inventory coverage and cost promotion remain open.
 
 The [prospective readiness policy](adr/ADR-018-prospective-readiness-reporting.md) passed
 15 focused tests. It pins A/B candidate-status declarations before phase opening or
 allocation and refuses retrospective insertion. This supplies the frozen reporting rule;
-concrete all-assignment aggregate consumption and promotion remain required. The later
-phase/accounting/policy changes still require their own final-head hosted verification.
+the report below provides concrete all-assignment consumption. Promotion remains open. The later
+accounting/policy changes still require their own final-head hosted verification.
+
+The [all-assignment report](campaign-reporting.md) now consumes concrete completed-attempt
+proof, the original readiness policy, every canonical account and selected preparation
+inventories. Seventeen focused cases cover missing outcomes, retained uncertainty, chronology,
+successful/failed scoring and exact adjudication. Three existing execution/consumption checks
+also passed. It does not attest complete program-ledger coverage or supply numerical,
+statistical, operational or pilot promotion. Its exact-head hosted verification remains required.
 
 The [transaction/outbox fault matrix](postgres-faults.md) also passed 12 scoped actual
 PostgreSQL/Temporal cases, and [model-provider ledger faults](model-provider-faults.md) passed

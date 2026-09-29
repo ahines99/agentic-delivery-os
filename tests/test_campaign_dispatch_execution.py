@@ -46,7 +46,7 @@ from agentic_delivery.storage.store import digest_json
 
 
 @pytest.fixture
-def dispatched_case(attempt_case, campaign_seed, tmp_path):
+def dispatched_case(attempt_case, campaign_seed, tmp_path, request):
     f = attempt_case
     ledger = f.case.ledger
     account = f.c.allocated.attempt.account_id
@@ -104,7 +104,19 @@ def dispatched_case(attempt_case, campaign_seed, tmp_path):
     def provider():
         return state["grant"]
 
-    journal.open_phase(authorization_provider=provider, expected_sequence=0)
+    if getattr(request, "param", False):
+        from agentic_delivery.evaluation.campaign_reporting_policy import freeze_reporting_policy
+
+        freeze_reporting_policy(
+            journal,
+            campaign_artifact=ref,
+            campaign_artifacts=f.case.frozen_store,
+            policy_artifacts=f.case.output,
+            current_guard=lambda: None,
+        )
+    journal.open_phase(
+        authorization_provider=provider, expected_sequence=len(journal.inspect(ref)[1])
+    )
     for ordinal in range(f.c.allocated.attempt.ordinal):
         intent_id = f"owned-earlier-{ordinal}"
         journal.claim_next(

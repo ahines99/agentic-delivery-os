@@ -43,7 +43,7 @@ async def completed(attempt_case, monkeypatch, request):
     # This boundary stands in for an independently admitted calibration, not actual
     # owned calibration success. The consumer's original/current time proof is real.
     plan = SemanticCalibrationPlan(
-        account_id=f.c.allocated.attempt.account_id,
+        account_id=f.state.get("calibration_account_id", f.c.allocated.attempt.account_id),
         spec_artifact=original_calibration.spec_artifact,
         authorization_artifact="a" * 64,
         artifacts_root=str(f.case.protected.root),

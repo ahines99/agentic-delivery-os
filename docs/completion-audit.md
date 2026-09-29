@@ -1172,3 +1172,21 @@ retrospective insertion, existing canonical accounts, changed policies and misma
 campaign/commit/mapping data, and preserves original policy inspection without artifact writes.
 All 55 existing journal/dispatch-journal checks passed in the combined run. This establishes
 prospective rules and metadata behavior, not aggregate results or promotion.
+
+E142: All-assignment reporting passed 16 focused tests in 115.46 seconds after adding
+dispatch/account/completion chronology checks; the additional concrete false-ready case
+passed in 19.88 seconds. Actual controlled coordinator/scorer proof covers failure, PASS,
+FAIL and optional exact adjudication, with reporting effects forbidden. Missing assignments,
+unknown reservations, primary/stability separation, preparation inventory costs, changed
+state and revoked authority remain explicit. Three existing A/B dispatch and legacy v1
+consumption checks passed in 61.88 seconds. These are owned fixtures with controlled HTTP
+and explicit admission/runtime stand-ins, not historical campaign results or complete
+program inventory proof. The CI quality-job limit increases from 30 to 45 minutes because
+the last Python 3.12 dispatcher suite took 27 minutes before these additional scopes;
+product/benchmark execution ceilings and all tests remain unchanged.
+
+E143: [Hosted CI at `6b5179a`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36630852603)
+passed all four jobs. Python 3.12 passed 2,772 tests with 88 explicit skips in 1,431.52
+seconds; Python 3.13 passed the same counts in 1,293.65 seconds. Actual service integration
+passed 88 tests in 262.61 seconds; secret scanning passed. This includes the phase driver.
+The subsequent accounting/policy/aggregate-report changes require their own final-head CI.
