@@ -1036,3 +1036,29 @@ empty lists; the test now explicitly preserves the original representation where
 without changing the frozen hashes or production code. All 37 merge-linkage tests passed on
 local Python 3.12 and 3.13 in 9.17 and 11.26 seconds respectively. Full fixed-head hosted
 verification remains required; the earlier failed run is retained.
+
+E127: [Hosted CI at `512854f`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36511984505)
+passed all four required checks. Each Python version passed 2,639 tests with 88 explicit
+skips; actual PostgreSQL/Temporal/Docker integration passed 88 tests in 254.24 seconds.
+Secret scanning passed. This validates that exact commit, including the AST compatibility
+fix; it does not certify later journal changes or close the remaining product/campaign gates.
+
+E128: The [campaign journal](campaign-journal.md), source `f3b58c3` integrated as `7fdfacb`,
+records every frozen ordinal, phase decisions, serial intents and retained observations in
+separate SQLite storage. Review corrected initial fixture/field errors and added exposure
+reconstruction, prior-development-use detection, family keys, journal identity/path binding,
+event transition reconstruction and lost-ack authorization rechecks. All 45 owned journal
+tests passed in 94.42 seconds; mypy checked 102 source files, Ruff/format passed for the new
+files, and staged secret scanning passed. These tests use controlled qualification and
+actual SQLite transactions; no historical task, model, runtime or campaign was executed.
+The executor adapter, authoritative reports and numerical promotion composition remain open.
+Root integration passed eight selected registration, concurrency, exposure and authorization
+cases in 15.78 seconds. Full root Ruff/format (325 files) and mypy (102 sources) passed.
+
+E129: A metadata-only development screen of pygtrie, orderedmultidict and funcy retained
+unsupported archive/license-profile and change-profile exclusions. A bounded follow-up of
+the three remaining linked funcy candidates found PR 96/issue 95 metadata-eligible, with
+67 baseline files totaling 267,796 bytes. The follow-up made seven requests (96,635 bytes),
+after 13 earlier requests (150,215 bytes). No source, patch or issue body was opened, no
+model or repository code ran, and no rights, oracle, runtime or qualification decision was
+inferred. Full-context feasibility and protected acquisition remain prerequisites.

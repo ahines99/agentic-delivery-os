@@ -115,6 +115,7 @@ skip without the runbook's service variables.
 | [ADR-014](docs/adr/ADR-014-campaign-execution-budgets.md) | Separate immutable qualification and frozen campaign execution budgets |
 | [docs/protocol-v2-implementation.md](docs/protocol-v2-implementation.md) | Explicit prospective protocol contracts with strict v1 compatibility |
 | [docs/single-attempt-coordinator.md](docs/single-attempt-coordinator.md) | Shared-account candidate, deterministic and two-scorer composition |
+| [docs/campaign-journal.md](docs/campaign-journal.md) | Durable assignment order, current phase decisions and sealed-case exposure |
 | [docs/historical-merge-linkage.md](docs/historical-merge-linkage.md) | Explicit first-parent merge metadata with unchanged current authorization |
 | [docs/semantic-adjudication-execution.md](docs/semantic-adjudication-execution.md) | One separately authorized third review of sealed disagreements |
 | [docs/linear-ingress.md](docs/linear-ingress.md) | Bounded Linear-only gateway and temporary live intake evidence |

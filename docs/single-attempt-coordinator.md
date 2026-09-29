@@ -74,3 +74,8 @@ checkpoint recovery, unknown operations, concurrent reservation refusal and
 effect-free reconstruction. Injected post-commit exceptions establish recovery at
 those boundaries, not actual process-crash or distributed-worker recovery. No
 historical inputs, paid calls or campaign observations are exercised by this slice.
+
+The separate [campaign journal](campaign-journal.md) now records registration, serial
+intents, phase decisions and exact-case exposure across campaigns. Connecting that journal
+to this executor and authoritative completed-result reporting remains required; journal
+observations alone are not scoring, spending authority or numerical promotion evidence.

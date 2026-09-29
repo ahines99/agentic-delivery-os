@@ -4,6 +4,12 @@ Updated 2026-09-29 UTC during continued controlled implementation. This is the c
 the original milestone documents remain the release targets. Source code alone is not a passed
 integration or production release gate.
 
+Latest complete hosted verification: [CI at `512854f`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36511984505)
+passed both Python versions (2,639 tests and 88 explicit skips each), 88 actual service
+integration tests and secret scanning. The subsequent [campaign journal](campaign-journal.md)
+passed 45 owned local tests but still needs final-head hosted verification. It records
+ordering and exposure only; executing full phases and authoritative reporting remain open.
+
 The [transaction/outbox fault matrix](postgres-faults.md) also passed 12 scoped actual
 PostgreSQL/Temporal cases, and [model-provider ledger faults](model-provider-faults.md) passed
 five PostgreSQL cases with controlled HTTP responses. These preserve rollback, deduplication and
