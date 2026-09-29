@@ -80,8 +80,9 @@ against arbitrary execution outside the trusted controller.
 
 ## Remaining campaign work
 
-This composes individual A/B attempts and optional adjudication. A phase driver, frozen
-readiness mapping, all-assignment aggregate report, preparation-cost reconciliation,
+This composes individual A/B attempts and optional adjudication. The bounded
+[phase driver](campaign-phase.md) now schedules one already-authorized phase. Frozen
+readiness mapping, all-assignment aggregate reporting, preparation-cost reconciliation,
 numerical promotion and restricted-pilot decisions remain required. Sealed-case access
 retains the journal's ordering/exposure checks and separate current authorization. No
 historical campaign, model accuracy, human benefit or complete MVP follows from this API.

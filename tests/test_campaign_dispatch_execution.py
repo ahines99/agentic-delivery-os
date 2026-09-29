@@ -33,6 +33,7 @@ from agentic_delivery.evaluation.campaign_journal import (
     PreparationAccountIdentity,
     ProviderCaseIdentity,
 )
+from agentic_delivery.evaluation.campaign_phase import CampaignPhaseDriver
 from agentic_delivery.evaluation.execution_store import accounts, checkpoints, operations
 from agentic_delivery.evaluation.semantic_adjudication_execution import (
     HistoricalAdjudicationEvidence,
@@ -182,6 +183,21 @@ async def test_known_failure_finishes_without_final_model_calls(dispatched_case,
     result = await c.run()
     assert result.verdict == "FAIL" and c.f.state["semantic_calls"] == []
     assert c.journal.inspect(c.ref)[1][-1].kind == "DISPATCH_FINISHED"
+
+
+@pytest.mark.parametrize("campaign_scoring", ["v2"], indirect=True)
+async def test_phase_driver_invokes_concrete_coordinator_with_finite_limit(dispatched_case):
+    c = dispatched_case
+    c.f.c.state["validation_failure"] = True
+    driver = CampaignPhaseDriver(dispatcher=c.dispatcher, campaign_artifacts=c.f.case.frozen_store)
+    progress = await driver.run_phase(
+        authorization_provider=c.provider, work_factory=c.factory, max_attempts=1
+    )
+    ordinal = c.f.c.allocated.attempt.ordinal
+    assert progress.newly_dispatched_ordinals == progress.finished_dispatch_ordinals == (ordinal,)
+    assert progress.status == "INVOCATION_LIMIT"
+    assert len(c.calls) == 1 and c.f.state["semantic_calls"] == []
+    assert not progress.phase_promoted and not progress.campaign_complete
 
 
 @pytest.mark.parametrize("campaign_scoring", ["v2"], indirect=True)

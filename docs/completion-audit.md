@@ -1131,3 +1131,12 @@ passed. These owned SQLite/coordinator/controlled-HTTP tests substitute admissio
 boundaries; no paid call, historical campaign or incomplete-worker quiescence is established.
 The change has root review, not an additional independent agent review. Exact-head hosted CI
 remains required; phase execution, aggregates and numerical promotion remain open.
+
+E137: The bounded phase driver passed 17 focused tests in 37.29 seconds. Sixteen use
+real journal transactions with a substituted single-attempt boundary; one invokes the
+concrete dispatcher/coordinator and controlled model broker for a known candidate failure.
+The scope covers frozen phase order, bounded resume, intent-only recovery, active-dispatch
+exclusion, original-authority pinning, expiry, stopped metadata and forged completion
+acknowledgements. The driver does not promote phases or turn scheduling metadata into
+scoring/accounting proof. Historical execution, aggregate reporting, complete preparation
+costs, numerical gates and incomplete-worker reconciliation remain open.

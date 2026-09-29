@@ -94,8 +94,9 @@ fixture boundary. These tests make no model/provider/runtime calls and establish
 historical campaign result or actual process/host-loss recovery.
 
 The [serial dispatcher](campaign-dispatch.md) now connects this journal to the concrete
-single-attempt coordinator and optional adjudication. Whole-phase driving, all-assignment
-reporting and numerical promotion remain open. The [completed-attempt reader](completed-attempt-reporting.md)
+single-attempt coordinator and optional adjudication. The [phase driver](campaign-phase.md)
+schedules one already-authorized phase; all-assignment reporting and numerical promotion
+remain open. The [completed-attempt reader](completed-attempt-reporting.md)
 now reconstructs individual outcomes, failures and exact adjudication accounting under
 current report authority. Journal observations alone cannot substitute for that proof. The existing
 [single-attempt coordinator](single-attempt-coordinator.md),

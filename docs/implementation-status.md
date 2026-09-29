@@ -13,8 +13,10 @@ current report permission, without renewing execution or dropping costs. The sub
 [serial dispatcher](campaign-dispatch.md) passed all 69 focused journal/dispatch tests,
 including process exit, cancellation, revoked authority, optional adjudication and lost
 completion acknowledgement. Ruff/format (335 files), mypy (105 sources) and package build
-passed; its final-head hosted check remains required. Aggregate reporting, numerical promotion and full phase execution
-remain open. Earlier live calibration and data grants are historical evidence;
+passed; its final-head hosted check remains required. The [bounded phase driver](campaign-phase.md)
+then passed 17 focused tests, including one concrete dispatcher/coordinator path. It schedules
+an already-authorized phase without promoting it or retrying uncertainty. Aggregate reporting,
+numerical promotion and actual historical phase execution remain open. Earlier live calibration and data grants are historical evidence;
 expired authority cannot authorize current consumption or new runs.
 
 The [transaction/outbox fault matrix](postgres-faults.md) also passed 12 scoped actual
