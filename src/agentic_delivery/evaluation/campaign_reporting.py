@@ -19,6 +19,10 @@ from agentic_delivery.evaluation.campaign_attempt_inspection import (
     ValidatedCompletedAttempt,
     validate_completed_attempt_consumption,
 )
+from agentic_delivery.evaluation.campaign_criterion_inventory import (
+    CampaignCriterionInventory,
+    validate_criterion_inventory,
+)
 from agentic_delivery.evaluation.campaign_journal import CampaignJournal, JournalEvent
 from agentic_delivery.evaluation.campaign_ledger_coverage import (
     CampaignLedgerCoverage,
@@ -126,6 +130,7 @@ class CampaignAggregateReport(Contract):
     ledger_coverage: CampaignLedgerCoverage | None = None
     ledger_coverage_status: Literal["NOT_REQUESTED", "UNAVAILABLE", "OBSERVED"] = "NOT_REQUESTED"
     phase_statistics: tuple[PhaseStatistics, ...] | None = None
+    criterion_inventory: CampaignCriterionInventory | None = None
     # The declared selection still needs complete program-ledger inventory attestation,
     # numerical/operational promotion and pilot signoff; this reader cannot supply them.
     complete_program_inventory: Literal[False] = False
@@ -213,6 +218,19 @@ async def generate_campaign_report(
         registration, history = journal.inspect(campaign_artifact)
         campaign = ExecutionCampaign.model_validate(
             _read(context.campaign_artifacts, campaign_artifact)
+        )
+        criterion_inventory = (
+            validate_criterion_inventory(
+                journal,
+                campaign_artifact=campaign_artifact,
+                campaign=campaign,
+                reference=policy.criterion_inventory_artifact,
+                inventory_artifacts=context.policy_artifacts,
+                before=policy_event.created_at,
+                current_guard=guard,
+            )
+            if policy.criterion_inventory_artifact is not None
+            else None
         )
         account_ids = tuple(
             canonical_account_id(campaign_artifact, a.ordinal) for a in campaign.schedule
@@ -404,7 +422,12 @@ async def generate_campaign_report(
             }
         )
         statistics = (
-            phase_statistics(tuple(rows), accounting=after, method=policy.statistics)
+            phase_statistics(
+                tuple(rows),
+                accounting=after,
+                method=policy.statistics,
+                criterion_inventory=criterion_inventory,
+            )
             if policy.statistics is not None
             else None
         )
@@ -433,6 +456,7 @@ async def generate_campaign_report(
             no_active_dispatches=not any(r.journal_state == "DISPATCH_OPEN" for r in rows),
             ledger_coverage=coverage,
             phase_statistics=statistics,
+            criterion_inventory=criterion_inventory,
             ledger_coverage_status=(
                 "OBSERVED"
                 if coverage is not None

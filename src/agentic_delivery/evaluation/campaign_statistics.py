@@ -6,9 +6,10 @@ from typing import TYPE_CHECKING, Literal
 
 from pydantic import Field
 
-from agentic_delivery.domain.models import Contract
+from agentic_delivery.domain.models import Contract, VerificationType
 from agentic_delivery.evaluation.accounting_inspection import AccountingSnapshot, UsageTotals
 from agentic_delivery.evaluation.campaign import Split
+from agentic_delivery.evaluation.campaign_criterion_inventory import CampaignCriterionInventory
 from agentic_delivery.evaluation.campaign_reporting_policy import CampaignStatisticsPolicy
 from agentic_delivery.evaluation.comparison import _percentile
 from agentic_delivery.evaluation.harness import wilson
@@ -43,6 +44,8 @@ class ArmStatistics(Contract):
     assigned: int
     proof_unavailable: int
     final_verdict_unresolved: int
+    required_criteria: int | None
+    required_criteria_by_verification_type: dict[VerificationType, int] | None
     strict_success: BinaryRate
     functional_acceptance: BinaryRate
     regression: BinaryRate
@@ -103,11 +106,22 @@ class PhaseStatistics(Contract):
     pilot_authorized: Literal[False] = False
 
 
-def _arm(rows: tuple["AssignmentReport", ...], accounting: AccountingSnapshot) -> ArmStatistics:
+def _arm(
+    rows: tuple["AssignmentReport", ...],
+    accounting: AccountingSnapshot,
+    inventory: CampaignCriterionInventory | None,
+) -> ArmStatistics:
     arm = rows[0].assignment.arm
     if arm not in {"A", "B"}:
         raise ValueError("Unsupported statistics arm")
     assert arm in ("A", "B")
+    requirements = None
+    if inventory is not None:
+        by_task = {t.task_id: t for t in inventory.tasks}
+        requirements = {
+            kind: sum(by_task[r.assignment.task_id].by_verification_type[kind] for r in rows)
+            for kind in VerificationType
+        }
 
     def rate(numerator: int, denominator: int) -> BinaryRate:
         return _rate(numerator, denominator, intervals=rows[0].assignment.kind == "primary")
@@ -150,6 +164,8 @@ def _arm(rows: tuple["AssignmentReport", ...], accounting: AccountingSnapshot) -
         assigned=len(rows),
         proof_unavailable=unavailable,
         final_verdict_unresolved=unresolved,
+        required_criteria=sum(requirements.values()) if requirements is not None else None,
+        required_criteria_by_verification_type=requirements,
         strict_success=rate(successes, len(rows)),
         functional_acceptance=rate(sum(p.acceptance_passed is True for p in proofs), len(rows)),
         regression=rate(sum(p.regression_passed is False for p in regression), len(regression)),
@@ -253,6 +269,7 @@ def phase_statistics(
     *,
     accounting: AccountingSnapshot,
     method: CampaignStatisticsPolicy,
+    criterion_inventory: CampaignCriterionInventory | None = None,
 ) -> tuple[PhaseStatistics, ...]:
     """Internal arithmetic over fresh concrete readers; parsed statistics confer no authority."""
     result = []
@@ -268,7 +285,7 @@ def phase_statistics(
                     r for r in selected if (r.assignment.arm, r.assignment.kind) == (arm, kind)
                 )
                 if group:
-                    summaries.append(_arm(group, accounting))
+                    summaries.append(_arm(group, accounting, criterion_inventory))
         result.append(
             PhaseStatistics(
                 phase=phase,

@@ -11,6 +11,7 @@ from sqlalchemy import select
 from agentic_delivery.domain.models import CommitSHA, Contract
 from agentic_delivery.evaluation.campaign import ExecutionCampaign, _read
 from agentic_delivery.evaluation.campaign_allocation import canonical_account_id
+from agentic_delivery.evaluation.campaign_criterion_inventory import validate_criterion_inventory
 from agentic_delivery.evaluation.campaign_journal import CampaignJournal, JournalEvent
 from agentic_delivery.evaluation.execution_store import accounts
 from agentic_delivery.evaluation.qualification import Digest
@@ -55,6 +56,7 @@ class CampaignReportingPolicy(Contract):
     )
     zero_ready_denominator: Literal["not-applicable"] = "not-applicable"
     statistics: CampaignStatisticsPolicy | None = None
+    criterion_inventory_artifact: Digest | None = None
 
     def declared_ready(self, *, arm: str, candidate_status: str) -> bool:
         if candidate_status == "FAILED" and arm in {"A", "B"}:
@@ -86,6 +88,7 @@ def freeze_reporting_policy(
     campaign_artifacts: ArtifactStore,
     policy_artifacts: ArtifactStore,
     current_guard: Callable[[], None],
+    criterion_inventory_artifact: str | None = None,
 ) -> tuple[CampaignReportingPolicy, JournalEvent]:
     """Freeze once before phase opening; existing freezes are inspected without rewriting."""
     try:
@@ -93,13 +96,18 @@ def freeze_reporting_policy(
         campaign = _campaign(journal, campaign_artifacts, campaign_artifact)
         _, events = journal.inspect(campaign_artifact)
         if events and events[0].kind == "REPORTING_POLICY":
-            return validate_reporting_policy(
+            original = validate_reporting_policy(
                 journal,
                 campaign_artifact=campaign_artifact,
                 campaign_artifacts=campaign_artifacts,
                 policy_artifacts=policy_artifacts,
                 current_guard=current_guard,
             )
+            _require(
+                criterion_inventory_artifact is None
+                or original[0].criterion_inventory_artifact == criterion_inventory_artifact
+            )
+            return original
         _require(not events and type(policy_artifacts) is ArtifactStore)
 
         def before_execution() -> None:
@@ -118,10 +126,21 @@ def freeze_reporting_policy(
             _require(found is None)
 
         before_execution()
+        if criterion_inventory_artifact is not None:
+            validate_criterion_inventory(
+                journal,
+                campaign_artifact=campaign_artifact,
+                campaign=campaign,
+                reference=criterion_inventory_artifact,
+                inventory_artifacts=policy_artifacts,
+                before=journal.clock(),
+                current_guard=current_guard,
+            )
         policy = CampaignReportingPolicy(
             campaign_artifact=campaign_artifact,
             scoring_code_commit=campaign.specification.scoring_code_commit,
             statistics=CampaignStatisticsPolicy(seed=campaign.specification.seed),
+            criterion_inventory_artifact=criterion_inventory_artifact,
         )
         reference = policy_artifacts.put(
             json.dumps(policy.model_dump(mode="json"), sort_keys=True).encode()
@@ -164,6 +183,16 @@ def validate_reporting_policy(
             and policy.scoring_code_commit == campaign.specification.scoring_code_commit
             and (policy.statistics is None or policy.statistics.seed == campaign.specification.seed)
         )
+        if policy.criterion_inventory_artifact is not None:
+            validate_criterion_inventory(
+                journal,
+                campaign_artifact=campaign_artifact,
+                campaign=campaign,
+                reference=policy.criterion_inventory_artifact,
+                inventory_artifacts=policy_artifacts,
+                before=event.created_at,
+                current_guard=current_guard,
+            )
         # Canonical allocation must not predate this registration, including an account
         # created through a separate trusted API instead of the serial dispatcher.
         with journal.ledger.engine.connect() as connection:

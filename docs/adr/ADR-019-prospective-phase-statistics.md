@@ -52,11 +52,13 @@ incident classification, operational fixtures, complete program cost enforcement
 pilot signoff. Missing gate consumers are explicitly unavailable. No phase opening, execution
 authority or pilot permission follows from arithmetic or a serialized report.
 
-Criterion coverage still needs a trusted requirement-count inventory for every assigned
-task, including tasks that have not run. The current frozen task references bind manifests
-but do not expose that denominator. Statistics must not load unstarted protected task
-contexts or treat unobserved requirements as zero; a later coverage consumer must establish
-the complete denominator and verified per-criterion evidence before closing that gate.
+The optional [requirement inventory](../campaign-criterion-inventory.md) now captures a
+complete task-count sidecar under current qualification before policy/phase/allocation.
+Its reference is pinned in the original reporting policy, preserving existing campaign
+manifest and registration hashes. Statistics read that metadata without loading unstarted
+protected task contexts. Older policies without the inventory retain unknown denominators;
+they cannot be backfilled. A later criterion consumer must still establish valid passing,
+failed and unresolved evidence against those requirements before closing the coverage gate.
 
 ## Verification
 

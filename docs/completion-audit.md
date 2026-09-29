@@ -1232,3 +1232,21 @@ adjustments; the final 69-case run covers all those changes. Ruff/format (355 fi
 are not summed. No historical payload, paid execution, pilot decision or completed release
 is established. Complete program registry/cost, criterion coverage, verified infrastructure
 incidents and operational promotion remain open; final-head hosted CI remains required.
+
+E148: [Hosted CI at `1c0ba98`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36637230360)
+passed all four jobs. Python 3.12 passed 2,847 tests with 90 explicit skips in 1,751.73 seconds;
+Python 3.13 passed the same counts in 1,372.67 seconds. Actual PostgreSQL/Temporal/Docker
+integration passed 90 tests in 237.06 seconds; secret scanning passed. This verifies the
+whole-ledger census extension. Later phase-statistics and requirement-inventory changes
+still need their own exact-head hosted result.
+
+E149: Prospective requirement inventories and their policy/report integration passed 66
+combined inventory/policy/statistics/aggregate-report tests in 188.43 seconds. An additional
+capture-permission revocation case passed in 5.90 seconds. The new inventory tests use owned
+manifests with an explicit qualification/calibration stand-in and real artifact/journal
+bindings. Coverage includes complete ordered task sets, manifest/qualification/registration
+identity, invalid count sums/types, capture chronology, post-execution refusal, no partial
+export on denial, retained legacy unknowns and unrun-task denominators without protected
+context loading. Ruff/format (358 files), mypy (113 sources) and package builds passed.
+No actual historical inventory, private answer access, paid call, criterion score or
+promotion is claimed; complete criterion-evidence consumption remains open.

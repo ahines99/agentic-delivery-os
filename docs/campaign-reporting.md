@@ -104,6 +104,12 @@ thresholds are `NOT_APPLICABLE`. An unrun sealed phase does not change validatio
 denominators or checks. Criterion coverage, infrastructure incidents, full program cost and
 operational gates remain explicitly unavailable; numeric checks grant no phase or pilot authority.
 
+An optional [prospective requirement inventory](campaign-criterion-inventory.md) supplies
+complete per-arm requirement counts, including unrun assignments, grouped by verification
+type. It must be pinned in the first reporting policy event. Its absence yields null counts;
+reporting cannot backfill the inventory or load unstarted task contents to infer a denominator.
+Counts alone do not close the criterion-coverage gate or supply passing/manual evidence.
+
 ## Verification
 
 Sixteen focused checks passed in 115.46 seconds after the chronology guard was added;

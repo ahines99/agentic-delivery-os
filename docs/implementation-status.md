@@ -4,8 +4,8 @@ Updated 2026-09-29 UTC during continued controlled implementation. This is the c
 the original milestone documents remain the release targets. Source code alone is not a passed
 integration or production release gate.
 
-Latest complete hosted verification: [CI at `9c72b37`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36634011617)
-passed both Python versions (2,829 tests and 89 explicit skips each), 89 actual service
+Latest complete hosted verification: [CI at `1c0ba98`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36637230360)
+passed both Python versions (2,847 tests and 90 explicit skips each), 90 actual service
 integration tests and secret scanning. This includes the [campaign journal](campaign-journal.md),
 [completed semantic reader](semantic-consumption.md) and [whole-attempt reader](completed-attempt-reporting.md).
 They reconstruct original outcomes, early failures and optional exact adjudication under
@@ -46,7 +46,8 @@ inventories. Seventeen focused cases cover missing outcomes, retained uncertaint
 successful/failed scoring and exact adjudication. Three existing execution/consumption checks
 also passed. It does not attest complete program-ledger coverage or supply numerical,
 statistical, operational or pilot promotion. The hosted result above includes this report.
-Later whole-ledger census and prospective phase-statistics changes require their own verification.
+This hosted result also includes the whole-ledger census. Later prospective phase-statistics
+and requirement-inventory changes require their own exact-head hosted verification.
 
 Prospective [phase statistics](adr/ADR-019-prospective-phase-statistics.md) now pin the bootstrap
 method and campaign seed before execution. The version-2 completed-attempt reader exposes
@@ -57,6 +58,15 @@ statistics, completed-attempt, aggregate-report and ledger-coverage checks passe
 456.39 seconds. Lint/format, types and builds also passed; exact-head hosted CI remains required.
 Criterion-level coverage, infrastructure incident classification, full program cost enforcement,
 operational gates and pilot signoff remain open. No historical result or promotion is claimed.
+
+A [prospective requirement inventory](campaign-criterion-inventory.md) now captures complete
+criterion denominators under current qualification, binds them to the original campaign and
+registration, and pins its reference before execution. Reports retain counts for unrun tasks
+without loading protected task contexts; policies without an inventory retain unknown counts.
+The combined inventory/policy/statistics/reporting suite passed 66 tests in 188.43 seconds;
+one additional capture-permission revocation case passed in 5.90 seconds. Qualification is an
+explicit owned-fixture boundary in these inventory tests. No historical inventory was captured,
+and passing criterion evidence remains a separate unfinished consumer.
 
 The [transaction/outbox fault matrix](postgres-faults.md) also passed 12 scoped actual
 PostgreSQL/Temporal cases, and [model-provider ledger faults](model-provider-faults.md) passed
