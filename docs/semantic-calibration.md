@@ -201,3 +201,53 @@ clarification may address that gap; the aggregate diagnostic does not establish 
 it caused this failure or that clarification will pass calibration. Expectations and
 validators remain unchanged. Historical scoring still requires a passing matching
 calibration and all independent authority/budget checks.
+
+
+## Independent-finding prompt experiment
+
+V3 appends generic instructions to assess each criterion and integrity concern on its
+own evidence before aggregating the verdict. Original v1/v2 bytes, expectations,
+schemas and validators are unchanged. The explicit-version suite passed 48 tests;
+root independently passed 35 exact-byte/guidance controls, and security review passed
+12 binding/recovery controls. These overlapping checks verify mechanics, not quality.
+
+The separately frozen Opus 5 run at `3b2f679` used the same 6,000-output setting and
+original runtime evidence. It completed all five valid outputs with five overall
+verdict matches, four exact finding maps, one mandatory failure and zero false-ready.
+It remains **CALIBRATION_FAILED**. All five calls settled, using 28,663 input and
+17,259 output tokens for 574,790 microdollars, with no reservation. Read-only validation
+and cached recovery were unchanged. Evidence:
+`db0ca983b03641c42d96603298f4bf505df004b5a42ed4eaf14b1f76a1b21abf`.
+This does not establish which finding caused the mismatch or justify correcting an
+answer, weakening the expected map, or retrying the same configuration until it passes.
+
+
+## Passing prospective Opus 5.5 configuration
+
+A separate five-case run retained the v3 prompt, original rubric, runtime receipts,
+expectations and 6,000-output setting while selecting `claude-opus-5-5`. The account's
+Models API reported that identifier available. The frozen standard input/output rates
+are USD 4/20 per million tokens, checked against [Anthropic model documentation](https://platform.claude.com/docs/en/models/opus-5-5/overview)
+and [pricing](https://platform.claude.com/docs/en/about-claude/pricing) on 2026-09-29.
+No cache, batch, fast-mode or geographic pricing modifier was requested. Earlier
+configurations and costs remain unchanged; this is development model selection.
+
+At source `3b2f679`, all five calls settled and all five valid outputs exactly matched
+the frozen finding maps and verdicts. Mandatory failures and false-ready observations
+were both zero: **CALIBRATED** for this exact owned final-scoring configuration.
+The run used 28,670 input and 12,543 output tokens for **365,540 microdollars**, with
+zero reservation. Cached recovery made no calls or accounting changes. A subsequent
+current-core `SemanticCalibrationAuthority.validate()` with passing evidence required
+succeeded while artifact writes, reservation and settlement were forbidden; the
+account remained unchanged.
+
+Spec: `a365b9f9e9460a21b1e41d2735cf88983870c24667f132adb415d05d970d8b9e`.
+Evidence: `3eb60e0420eac2df395b6046907aab111e46e108863d755962f197555a2b9181`.
+Configuration: `39f84911608c87fd8c11820b116b257bd7a8d78f96b83d77ab347b04b966b91d`.
+Prompt: `3d63ddb9eb50634f37c43b18224ff5c0183c2554a7a6d946260f77f3816ad0cd`.
+
+This proves the five mandatory owned development anchors for the pinned configuration,
+not independent held-out accuracy or a completed historical task. Current authority,
+validity, exact configuration matching, qualification, corpus, spending and execution
+gates still apply. It does not calibrate the separate adjudication prompt/schema or
+a lossless wire profile, authorize historical scoring, or resolve earlier unknown costs.

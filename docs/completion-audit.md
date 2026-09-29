@@ -871,3 +871,51 @@ evidence scope passed 12 tests in 12.11 seconds (23 unrelated cases deselected),
 including the real-container context case omitted in E105. Model responses were
 not executed. All 398 local links across 102 Markdown documents resolved. These
 scopes overlap E105 and do not establish live adjudicator calibration.
+
+
+E107: [CI at `c9b8b03`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36505270760)
+failed three store-isolation tests on each Python version, with 2353 passed and 87
+skipped (419.34 seconds on 3.12, 300.69 on 3.13). Actual services passed 87 tests in
+232.93 seconds; secret scanning passed. The new authority guard preceded the old
+store-overlap check in isolated unit fixtures. Fix `1128dc8` moves that unchanged
+storage guard before qualification reads and strengthens the tests to forbid those
+reads. Independent review cleared it; 137 affected tests passed with one optional
+Docker skip in 30.43 seconds. Failed CI remains retained, not rewritten as success.
+
+E108: Explicit prospective protocol contracts at source `71ee9ae` preserve six v1
+schema goldens and default serialization while dispatching tagged v2 throughout
+allocation, candidate/scoring/semantic execution and current read-only consumers.
+380 affected tests passed in 332.54 seconds with three integration cases deselected;
+three later revocation controls passed separately. Independent review passed all 43
+new tests in 23.84 seconds. Root integration at `932406f` passed 138 protocol/protection/
+qualification tests in 35.26 seconds with one integration case deselected. These scopes
+overlap. No historical campaign, passing calibration, new live grant or budget reset
+is implied. See [protocol implementation](protocol-v2-implementation.md).
+
+E109: The explicit v3 scorer prompt passed version/binding controls but its separate
+live Opus 5 calibration remained failed: five valid outputs, five verdict matches,
+four exact finding maps, one mandatory failure and zero false-ready. Its five settled
+calls cost 574,790 microdollars with zero reservation and unchanged cached readback.
+The [calibration record](semantic-calibration.md) preserves the exact evidence and
+prior failures. No private finding/prose was used to modify expectations or validators.
+
+
+E110: A separate Opus 5.5/v3/6,000-output owned final-scorer calibration at source
+`3b2f679` passed all five exact finding maps and verdicts, with zero mandatory failures
+and false-ready observations. All five operations settled for 365,540 microdollars
+(28,670 input, 12,543 output), with no reservation or cached-recovery changes. A current
+read-only concrete authority required passing evidence and succeeded with writes,
+reservation and settlement forbidden. This exact configuration is calibrated for the
+owned anchors; historical scoring, adjudicator calibration and held-out accuracy remain
+unproved. See [the complete record](semantic-calibration.md).
+
+
+E111: Separate [owned adjudication calibration](semantic-adjudication-calibration.md)
+uses actual owned runtime contexts, unchanged hypothetical peers, exact controller-derived
+peer references and a distinct purpose/spec/grant/account. Expectations remain separate;
+readback reconstructs all receipts and cannot write. The author passed 47 controlled
+cases and an actual Docker case with the current pinned image; independent review
+passed 16 scoped cases. Root integration at `4951133` passed seven broker/projection/
+expectation/read-only/concern cases in 106.53 seconds (41 deselected). Ruff/format
+(308 files) and mypy (98 sources) passed. No live adjudicator calibration or historical
+adjudication was executed by these controlled tests.

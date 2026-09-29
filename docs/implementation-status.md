@@ -72,7 +72,12 @@ truncation and was reconciled for cost only. The subsequent 6,000-output profile
 completed all five valid outputs, with five overall verdict matches but four exact
 finding-map matches and one mandatory failure. It settled 572,270 microdollars with
 zero reservation. Both remain failed calibration evidence; live final scoring is
-still gated on a passing matching calibration. See the full [record](semantic-calibration.md).
+still gated at that checkpoint. A subsequent prospective Opus 5.5 configuration
+with v3 instructions passed all five exact owned anchors with zero mandatory failures
+and false-ready observations, settling 365,540 microdollars with no reservation.
+Current read-only passing validation succeeded without writes or account changes.
+Historical scoring and separately calibrated adjudication remain open. See the full
+[record](semantic-calibration.md).
 
 The [A/B execution adapter](campaign-candidate.md) now connects canonical allocation
 to the shared engine, real broker accounting and Docker. Actual owned A and B repair
@@ -90,7 +95,9 @@ The [owned adjudication adapter](semantic-owned-adjudication.md) now binds those
 unchanged hypothetical peer findings to verified actual owned runtime evidence,
 without inventing reviewer operations. Root integration of the adapter, protected-path
 scoring checks and affected consumers passed 138 tests with one optional Docker skip.
-Adjudication execution and the complete campaign remain open. A compatible per-call output
+The separate [adjudication calibration controller](semantic-adjudication-calibration.md)
+is implemented with controlled broker and real owned Docker tests. Live adjudicator
+calibration, historical adjudication execution and the complete campaign remain open. A compatible per-call output
 configuration and context profile must also fit the frozen total attempt caps; the
 20,000-output calibration profile cannot reserve two final scorers inside a
 20,000-output total attempt.
@@ -445,6 +452,28 @@ remain open despite the separate bounded read-only retention planner.
 
 [ADR-016](adr/ADR-016-prospective-campaign-token-ceilings.md) accepts an explicitly
 selected 500,000-input/64,000-output protocol while retaining all financial, time,
-corpus and promotion limits. Implementation and activation remain pending. Existing
+corpus and promotion limits. [Contracts and current consumers](protocol-v2-implementation.md)
+are implemented and independently reviewed; historical activation remains gated. Existing
 v1 types, grants, costs and frozen records are unchanged; the decision supplies no
 calibration or execution authority.
+
+
+The subsequent hosted run at `c9b8b03` retained three storage-isolation test failures
+on each Python version (2353 passed, 87 skipped); service integration passed 87 cases.
+The new concrete-authority check preceded the existing store-overlap refusal in these
+unit fixtures. The overlap guard now rejects before qualification reads, and the
+strengthened tests prohibit those reads. Independent review cleared the reorder;
+137 affected tests passed with one optional Docker skip. A further integrated v2
+protocol/protection/qualification scope passed 138 tests with one integration case
+deselected. New-head hosted verification is still required; these counts overlap.
+
+The v3 independent-finding prompt preserved v1/v2 bytes, schemas and expectations.
+Its separately authorized Opus 5 calibration again completed five valid outputs and
+five overall verdict matches, but four exact finding maps and one mandatory failure.
+It settled 574,790 microdollars with no reservation. Final scoring remains gated.
+
+
+The separate Opus 5.5/v3 final-scorer profile subsequently passed all five exact owned
+anchors (365,540 microdollars, no reservation), including current read-only passing
+validation. This supersedes the absence of any passing configuration, not earlier
+failed records. It supplies neither held-out accuracy nor historical spending authority.

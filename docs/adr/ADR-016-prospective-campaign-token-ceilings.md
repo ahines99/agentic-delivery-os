@@ -1,6 +1,7 @@
 # ADR-016: Explicit prospective campaign token ceilings
 
-Status: accepted design, 2026-09-29. Implementation and activation remain pending.
+Status: accepted and implemented contracts, 2026-09-29. Historical activation remains gated.
+See [implementation evidence](../protocol-v2-implementation.md).
 This decision changes the prospective evaluation protocol; it is not an execution
 grant, passing calibration, or completed campaign.
 

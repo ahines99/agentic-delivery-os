@@ -51,7 +51,9 @@ development candidates. The [recorded attempts](docs/historical-development-atte
 retain a deterministic rejection and a truncated model review whose cost was reconciled.
 After separate capacity calibration, two candidates passed all deterministic checks,
 two independent model reviews each and current authority validation. Two development tasks
-are qualified; no historical task has been scored or used in a campaign.
+are qualified; no historical task has been scored or used in a campaign. A separately
+frozen final-scorer configuration passed all five owned development anchors; this is
+[calibration evidence](docs/semantic-calibration.md), not historical accuracy.
 
 ## Local quickstart
 
@@ -105,6 +107,7 @@ skip without the runbook's service variables.
 | [docs/candidate-arms.md](docs/candidate-arms.md) | Shared builder-only and independent-review candidate engine |
 | [docs/worker-process-loss.md](docs/worker-process-loss.md) | Actual killed-worker cleanup and explicit uncertain outcomes |
 | [ADR-014](docs/adr/ADR-014-campaign-execution-budgets.md) | Separate immutable qualification and frozen campaign execution budgets |
+| [docs/protocol-v2-implementation.md](docs/protocol-v2-implementation.md) | Explicit prospective protocol contracts with strict v1 compatibility |
 | [ADR-016](docs/adr/ADR-016-prospective-campaign-token-ceilings.md) | Prospective explicit token ceilings with unchanged financial caps |
 | [ADR-015](docs/adr/ADR-015-bounded-candidate-cleanup.md) | Bounded trusted cleanup following candidate activity failure |
 | [docs/operator-rotation.md](docs/operator-rotation.md) | Restart-based HTTP token rotation and paused-admission rehearsal |
@@ -123,6 +126,7 @@ skip without the runbook's service variables.
 | [docs/owned-semantic-context.md](docs/owned-semantic-context.md) | Current owned-example evidence without historical task impersonation |
 | [docs/semantic-calibration.md](docs/semantic-calibration.md) | Separate five-case final-scorer calibration and immutable receipts |
 | [docs/semantic-execution.md](docs/semantic-execution.md) | Two calibrated initial scorers with agreement and unresolved outcomes |
+| [docs/semantic-adjudication-calibration.md](docs/semantic-adjudication-calibration.md) | Separate metered adjudicator calibration and current read-only validation |
 | [docs/semantic-owned-adjudication.md](docs/semantic-owned-adjudication.md) | Actual owned runtime evidence with unchanged hypothetical peer findings |
 | [docs/scoring-inspection.md](docs/scoring-inspection.md) | Current read-only reconstruction of completed deterministic scores |
 | [docs/semantic-file-pool.md](docs/semantic-file-pool.md) | Pure lossless context codec; model wire integration remains pending |

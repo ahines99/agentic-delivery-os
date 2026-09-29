@@ -92,8 +92,9 @@ The planned campaign ceiling is **USD 1,000 total measured model and infrastruct
 Prospective protocol decision: [ADR-016](adr/ADR-016-prospective-campaign-token-ceilings.md)
 adds explicitly selected `agentic-historical-v2` with 500,000 total input and 64,000
 total output tokens. Every monetary, time, command, repair, retry, corpus and promotion
-limit above stays unchanged. Implementation and activation are pending; v1 defaults
-and frozen records remain unchanged. All stages share the original attempt account.
+limit above stays unchanged. [Versioned consumers](protocol-v2-implementation.md)
+are implemented; historical activation remains gated and v1 defaults/frozen records
+remain unchanged. All stages share the original attempt account.
 Use the full USD 6 attempt cap for campaign reservations, retain prior preparation and
 unknown costs, and report versions separately. New configuration or context profiles
 require matching successful calibration; this decision supplies no execution grant.
