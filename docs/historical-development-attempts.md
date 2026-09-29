@@ -163,3 +163,24 @@ a 3,627-byte binary asset that could not satisfy the UTF-8 snapshot contract. No
 issue text or reference solution entered implementation-agent context. The failed attempt
 and diagnostic metadata remain retained; the acquisition was not reissued or weakened by
 excluding the asset. No derivation, import, runtime operation, model call or admission followed.
+
+## Markdownify development acquisition
+
+A separate metadata screen examined cached-property and markdownify after an inflection
+repository lookup was unavailable. Nine requests transferred 86,332 bytes, with no issue
+body, source or patch opened. Markdownify PR 264 / issue 244 passed that limited profile:
+MIT license metadata, an unedited issue predating the accepted commit, one commit parent,
+and both production and test changes. Metadata alone grants no rights or qualification.
+
+The separately frozen acquisition at source `96432d0` captured the pinned baseline and
+accepted tree in protected storage. It used 32 requests and 237,736 response bytes under
+a 50-request, 4 MiB, 250-second total ceiling, without automatic retries. The baseline
+contains 24 files totaling 94,098 bytes. Protected derivation recorded two changed files,
+one whole-test-file relocation and one frozen acceptance selector. The resulting state
+is `DERIVED_NOT_IMPORTED`; only allowlisted identities, digests and counts were exposed.
+
+No historical content entered implementation-agent context, no repository code or model
+ran, and no qualification, scoring, worker export or campaign admission occurred. Rights
+review, protected issue capture/import, runtime/dependency compatibility, full-context
+feasibility and current independently calibrated qualification remain prerequisites.
+Earlier expired data/calibration grants cannot authorize this new candidate.

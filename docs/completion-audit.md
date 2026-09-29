@@ -1081,3 +1081,25 @@ and mypy passed in the isolated source tree; staged secret scanning covered 79,1
 The cases exercise actual coordinator and broker APIs with controlled HTTP/SQLite, substituted
 qualification/context/calibration admission, and no paid calls or historical source. They do
 not establish historical accuracy, indefinite archival authority or a complete campaign report.
+
+E132: The [completed-attempt reader](completed-attempt-reporting.md) composes the concrete
+candidate, deterministic and semantic readers with the original coordinator binding,
+stage terms, outcome, chronology and exact operation inventory. It retains early failures
+and original costs; an adjudicated report preserves the initial outcome unchanged and
+adds exactly the verified continuation's cost. Thirteen final-source controlled cases passed
+in 200.53 seconds, including altered outcomes, current revocation during final reads and
+cross-account result rejection. Two additional v1/A and v2/B cases passed in 28.64 seconds
+after correcting a test-only assumption that allocation authorization carried the protocol
+tag (the initial two failures remain retained). No production change was needed for that
+fixture correction. Full Ruff/format (331 files), mypy (104 sources), wheel/sdist build and
+450 local documentation links passed. Owned HTTP/SQLite and substituted admission/runtime
+boundaries remain explicit; no historical campaign, paid call or aggregate promotion occurred.
+
+E133: A bounded metadata-only screen of inflection, cached-property and markdownify made
+nine requests (86,332 bytes), retaining missing-repository and unsupported-change exclusions.
+It identified markdownify PR 264/issue 244 as metadata-eligible. A separate frozen acquisition
+made 32 requests (237,736 bytes), capturing 24 files totaling 94,098 source bytes and deriving
+two changed files, one relocated whole test file and one frozen acceptance selector.
+It completed `DERIVED_NOT_IMPORTED`, with no model call, repository execution, rights grant,
+worker export or qualification. Historical source, patch and oracle content stayed protected.
+See [the acquisition record](historical-development-attempts.md#markdownify-development-acquisition).

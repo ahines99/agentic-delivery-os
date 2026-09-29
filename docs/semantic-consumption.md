@@ -70,8 +70,9 @@ original outcome are not replaced.
 exact operation receipt inventory and complete settled costs/tokens. It explicitly denies
 execution authority, phase promotion and campaign completion. It does not establish that
 the system declared readiness before final scoring, evaluate a whole-campaign threshold,
-or measure human benefit. A separate completed-attempt/report adapter remains required to
-compose initial outcomes, candidate/deterministic failures and campaign denominators.
+or measure human benefit. The separate [completed-attempt reader](completed-attempt-reporting.md)
+composes initial outcomes and candidate/deterministic failures. Complete campaign
+denominators, phase execution and aggregate reporting remain open.
 
 Owned tests use actual coordinator/scoring/adjudication APIs, controlled HTTP responses
 and SQLite receipts. Qualification, protected context admission and calibration are explicit

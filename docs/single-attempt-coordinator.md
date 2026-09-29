@@ -60,11 +60,13 @@ Checkpoint retries preserve original timestamps. Concurrent callers rely on the
 existing ledger's unique operation reservation; a competing caller encountering
 an active operation stops instead of issuing the same work again.
 
-Completed consumption currently requires the original live execution window and
-current authority because the semantic reader has that contract. This coordinator
-does not renew expired execution grants or roll clocks back. The separate
-candidate and deterministic after-expiry consumers do not imply a corresponding
-semantic or whole-attempt after-expiry capability.
+This coordinator's completed consumption requires the original live execution window
+and current authority. It does not renew expired execution grants or roll clocks back.
+The separate [completed semantic consumer](semantic-consumption.md) reconstructs
+reviews after that window under fresh reporting permission; its original calibration,
+qualification and data access must still be current. The
+[whole-attempt report reader](completed-attempt-reporting.md) composes that evidence
+with the unchanged original outcome, early failures and full account totals.
 
 The owned composition tests use actual coordinator/stage APIs, model wire adapter,
 receipt validation and SQLite accounting. Their qualification/calibration

@@ -10,8 +10,10 @@ integration job and secret scanning, including the [campaign journal](campaign-j
 The subsequent [completed semantic reader](semantic-consumption.md) passed 32 owned tests
 and two final write-protection checks; final-head hosted verification remains required.
 It reconstructs completed initial reviews and an optional exact adjudication under current
-report permission, without renewing execution. Whole-attempt reporting and full phase
-execution remain open. Earlier live calibration and data grants are historical evidence;
+report permission, without renewing execution. The [whole-attempt reader](completed-attempt-reporting.md)
+also passed 13 controlled cases plus two protocol/arm cases, preserving early failures,
+the original outcome and complete accounting. Journal composition, aggregate reporting
+and full phase execution remain open. Earlier live calibration and data grants are historical evidence;
 expired authority cannot authorize current consumption or new runs.
 
 The [transaction/outbox fault matrix](postgres-faults.md) also passed 12 scoped actual

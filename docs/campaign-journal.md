@@ -85,8 +85,10 @@ development use, registry copies and storage aliases. Corpus qualification is a 
 fixture boundary. These tests make no model/provider/runtime calls and establish no
 historical campaign result or actual process/host-loss recovery.
 
-The serial execution adapter, authoritative completed-attempt reporting, numerical
-promotion reader and full phase execution still need composition. The existing
+The serial execution adapter, journal-to-report composition, numerical promotion reader
+and full phase execution remain open. The [completed-attempt reader](completed-attempt-reporting.md)
+now reconstructs individual outcomes, failures and exact adjudication accounting under
+current report authority. Journal observations alone cannot substitute for that proof. The existing
 [single-attempt coordinator](single-attempt-coordinator.md),
 [allocation](campaign-allocation.md) and independent scoring APIs retain their current
 authorization, budget, deadline and receipt checks.
