@@ -14,7 +14,7 @@ from sqlalchemy import select
 
 from agentic_delivery.config import ModelConfig
 from agentic_delivery.domain.models import Contract, NonEmpty
-from agentic_delivery.evaluation.campaign import ArmConfiguration
+from agentic_delivery.evaluation.campaign import ExecutionCampaign, resolve_arm
 from agentic_delivery.evaluation.campaign_scoring import (
     CampaignScoringExecution,
     validate_completed_scoring,
@@ -307,8 +307,12 @@ class SemanticExecution:
         _require(digest_json(current.model_dump(mode="json")) == grant.scoring_authorization_digest)
         _require(current.account_id == grant.account_id and current.issued_at <= grant.issued_at)
         _require(grant.expires_at <= current.expires_at)
-        arm = ArmConfiguration.model_validate(
-            _read(self.authority.protected_artifacts, current.arm_configuration_artifact)
+        campaign = ExecutionCampaign.model_validate(
+            _read(self.scoring.campaign_artifacts, current.campaign_artifact)
+        )
+        arm = resolve_arm(
+            campaign.specification.protocol_version,
+            _read(self.authority.protected_artifacts, current.arm_configuration_artifact),
         )
         _require(arm.model == self.config)
         worker_roots = [self.authority.worker_root.resolve()]

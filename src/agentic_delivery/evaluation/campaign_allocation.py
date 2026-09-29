@@ -7,7 +7,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import AwareDatetime, Field, TypeAdapter
 from sqlalchemy import select
@@ -15,18 +15,20 @@ from sqlalchemy import select
 from agentic_delivery.config import Budget
 from agentic_delivery.domain.models import Contract
 from agentic_delivery.evaluation.campaign import (
-    ArmConfiguration,
     AttemptLimits,
+    AttemptLimitsV2,
     ExecutionCampaign,
+    ProtocolArm,
+    ProtocolVersion,
     Split,
     _read,
 )
 from agentic_delivery.evaluation.campaign_scoring import (
     ATTEMPT_CHECKPOINT,
     CampaignAttemptBinding,
-    CampaignExecutionPolicy,
     CampaignScoringAuthorization,
     CampaignScoringExecution,
+    ProtocolExecutionPolicy,
     _resolve_campaign,
     _timestamp,
 )
@@ -107,6 +109,40 @@ class CampaignAllocationPolicy(Contract):
     preparation_reservation_microdollars: int = Field(strict=True, gt=0)
 
 
+class CampaignAllocationPolicyV2(Contract):
+    schema_version: Literal[2] = 2
+    protocol_version: Literal["agentic-historical-v2"]
+    enabled: bool = Field(strict=True)
+    ledger_identity: Digest
+    campaign_artifact: Digest
+    approved_ordinals: tuple[Annotated[int, Field(strict=True, ge=0, lt=10000)], ...] = Field(
+        min_length=1, max_length=4000
+    )
+    allowed_phases: tuple[Split, ...] = Field(min_length=1, max_length=3)
+    maximum_limits: AttemptLimitsV2
+    campaign_cap_microdollars: int = Field(strict=True, gt=0, le=1_000_000_000)
+    preparation_reservation_microdollars: int = Field(strict=True, gt=0)
+
+
+ProtocolAllocationPolicy = CampaignAllocationPolicy | CampaignAllocationPolicyV2
+
+
+def resolve_allocation_policy(
+    value: Any, protocol: ProtocolVersion | None = None
+) -> ProtocolAllocationPolicy:
+    if not isinstance(value, dict) or type(value.get("schema_version")) is not int:
+        raise ValueError("Policy requires an explicit schema tag")
+    if value["schema_version"] == 1:
+        if protocol is not None and protocol != "agentic-historical-v1":
+            raise ValueError("Policy protocol does not match campaign")
+        return CampaignAllocationPolicy.model_validate(value)
+    if value["schema_version"] == 2:
+        if protocol is not None and protocol != "agentic-historical-v2":
+            raise ValueError("Policy protocol does not match campaign")
+        return CampaignAllocationPolicyV2.model_validate(value)
+    raise ValueError("Unknown campaign policy schema")
+
+
 class CampaignAllocationAuthorization(Contract):
     schema_version: Literal[1] = 1
     kind: Literal["campaign-attempt-allocation"] = "campaign-attempt-allocation"
@@ -140,9 +176,9 @@ class CampaignAllocation(Contract):
 @dataclass(frozen=True)
 class _Inputs:
     grant: CampaignAllocationAuthorization
-    policy: CampaignAllocationPolicy
+    policy: ProtocolAllocationPolicy
     campaign: ExecutionCampaign
-    arm: ArmConfiguration
+    arm: ProtocolArm
 
 
 class CampaignAllocator:
@@ -154,7 +190,7 @@ class CampaignAllocator:
         output_artifacts: ArtifactStore,
         authority: QualificationAuthority,
         authorization_provider: Callable[[], CampaignAllocationAuthorization],
-        policy_provider: Callable[[], CampaignAllocationPolicy],
+        policy_provider: Callable[[], ProtocolAllocationPolicy],
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
         self.ledger, self.campaign_artifacts, self.output_artifacts = (
@@ -173,7 +209,7 @@ class CampaignAllocator:
         self,
         task: HistoricalTask,
         grant: CampaignAllocationAuthorization,
-        policy: CampaignAllocationPolicy,
+        policy: ProtocolAllocationPolicy,
     ) -> None:
         _require(isinstance(self.authority, QualificationAuthority))
         now = self.clock()
@@ -187,10 +223,7 @@ class CampaignAllocator:
             == CampaignAllocationAuthorization.model_validate(
                 self.authorization_provider().model_dump(mode="json")
             )
-            and policy
-            == CampaignAllocationPolicy.model_validate(
-                self.policy_provider().model_dump(mode="json")
-            )
+            and policy == resolve_allocation_policy(self.policy_provider().model_dump(mode="json"))
         )
         _require(
             policy.enabled
@@ -231,12 +264,16 @@ class CampaignAllocator:
         grant = CampaignAllocationAuthorization.model_validate(
             self.authorization_provider().model_dump(mode="json")
         )
-        policy = CampaignAllocationPolicy.model_validate(
-            self.policy_provider().model_dump(mode="json")
-        )
+        policy = resolve_allocation_policy(self.policy_provider().model_dump(mode="json"))
         self._guard(task, grant, policy)
         campaign = ExecutionCampaign.model_validate(
             _read(self.campaign_artifacts, grant.campaign_artifact)
+        )
+        _require(
+            resolve_allocation_policy(
+                policy.model_dump(mode="json"), campaign.specification.protocol_version
+            )
+            == policy
         )
         arms = _resolve_campaign(campaign, self.authority.protected_artifacts)
         _require(grant.ordinal < len(campaign.schedule))
@@ -434,7 +471,7 @@ class CampaignAllocator:
         task: HistoricalTask,
         *,
         authorization_provider: Callable[[], CampaignScoringAuthorization],
-        policy_provider: Callable[[], CampaignExecutionPolicy],
+        policy_provider: Callable[[], ProtocolExecutionPolicy],
     ) -> CampaignScoringExecution:
         """Wrap explicit v2 providers; does not mint a scorer grant or permit model calls."""
 

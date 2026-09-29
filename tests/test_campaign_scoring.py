@@ -14,15 +14,16 @@ from test_evaluation_campaign import corpus_seed as original_corpus_seed
 from agentic_delivery.config import Budget, RepositoryConfig, Settings
 from agentic_delivery.evaluation import execution_store, harness, qualification_runtime
 from agentic_delivery.evaluation.campaign import (
-    ArmConfiguration,
-    CampaignSpecification,
     freeze_execution_campaign,
+    resolve_arm,
+    resolve_specification,
 )
 from agentic_delivery.evaluation.campaign_scoring import (
     ATTEMPT_CHECKPOINT,
     SCORING_CHECKPOINT,
     CampaignAttemptBinding,
     CampaignExecutionPolicy,
+    CampaignExecutionPolicyV2,
     CampaignScoringAuthorization,
     CampaignScoringExecution,
     validate_completed_scoring,
@@ -51,7 +52,7 @@ def put(store, value):
 
 
 @pytest.fixture
-def campaign_scoring(campaign_seed, tmp_path, monkeypatch):
+def campaign_scoring(campaign_seed, tmp_path, monkeypatch, request):
     tasks, specification, protected, _ = campaign_seed
     qualification_budget = Budget(
         model_microdollars=20_000_000,
@@ -67,11 +68,17 @@ def campaign_scoring(campaign_seed, tmp_path, monkeypatch):
         for task in tasks
     )
     document = specification.model_dump(mode="json")
+    protocol_v2 = getattr(request, "param", "v1") == "v2"
+    if protocol_v2:
+        document["protocol_version"] = "agentic-historical-v2"
     for reference in document["arms"]:
         arm = json.loads(protected.get(reference["configuration_artifact"]))
         arm["limits"].update(command_seconds=7)
+        if protocol_v2:
+            arm.update(schema_version=2, protocol_version="agentic-historical-v2")
+            arm["limits"].update(input_tokens=500_000, output_tokens=64_000)
         reference["configuration_artifact"] = put(protected, arm)
-    specification = CampaignSpecification.model_validate(document)
+    specification = resolve_specification(document)
     now = datetime.now(UTC)
     state = {"now": now, "revoked": False, "policy": None, "grant": None}
 
@@ -126,7 +133,7 @@ def campaign_scoring(campaign_seed, tmp_path, monkeypatch):
     arm_ref = next(
         ref.configuration_artifact for ref in specification.arms if ref.arm == scheduled.arm
     )
-    arm = ArmConfiguration.model_validate_json(protected.get(arm_ref))
+    arm = resolve_arm(specification.protocol_version, json.loads(protected.get(arm_ref)))
     settings = Settings(
         budget=qualification_budget,
         artifact_root=output.root,
@@ -168,7 +175,9 @@ def campaign_scoring(campaign_seed, tmp_path, monkeypatch):
         deadline=now + timedelta(seconds=arm.limits.wall_seconds - 20),
     )
     attempt_ref = put(output, attempt.model_dump(mode="json"))
-    policy = CampaignExecutionPolicy(
+    policy_type = CampaignExecutionPolicyV2 if protocol_v2 else CampaignExecutionPolicy
+    policy = policy_type(
+        **({"protocol_version": "agentic-historical-v2"} if protocol_v2 else {}),
         enabled=True,
         approved_campaign_artifacts=(frozen_ref,),
         approved_attempt_bindings=(attempt_ref,),

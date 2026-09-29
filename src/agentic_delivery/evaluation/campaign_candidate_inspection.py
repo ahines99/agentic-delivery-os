@@ -19,9 +19,10 @@ from agentic_delivery.evaluation.campaign import ExecutionCampaign, Split, _read
 from agentic_delivery.evaluation.campaign_allocation import (
     ALLOCATION_CHECKPOINT,
     CampaignAllocation,
-    CampaignAllocationPolicy,
+    ProtocolAllocationPolicy,
     canonical_account_id,
     ledger_target_identity,
+    resolve_allocation_policy,
 )
 from agentic_delivery.evaluation.campaign_candidate import (
     BINDING_CHECKPOINT,
@@ -139,7 +140,7 @@ async def validate_sealed_candidate(
     authority: QualificationAuthority,
     original_authorization: CandidateAuthorization,
     original_execution_policy: CandidateExecutionPolicy,
-    original_allocation_policy: CampaignAllocationPolicy,
+    original_allocation_policy: ProtocolAllocationPolicy,
     consumption_authorization_provider: Callable[[], CandidateConsumptionAuthorization],
     consumption_policy_provider: Callable[[], CandidateConsumptionPolicy],
     clock: Callable[[], datetime] = lambda: datetime.now(UTC),
@@ -174,7 +175,7 @@ async def _validate(
     authority: QualificationAuthority,
     original_authorization: CandidateAuthorization,
     original_execution_policy: CandidateExecutionPolicy,
-    original_allocation_policy: CampaignAllocationPolicy,
+    original_allocation_policy: ProtocolAllocationPolicy,
     consumption_authorization_provider: Callable[[], CandidateConsumptionAuthorization],
     consumption_policy_provider: Callable[[], CandidateConsumptionPolicy],
     clock: Callable[[], datetime],
@@ -184,7 +185,7 @@ async def _validate(
     policy = CandidateExecutionPolicy.model_validate(
         original_execution_policy.model_dump(mode="json")
     )
-    allocation_policy = CampaignAllocationPolicy.model_validate(
+    allocation_policy = resolve_allocation_policy(
         original_allocation_policy.model_dump(mode="json")
     )
     use = CandidateConsumptionAuthorization.model_validate(
@@ -301,6 +302,12 @@ async def _validate(
         and use.phase in allocation_policy.allowed_phases
     )
     campaign = ExecutionCampaign.model_validate(_read(campaign_artifacts, use.campaign_artifact))
+    _require(
+        resolve_allocation_policy(
+            allocation_policy.model_dump(mode="json"), campaign.specification.protocol_version
+        )
+        == allocation_policy
+    )
     arms = _resolve_campaign(campaign, protected)
     schedule = campaign.schedule[use.ordinal]
     arm_ref, arm = arms[schedule.arm]

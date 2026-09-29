@@ -74,6 +74,89 @@ class CampaignSpecification(Contract):
     preparation_reservation_microdollars: int = Field(strict=True, gt=0)
 
 
+class AttemptLimitsV2(Contract):
+    """All calls, scoring agents, retries, review and repairs share these ceilings."""
+
+    wall_seconds: int = Field(strict=True, gt=0, le=1800)
+    command_seconds: int = Field(strict=True, gt=0, le=600)
+    input_tokens: int = Field(strict=True, gt=0, le=500_000)
+    output_tokens: int = Field(strict=True, gt=0, le=64_000)
+    model_microdollars: int = Field(strict=True, gt=0, le=5_000_000)
+    infrastructure_microdollars: int = Field(strict=True, gt=0, le=1_000_000)
+    repair_rounds: int = Field(strict=True, ge=0, le=2)
+    transport_retries: int = Field(strict=True, ge=0, le=2)
+
+
+class ArmConfigurationV2(Contract):
+    schema_version: Literal[2]
+    protocol_version: Literal["agentic-historical-v2"]
+    arm: Arm
+    model: ModelConfig
+    limits: AttemptLimitsV2
+    policy_digest: Digest
+    tool_permissions_digest: Digest
+    builder_prompt_digest: Digest
+    review_prompt_digest: Digest | None
+    independent_review: bool = Field(strict=True)
+    context_digest: Digest | None
+
+
+class CampaignSpecificationV2(Contract):
+    schema_version: Literal[1]
+    protocol_version: Literal["agentic-historical-v2"]
+    campaign_id: NonEmpty
+    dataset_version: NonEmpty
+    scoring_code_commit: CommitSHA
+    rubric_artifact: Digest
+    calibration_artifact: Digest
+    selection_ledger_artifact: Digest
+    preregistered_at: AwareDatetime
+    execution_started: Literal[False]
+    seed: int = Field(strict=True, ge=0, le=2**32 - 1)
+    arms: tuple[ArmReference, ...] = Field(min_length=2, max_length=3)
+    stability_task_ids: tuple[NonEmpty, ...] = Field(min_length=6, max_length=6)
+    cap_microdollars: int = Field(strict=True, gt=0, le=1_000_000_000)
+    preparation_reservation_microdollars: int = Field(strict=True, gt=0)
+
+
+ProtocolVersion = Literal["agentic-historical-v1", "agentic-historical-v2"]
+ProtocolLimits = AttemptLimits | AttemptLimitsV2
+ProtocolArm = ArmConfiguration | ArmConfigurationV2
+ProtocolSpecification = Annotated[
+    CampaignSpecification | CampaignSpecificationV2, Field(discriminator="protocol_version")
+]
+
+
+def resolve_specification(value: Any) -> CampaignSpecification | CampaignSpecificationV2:
+    """Explicit protocol tag only; never guess from limits or retry failed v1 parsing."""
+    if not isinstance(value, dict):
+        raise CampaignFailure("Campaign specification must be a tagged document")
+    version = value.get("protocol_version")
+    if version == "agentic-historical-v1":
+        return CampaignSpecification.model_validate(value)
+    if version == "agentic-historical-v2":
+        return CampaignSpecificationV2.model_validate(value)
+    raise CampaignFailure("Unknown campaign protocol")
+
+
+def resolve_arm(protocol: ProtocolVersion, value: Any) -> ProtocolArm:
+    if not isinstance(value, dict):
+        raise CampaignFailure("Arm must be an explicitly versioned document")
+    if (
+        protocol == "agentic-historical-v1"
+        and type(value.get("schema_version")) is int
+        and value["schema_version"] == 1
+    ):
+        return ArmConfiguration.model_validate(value)
+    if (
+        protocol == "agentic-historical-v2"
+        and type(value.get("schema_version")) is int
+        and value["schema_version"] == 2
+    ):
+        return ArmConfigurationV2.model_validate(value)
+    raise CampaignFailure("Arm schema does not match campaign protocol")
+
+
 class CalibrationEvidence(Contract):
     """Legacy reference-only metadata; never current executed-calibration evidence."""
 
@@ -137,8 +220,21 @@ class FrozenCampaign(CampaignArtifact):
     qualification_mode: Literal["independent-agents-v2"] = "independent-agents-v2"
 
 
-class ExecutionCampaign(CampaignArtifact):
+class ExecutionCampaign(Contract):
     """Explicit v3 preparation/execution budget separation; still no authority to spend."""
+
+    status: Literal["PREREGISTERED_NOT_EXECUTED"] = "PREREGISTERED_NOT_EXECUTED"
+    spend_authorized: Literal[False] = False
+    specification: ProtocolSpecification
+    tasks: tuple[FrozenTask, ...]
+    manifest_digest: Digest
+    heldout_repositories: tuple[NonEmpty, ...]
+    schedule_algorithm: Literal["sha256-task-blocks-v1"] = "sha256-task-blocks-v1"
+    schedule: tuple[ScheduledAttempt, ...]
+    primary_attempts: int = Field(strict=True, ge=60)
+    stability_attempts: int = Field(strict=True, ge=24)
+    attempt_cost_ceiling_microdollars: int = Field(strict=True, gt=0)
+    worst_case_microdollars: int = Field(strict=True, gt=0)
 
     schema_version: Literal[3] = 3
     calibration_verified: Literal[True] = True
@@ -202,7 +298,7 @@ def select_stability_tasks(
 
 
 def _schedule(
-    tasks: tuple[HistoricalTask | FrozenTask, ...], spec: CampaignSpecification
+    tasks: tuple[HistoricalTask | FrozenTask, ...], spec: ProtocolSpecification
 ) -> tuple[ScheduledAttempt, ...]:
     attempts: list[ScheduledAttempt] = []
     # Split order preserves sealed-test staging; arm order is interleaved within tasks.
@@ -280,7 +376,7 @@ def freeze_campaign(
 
 def freeze_execution_campaign(
     tasks: tuple[HistoricalTask, ...],
-    specification: CampaignSpecification,
+    specification: ProtocolSpecification,
     protected_artifacts: ArtifactStore,
     output_artifacts: ArtifactStore,
     *,
@@ -300,9 +396,7 @@ def freeze_execution_campaign(
             "Concrete current qualification authority is required to freeze a campaign",
         )
         assert authority is not None
-        normalized_spec = CampaignSpecification.model_validate(
-            specification.model_dump(mode="json")
-        )
+        normalized_spec = resolve_specification(specification.model_dump(mode="json"))
         normalized_tasks = tuple(
             HistoricalTask.model_validate(task.model_dump(mode="json")) for task in tasks
         )
@@ -325,7 +419,7 @@ def freeze_execution_campaign(
 
 def _freeze(
     tasks: tuple[HistoricalTask, ...],
-    spec: CampaignSpecification,
+    spec: ProtocolSpecification,
     store: ArtifactStore,
     output: ArtifactStore,
     authority: "QualificationAuthority",
@@ -373,9 +467,9 @@ def _freeze(
         arm_names in (("A", "B"), ("A", "B", "C")),
         "Freeze A/B and optional C exactly once in canonical arm order",
     )
-    configurations: list[ArmConfiguration] = []
+    configurations: list[ProtocolArm] = []
     for ref in spec.arms:
-        config = ArmConfiguration.model_validate(_read(store, ref.configuration_artifact))
+        config = resolve_arm(spec.protocol_version, _read(store, ref.configuration_artifact))
         _require(config.arm == ref.arm, "Arm configuration digest binds a different arm")
         _require(
             config.independent_review == (config.arm != "A")
@@ -478,6 +572,8 @@ def _freeze(
         )
         for t in sorted(tasks, key=lambda t: t.id)
     )
+    if not separate_execution_budget and not isinstance(spec, CampaignSpecification):
+        raise CampaignFailure("Legacy campaign freezing requires protocol v1")
     campaign_type = ExecutionCampaign if separate_execution_budget else FrozenCampaign
     return campaign_type(
         specification=spec,

@@ -18,10 +18,11 @@ from agentic_delivery.evaluation.campaign_scoring import (
     ATTEMPT_CHECKPOINT,
     SCORING_CHECKPOINT,
     CampaignAttemptBinding,
-    CampaignExecutionPolicy,
     CampaignScoringAuthorization,
+    ProtocolExecutionPolicy,
     _resolve_campaign,
     _timestamp,
+    resolve_execution_policy,
 )
 from agentic_delivery.evaluation.execution_store import (
     INFRA_RECEIPT,
@@ -116,7 +117,7 @@ def validate_completed_scoring_consumption(
     output_artifacts: ArtifactStore,
     authority: QualificationAuthority,
     original_authorization: CampaignScoringAuthorization,
-    original_execution_policy: CampaignExecutionPolicy,
+    original_execution_policy: ProtocolExecutionPolicy,
     consumption_authorization_provider: Callable[[], ScoringConsumptionAuthorization],
     consumption_policy_provider: Callable[[], ScoringConsumptionPolicy],
     clock: Callable[[], datetime] = lambda: datetime.now(UTC),
@@ -149,7 +150,7 @@ def _validate(
     output_artifacts: ArtifactStore,
     authority: QualificationAuthority,
     original_authorization: CampaignScoringAuthorization,
-    original_execution_policy: CampaignExecutionPolicy,
+    original_execution_policy: ProtocolExecutionPolicy,
     consumption_authorization_provider: Callable[[], ScoringConsumptionAuthorization],
     consumption_policy_provider: Callable[[], ScoringConsumptionPolicy],
     clock: Callable[[], datetime],
@@ -158,9 +159,7 @@ def _validate(
     grant = CampaignScoringAuthorization.model_validate(
         original_authorization.model_dump(mode="json")
     )
-    policy = CampaignExecutionPolicy.model_validate(
-        original_execution_policy.model_dump(mode="json")
-    )
+    policy = resolve_execution_policy(original_execution_policy.model_dump(mode="json"))
     use = ScoringConsumptionAuthorization.model_validate(
         consumption_authorization_provider().model_dump(mode="json")
     )
@@ -240,6 +239,12 @@ def _validate(
     ):
         _require(getattr(use, key) == getattr(grant, key))
     campaign = ExecutionCampaign.model_validate(_read(campaign_artifacts, grant.campaign_artifact))
+    _require(
+        resolve_execution_policy(
+            policy.model_dump(mode="json"), campaign.specification.protocol_version
+        )
+        == policy
+    )
     arms = _resolve_campaign(campaign, protected)
     _require(grant.ordinal < len(campaign.schedule))
     scheduled = campaign.schedule[grant.ordinal]

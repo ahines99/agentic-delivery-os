@@ -15,12 +15,16 @@ from pydantic import AwareDatetime, Field
 from agentic_delivery.config import Budget, CommandProfile
 from agentic_delivery.domain.models import Contract, NonEmpty
 from agentic_delivery.evaluation.campaign import (
-    ArmConfiguration,
     AttemptLimits,
+    AttemptLimitsV2,
     ExecutionCampaign,
+    ProtocolArm,
+    ProtocolLimits,
+    ProtocolVersion,
     Split,
     _read,
     _schedule,
+    resolve_arm,
     select_stability_tasks,
 )
 from agentic_delivery.evaluation.execution_store import (
@@ -75,6 +79,39 @@ class CampaignExecutionPolicy(Contract):
     rate_card_version: NonEmpty = Field(pattern=r"^[A-Za-z0-9_.:/-]{1,200}$")
 
 
+class CampaignExecutionPolicyV2(Contract):
+    """Trusted current controller policy, not a policy document supplied by a worker."""
+
+    schema_version: Literal[2] = 2
+    protocol_version: Literal["agentic-historical-v2"]
+    enabled: bool = Field(strict=True)
+    approved_campaign_artifacts: tuple[Digest, ...] = Field(min_length=1, max_length=1000)
+    approved_attempt_bindings: tuple[Digest, ...] = Field(min_length=1, max_length=1000)
+    allowed_phases: tuple[Split, ...] = Field(min_length=1, max_length=3)
+    maximum_limits: AttemptLimitsV2
+    microdollars_per_second: int = Field(gt=0, strict=True, le=10**9)
+    rate_card_version: NonEmpty = Field(pattern=r"^[A-Za-z0-9_.:/-]{1,200}$")
+
+
+ProtocolExecutionPolicy = CampaignExecutionPolicy | CampaignExecutionPolicyV2
+
+
+def resolve_execution_policy(
+    value: Any, protocol: ProtocolVersion | None = None
+) -> ProtocolExecutionPolicy:
+    if not isinstance(value, dict) or type(value.get("schema_version")) is not int:
+        raise ValueError("Policy requires an explicit schema tag")
+    if value["schema_version"] == 1:
+        if protocol is not None and protocol != "agentic-historical-v1":
+            raise ValueError("Policy protocol does not match campaign")
+        return CampaignExecutionPolicy.model_validate(value)
+    if value["schema_version"] == 2:
+        if protocol is not None and protocol != "agentic-historical-v2":
+            raise ValueError("Policy protocol does not match campaign")
+        return CampaignExecutionPolicyV2.model_validate(value)
+    raise ValueError("Unknown campaign policy schema")
+
+
 class CampaignScoringAuthorization(Contract):
     schema_version: Literal[2] = 2
     kind: Literal["campaign-candidate-scoring"] = "campaign-candidate-scoring"
@@ -108,7 +145,7 @@ def _timestamp(value: Any) -> datetime:
 
 def _resolve_campaign(
     campaign: ExecutionCampaign, protected: ArtifactStore
-) -> dict[str, tuple[str, ArmConfiguration]]:
+) -> dict[str, tuple[str, ProtocolArm]]:
     """Recheck frozen metadata without loading another task's source or qualification."""
     tasks, spec = campaign.tasks, campaign.specification
     _require(30 <= len(tasks) <= 1000 and len({t.id for t in tasks}) == len(tasks))
@@ -129,10 +166,10 @@ def _resolve_campaign(
     _require(campaign.manifest_digest == digest_json([t.model_dump(mode="json") for t in tasks]))
     _require(spec.stability_task_ids == select_stability_tasks(tasks, spec.seed))
     _require(tuple(ref.arm for ref in spec.arms) in (("A", "B"), ("A", "B", "C")))
-    arms: dict[str, tuple[str, ArmConfiguration]] = {}
+    arms: dict[str, tuple[str, ProtocolArm]] = {}
     common = None
     for reference in spec.arms:
-        arm = ArmConfiguration.model_validate(_read(protected, reference.configuration_artifact))
+        arm = resolve_arm(spec.protocol_version, _read(protected, reference.configuration_artifact))
         _require(arm.arm == reference.arm and arm.independent_review == (arm.arm != "A"))
         _require(
             (arm.review_prompt_digest is not None) == (arm.arm != "A")
@@ -185,9 +222,9 @@ class _Context:
     authority: QualificationAuthority
     artifacts: ArtifactStore
     grant: CampaignScoringAuthorization
-    policy: CampaignExecutionPolicy
+    policy: ProtocolExecutionPolicy
     attempt: CampaignAttemptBinding
-    limits: AttemptLimits
+    limits: ProtocolLimits
     qualification_digest: str
     binding: dict[str, Any]
 
@@ -201,7 +238,7 @@ class CampaignScoringExecution:
         ledger: EvaluationExecutionStore,
         campaign_artifacts: ArtifactStore,
         authorization_provider: Callable[[], CampaignScoringAuthorization],
-        policy_provider: Callable[[], CampaignExecutionPolicy],
+        policy_provider: Callable[[], ProtocolExecutionPolicy],
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
         self.ledger, self.campaign_artifacts = ledger, campaign_artifacts
@@ -227,9 +264,7 @@ class CampaignScoringExecution:
             grant = CampaignScoringAuthorization.model_validate(
                 self.authorization_provider().model_dump(mode="json")
             )
-            policy = CampaignExecutionPolicy.model_validate(
-                self.policy_provider().model_dump(mode="json")
-            )
+            policy = resolve_execution_policy(self.policy_provider().model_dump(mode="json"))
             _require(
                 policy.enabled
                 and grant.execution_policy_digest == digest_json(policy.model_dump(mode="json"))
@@ -243,6 +278,12 @@ class CampaignScoringExecution:
             # Gate phase and exact controller pins before any protected content.
             campaign = ExecutionCampaign.model_validate(
                 _read(self.campaign_artifacts, grant.campaign_artifact)
+            )
+            _require(
+                resolve_execution_policy(
+                    policy.model_dump(mode="json"), campaign.specification.protocol_version
+                )
+                == policy
             )
             arms = _resolve_campaign(campaign, authority.protected_artifacts)
             _require(grant.ordinal < len(campaign.schedule))

@@ -19,6 +19,7 @@ from agentic_delivery.evaluation.campaign_allocation import (
     AllocationFailure,
     CampaignAllocationAuthorization,
     CampaignAllocationPolicy,
+    CampaignAllocationPolicyV2,
     CampaignAllocator,
     canonical_account_id,
     ledger_target_identity,
@@ -33,7 +34,10 @@ def allocation_case(controlled_scoring):
     case = controlled_scoring
     grant = case.state["grant"]
     campaign = json.loads(case.frozen_store.get(grant.campaign_artifact))
-    policy = CampaignAllocationPolicy(
+    protocol_v2 = campaign["specification"]["protocol_version"] == "agentic-historical-v2"
+    policy_type = CampaignAllocationPolicyV2 if protocol_v2 else CampaignAllocationPolicy
+    policy = policy_type(
+        **({"protocol_version": "agentic-historical-v2"} if protocol_v2 else {}),
         enabled=True,
         ledger_identity=ledger_target_identity(case.ledger),
         campaign_artifact=grant.campaign_artifact,

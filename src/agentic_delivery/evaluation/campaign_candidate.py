@@ -15,7 +15,7 @@ from agentic_delivery.agents.evidence import ExecutionReceipt, Preflight, Verifi
 from agentic_delivery.agents.pipeline import BUILD_INSTRUCTIONS, REVIEW_INSTRUCTIONS
 from agentic_delivery.config import CommandProfile
 from agentic_delivery.domain.models import Contract, NonEmpty
-from agentic_delivery.evaluation.campaign import ArmConfiguration, Split, _read
+from agentic_delivery.evaluation.campaign import ExecutionCampaign, Split, _read, resolve_arm
 from agentic_delivery.evaluation.campaign_allocation import CampaignAllocator
 from agentic_delivery.evaluation.campaign_scoring import SCORING_CHECKPOINT, _timestamp
 from agentic_delivery.evaluation.execution_store import (
@@ -206,8 +206,12 @@ class CampaignCandidateExecution:
             == allocation.authorization.preparation_policy_digest
             and attempt.started_at <= grant.issued_at < grant.expires_at <= attempt.deadline
         )
-        arm = ArmConfiguration.model_validate(
-            _read(allocator.authority.protected_artifacts, attempt.arm_configuration_artifact)
+        campaign = ExecutionCampaign.model_validate(
+            _read(allocator.campaign_artifacts, attempt.campaign_artifact)
+        )
+        arm = resolve_arm(
+            campaign.specification.protocol_version,
+            _read(allocator.authority.protected_artifacts, attempt.arm_configuration_artifact),
         )
         _require(
             arm.arm in {"A", "B"}

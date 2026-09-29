@@ -65,9 +65,13 @@ def candidate_case(allocation_case, monkeypatch, request):
         argv=("python", "-m", "pytest", "-q", "tests/test_regression.py::test_existing"),
         expected_tests=1,
     )
+    # Original regression lives in source; keep evaluator-owned oracle paths disjoint.
+    oracle = json.loads(case.protected.get(case.task.oracle_artifact))
+    oracle = {path: content for path, content in oracle.items() if path not in source}
     case.task = case.task.model_copy(
         update={
             "snapshot_artifact": put(case.protected, source),
+            "oracle_artifact": put(case.protected, oracle),
             "regression_commands": (command,),
             "image": image or case.task.image,
         }
