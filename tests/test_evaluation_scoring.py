@@ -8,8 +8,10 @@ from test_evaluation_authority import scoring_execution_boundary as scoring_exec
 from test_qualification import get, historical_task, put
 from test_qualification import records as records_fixture
 
+from agentic_delivery.config import RepositoryConfig, Settings
 from agentic_delivery.evaluation.harness import HistoricalTask, score_candidate
 from agentic_delivery.evaluation.qualification import QualificationInput
+from agentic_delivery.evaluation.qualification_admission import QualificationAuthority
 from agentic_delivery.storage.artifacts import ArtifactStore
 from agentic_delivery.storage.store import digest_json
 
@@ -26,7 +28,18 @@ def admitted_scoring_boundary(records, monkeypatch, scoring_execution_boundary):
         return SimpleNamespace(qualification_input=QualificationInput.model_validate(records[2]))
 
     monkeypatch.setattr(HistoricalTask, "validate_qualification", validate)
-    return object(), scoring_execution_boundary
+    authority = object.__new__(QualificationAuthority)
+    settings = Settings(
+        repositories=(
+            RepositoryConfig(
+                id=historical_task(records).item.repository,
+                github_owner="owned",
+                github_name="scoring",
+            ),
+        )
+    )
+    object.__setattr__(authority, "settings_provider", lambda: settings)
+    return authority, scoring_execution_boundary
 
 
 def add_source_files(records, additions):

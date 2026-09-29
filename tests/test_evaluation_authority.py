@@ -6,6 +6,7 @@ import pytest
 from test_qualification import historical_task
 from test_qualification import records as records_fixture
 
+from agentic_delivery.config import RepositoryConfig, Settings
 from agentic_delivery.evaluation.cli import main
 from agentic_delivery.evaluation.harness import score_candidate
 from agentic_delivery.evaluation.qualification import QualificationInput
@@ -24,6 +25,16 @@ def authority_boundary(records, monkeypatch):
     )
     authority = object.__new__(QualificationAuthority)
     object.__setattr__(authority, "protected_artifacts", store)
+    settings = Settings(
+        repositories=(
+            RepositoryConfig(
+                id=task.item.repository,
+                github_owner="owned",
+                github_name="authority",
+            ),
+        )
+    )
+    object.__setattr__(authority, "settings_provider", lambda: settings)
     calls = []
     result = SimpleNamespace(
         qualification_input=QualificationInput.model_validate(specification),

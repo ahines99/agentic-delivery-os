@@ -169,10 +169,23 @@ def _scoring_material(
     output_artifacts: ArtifactStore,
     authority: "QualificationAuthority | None",
 ) -> tuple[dict[str, str], Any]:
+    from agentic_delivery.evaluation.qualification_admission import QualificationAuthority
+
     validated = task.validate_qualification(
         protected_artifacts, authority=authority, purpose="scoring"
     )
+    if not isinstance(authority, QualificationAuthority):
+        raise ValueError("Concrete current scoring authority is required")
     qualification = validated.qualification_input
+    repository = authority.settings_provider().repository(task.item.repository)
+    protected_paths = (
+        ".github",
+        "AGENTS.md",
+        "CODEOWNERS",
+        "Dockerfile",
+        "infra",
+        *repository.protected_paths,
+    )
 
     protected_root = protected_artifacts.root.resolve()
     output_root = output_artifacts.root.resolve()
@@ -194,8 +207,7 @@ def _scoring_material(
     } | {node.split("::", 1)[0] for node in qualification.regression_nodes}
     for path in source.keys() | candidate.keys():
         if source.get(path) != candidate.get(path) and (
-            path in original_tests
-            or protected(path, (".github", "AGENTS.md", "CODEOWNERS", "Dockerfile", "infra"))
+            path in original_tests or protected(path, protected_paths)
         ):
             raise ValueError("Candidate changed protected source tests or execution controls")
     if source == candidate:

@@ -66,3 +66,13 @@ historical admission, actual Docker execution in this suite or semantic correctn
 Same-target database replacement by an administrator remains outside the ledger-target
 identity guarantee. Read-before/read-after checks are not a transaction across all
 external authorization providers. No paid call or historical payload read was used.
+
+Scoring material reconstruction also checks the current repository's configured
+`protected_paths`, in addition to the fixed execution controls and original tests.
+Changes, deletions, renames and additions inside a protected directory are refused
+before runner construction or reservations. Completed evidence inspection applies
+the same rule, so an externally supplied candidate cannot bypass custom path controls
+by presenting otherwise consistent old receipts. Candidate generation already enforced
+these controls; this closes the separate scorer/reader path. Previous records that
+changed a custom protected path are refused under current authority rather than
+being grandfathered into a valid result.
