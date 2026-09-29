@@ -107,6 +107,7 @@ skip without the runbook's service variables.
 | [docs/security-model.md](docs/security-model.md) | Trust boundaries and execution controls |
 | [docs/evaluation-methodology.md](docs/evaluation-methodology.md) | Reproducible evaluation protocol |
 | [docs/evaluation-campaign.md](docs/evaluation-campaign.md) | Qualified dataset/arm preregistration and frozen scheduling |
+| [docs/semantic-consumption.md](docs/semantic-consumption.md) | Read-only completed review and adjudication evidence under current authority |
 | [docs/coverage-contexts.md](docs/coverage-contexts.md) | Revision-bound measured coverage hints and uncertainty |
 | [docs/active-cancellation.md](docs/active-cancellation.md) | Actual workload cancellation, expiry and cleanup-failure drills |
 | [docs/correction-loop.md](docs/correction-loop.md) | Controlled rejection, fresh repair evidence and exhausted-loop tests |

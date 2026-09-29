@@ -1062,3 +1062,22 @@ the three remaining linked funcy candidates found PR 96/issue 95 metadata-eligib
 after 13 earlier requests (150,215 bytes). No source, patch or issue body was opened, no
 model or repository code ran, and no rights, oracle, runtime or qualification decision was
 inferred. Full-context feasibility and protected acquisition remain prerequisites.
+
+E130: [Hosted CI at `e7c67ca`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36618308416)
+passed all four required jobs, including the campaign journal. Python 3.12 passed 2,684 tests
+with 88 explicit skips in 691.10 seconds; Python 3.13 passed the same counts in 609.81 seconds.
+Actual PostgreSQL/Temporal/Docker integration and secret scanning passed. This proves that
+commit's tested scope, not later changes or completion of the product and evaluation gates.
+
+E131: [Completed semantic consumption](semantic-consumption.md), source `bd6c19e` integrated
+as `94c9ebf`, reconstructs two initial reviews and an optional exact adjudication continuation
+under current report permission. The original execution APIs and windows remain unchanged.
+Root review added initial-review checkpoint rereads, a concurrent mutation refusal, explicit
+v1 coverage, real executor-based adjudication fixtures with one dispute and preserved agreements,
+and prefix/tail/current-authority denials. All 32 owned tests passed in 572.13 seconds.
+Two final positive cases passed in 50.88 seconds with class-wide ledger/artifact writes forbidden;
+candidate/scoring accounting and protected artifact bytes remained unchanged. Full Ruff/format
+and mypy passed in the isolated source tree; staged secret scanning covered 79,107 bytes.
+The cases exercise actual coordinator and broker APIs with controlled HTTP/SQLite, substituted
+qualification/context/calibration admission, and no paid calls or historical source. They do
+not establish historical accuracy, indefinite archival authority or a complete campaign report.
