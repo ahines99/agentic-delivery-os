@@ -37,8 +37,11 @@ from agentic_delivery.evaluation.semantic_calibration import (
     _read,
     _statuses,
     _time,
-    semantic_prompt,
+    resolve_semantic_prompt,
     validate_semantic_calibration,
+)
+from agentic_delivery.evaluation.semantic_calibration import (
+    semantic_prompt as semantic_prompt,
 )
 from agentic_delivery.evaluation.semantic_owned_context import OwnedSemanticContextAuthority
 from agentic_delivery.evaluation.semantic_scoring import (
@@ -254,10 +257,10 @@ class SemanticExecution:
             and spec.output_schema_digest == grant.output_schema_digest
             and spec.model_configuration_digest == grant.model_configuration_digest
         )
-        prompt = semantic_prompt(
-            self.authority.protected_artifacts.get(grant.rubric_artifact).decode()
+        _, prompt = resolve_semantic_prompt(
+            self.authority.protected_artifacts.get(grant.rubric_artifact).decode(),
+            self.calibration.artifacts.get(grant.prompt_artifact),
         )
-        _require(self.calibration.artifacts.get(grant.prompt_artifact) == prompt.encode())
         return prompt
 
     def _context(

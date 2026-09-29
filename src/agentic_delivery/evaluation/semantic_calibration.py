@@ -161,6 +161,65 @@ def semantic_prompt(rubric: str) -> str:
     )
 
 
+SemanticPromptVersion = Literal["v1", "v2"]
+
+
+def semantic_prompt_for_version(rubric: str, *, version: SemanticPromptVersion) -> str:
+    """Explicit preparation choice; v1 remains the original byte-exact prompt."""
+    original = semantic_prompt(rubric)
+    if version == "v1":
+        return original
+    if version != "v2":
+        raise SemanticCalibrationFailure("Unsupported semantic scoring prompt version")
+    return original + (
+        "\n\nCitation construction protocol v2:\n"
+        "Keep each reason concise: identify the relevant behavior and evidence limitation. "
+        "Complete the citation checks below for every finding, including FAIL and UNRESOLVED. "
+        "A failing or incomplete test does not excuse missing required citations; explain the "
+        "coverage limitation in the reason rather than inventing supporting evidence.\n"
+        "1. File citations: copy artifact_digest from evidence.candidate_artifact, "
+        "evidence.source_snapshot_artifact or evidence.oracle_artifact, and copy path from "
+        "the corresponding candidate_files, source_files or oracle_files map. Count lines "
+        "in that one decoded file string, starting at 1. Count internal blank lines. "
+        "A trailing newline does not add an extra line. Do not count JSON display lines, "
+        "escaped characters, another file, or diff lines. Verify "
+        "1 <= start_line <= end_line <= the number of lines in that exact file. "
+        "Prefer a small relevant range; verify both endpoints against the actual text. "
+        "Omit node_id (or use null) on file citations.\n"
+        "2. Receipt citations: select the evidence.executions entry with the required stage. "
+        "Copy its receipt_artifact into artifact_digest. For acceptance evidence, copy an "
+        "exact string from that same entry's nodes into node_id. "
+        "Omit path, start_line and end_line (or use null) on receipt citations. "
+        "A file citation naming a test is not a receipt citation; a receipt digest alone "
+        "does not satisfy the required acceptance node citation. Never derive or shorten "
+        "a node identifier, guess it from a function name, or substitute a regression node.\n"
+        "3. Check each individual finding's citation list: every finding has a candidate "
+        "file citation. Every criterion and requirement_gaps finding additionally has an "
+        "oracle file citation AND a separate acceptance receipt citation containing its "
+        "observed node_id. Every hardcoding finding additionally has baseline and oracle "
+        "file citations. Every harness_integrity finding additionally has a baseline file "
+        "citation and separate acceptance and regression receipt citations. Reusing valid "
+        "citations across findings is allowed; omitting them from a finding is not.\n"
+        "4. Before returning JSON, check exact target coverage with no duplicates, "
+        "status/verdict coherence, every file range, and every required acceptance node. "
+        "Use only supplied artifact identifiers and observed nodes, never placeholder values. "
+        "These checks establish citation structure, not correctness or universal test coverage."
+    )
+
+
+def resolve_semantic_prompt(
+    rubric: str, artifact_bytes: bytes
+) -> tuple[SemanticPromptVersion, str]:
+    """Resolve only exact known prompt bytes; no fallback, inferred version or normalization."""
+    if not isinstance(artifact_bytes, bytes):
+        raise SemanticCalibrationFailure("Invalid semantic scoring prompt artifact")
+    for version in ("v1", "v2"):
+        prompt = semantic_prompt_for_version(rubric, version=version)
+        if artifact_bytes == prompt.encode():
+            return version, prompt
+    raise SemanticCalibrationFailure("Unknown or modified semantic scoring prompt artifact")
+
+
 def _require(condition: bool) -> None:
     if not condition:
         raise SemanticCalibrationFailure("Owned semantic calibration prerequisite is invalid")
@@ -222,8 +281,7 @@ def _load(
         and not expectations.root.is_relative_to(artifacts.root)
     )
     rubric = artifacts.get(spec.rubric_artifact).decode("utf-8")
-    prompt = semantic_prompt(rubric)
-    _require(artifacts.get(spec.prompt_artifact) == prompt.encode())
+    _, prompt = resolve_semantic_prompt(rubric, artifacts.get(spec.prompt_artifact))
     _require(
         len({case.id for case in spec.fixtures}) == 5
         and len({case.context_artifact for case in spec.fixtures}) == 5
