@@ -59,9 +59,24 @@ the coordinator's original `strict_success=false` composition marker. The report
 
 The report exposes the original arm and candidate status (`BUILD_VERIFIED`, `REVIEW_APPROVED`
 or `FAILED`). It does not infer the system's declared readiness from the final score or
-assert a false-ready rate. A frozen readiness mapping, complete assigned denominators,
-phase thresholds, journal composition and aggregate report remain separate work. No human
+assert a false-ready rate. Separate [reporting components](campaign-reporting.md) provide the
+frozen readiness mapping, assigned denominators, journal composition and numeric observations;
+complete promotion remains open. No human
 benefit, historical accuracy, campaign promotion or completed MVP follows from this API.
+
+The version-2 consumption report additionally exposes the actual validated
+`acceptance_passed` and `regression_passed` values, with nulls when candidate failure
+prevented scoring. The deterministic consumer requires complete, exact original test
+collection and valid setup/call/teardown evidence before reporting either a pass or an
+assertion failure. These fields do not classify incomplete runs as regressions.
+`execution_started_at` comes from the original allocation; `final_completed_at` is the
+verified coordinator outcome checkpoint or exact adjudication result checkpoint. Their
+difference is elapsed wall time, not CPU or human effort. Original execution outcomes,
+grants and cost records retain their original schemas and bytes.
+
+The [aggregate report](campaign-reporting.md) uses these fields only under its current
+concrete readers and original prospective statistical policy. Legacy pinned policies
+cannot acquire new statistical rules retrospectively.
 
 Owned tests compose actual coordinator, broker and SQLite receipts with controlled HTTP
 responses. Qualification, calibration, context admission and sandbox execution are explicit

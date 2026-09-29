@@ -1208,3 +1208,27 @@ model-result payload, paid request or existing preparation ledger was consumed o
 Ruff/format (352 files), mypy (111 sources) and wheel/sdist builds passed. This verifies
 coverage inside declared ledgers, not complete program-registry authority or cost promotion;
 those remain open. Final-head hosted verification remains required.
+
+E146: [Hosted CI at `9c72b37`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36634011617)
+passed all four jobs. Python 3.12 passed 2,829 tests with 89 explicit skips in 1,709.94 seconds;
+Python 3.13 passed the same counts in 1,340.42 seconds. Actual PostgreSQL/Temporal/Docker
+integration passed 89 tests in 255.22 seconds; secret scanning passed. This verifies the
+accounting, prospective readiness policy and all-assignment reporting changes at that commit.
+The later ledger-census commit `1c0ba98` was pushed only after this run finished and requires
+its own exact-head verification.
+
+E147: Prospective phase statistics and version-2 completed-attempt metadata passed the final
+combined 69 policy/statistics/whole-attempt/aggregate/ledger-coverage tests in 456.39 seconds.
+Actual controlled coordinator/scorer/adjudication receipts establish acceptance/regression
+booleans and original allocation/final checkpoint timing; current-authority denial paths
+remain exercised. Arithmetic checks cover exact 60% boundaries, missing sealed-phase
+independence, unavailable/unresolved assignments, paired denominator/order/seed behavior,
+unknown costs, and stability repeats excluded from primary comparisons and task intervals.
+The initial run retained 68 passes and one exact-float parity assertion failure in 477.89
+seconds; the corrected comparison uses tolerance for 0.1 versus 0.09999999999999998.
+An intermediate 28-case policy/statistics run passed before the final checkpoint/schema
+adjustments; the final 69-case run covers all those changes. Ruff/format (355 files), mypy
+(112 sources), package builds and staged secret scanning passed. These scopes overlap and
+are not summed. No historical payload, paid execution, pilot decision or completed release
+is established. Complete program registry/cost, criterion coverage, verified infrastructure
+incidents and operational promotion remain open; final-head hosted CI remains required.

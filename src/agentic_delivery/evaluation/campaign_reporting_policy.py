@@ -5,6 +5,7 @@ from collections.abc import Callable
 from datetime import datetime
 from typing import Literal
 
+from pydantic import Field
 from sqlalchemy import select
 
 from agentic_delivery.domain.models import CommitSHA, Contract
@@ -25,6 +26,19 @@ def _require(condition: bool) -> None:
         raise ReportingPolicyFailure("Frozen prospective reporting policy is unavailable")
 
 
+class CampaignStatisticsPolicy(Contract):
+    profile: Literal["current-ab-task-bootstrap-v1"] = "current-ab-task-bootstrap-v1"
+    seed: int = Field(strict=True, ge=0, le=2**32 - 1)
+    samples: Literal[2000] = 2000
+    confidence_percent: Literal[95] = 95
+    interval: Literal["paired-task-percentile-linear"] = "paired-task-percentile-linear"
+    strict_success_percent: Literal[60] = 60
+    false_ready_allowed: Literal[0] = 0
+    evidence_percent: Literal[100] = 100
+    # Numeric observations for each arm; not an operational or pilot decision.
+    grants_promotion: Literal[False] = False
+
+
 class CampaignReportingPolicy(Contract):
     schema_version: Literal[1] = 1
     profile: Literal["sealed-ab-readiness-v1"] = "sealed-ab-readiness-v1"
@@ -40,6 +54,7 @@ class CampaignReportingPolicy(Contract):
         "unavailable-not-scored-failure"
     )
     zero_ready_denominator: Literal["not-applicable"] = "not-applicable"
+    statistics: CampaignStatisticsPolicy | None = None
 
     def declared_ready(self, *, arm: str, candidate_status: str) -> bool:
         if candidate_status == "FAILED" and arm in {"A", "B"}:
@@ -106,6 +121,7 @@ def freeze_reporting_policy(
         policy = CampaignReportingPolicy(
             campaign_artifact=campaign_artifact,
             scoring_code_commit=campaign.specification.scoring_code_commit,
+            statistics=CampaignStatisticsPolicy(seed=campaign.specification.seed),
         )
         reference = policy_artifacts.put(
             json.dumps(policy.model_dump(mode="json"), sort_keys=True).encode()
@@ -146,6 +162,7 @@ def validate_reporting_policy(
         _require(
             policy.campaign_artifact == campaign_artifact
             and policy.scoring_code_commit == campaign.specification.scoring_code_commit
+            and (policy.statistics is None or policy.statistics.seed == campaign.specification.seed)
         )
         # Canonical allocation must not predate this registration, including an account
         # created through a separate trusted API instead of the serial dispatcher.

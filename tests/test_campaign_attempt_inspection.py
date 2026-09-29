@@ -2,7 +2,7 @@
 
 # ruff: noqa: F401, F811
 from dataclasses import replace
-from datetime import timedelta
+from datetime import datetime, timedelta
 from types import SimpleNamespace
 
 import pytest
@@ -82,6 +82,11 @@ async def test_preserves_protocol_and_arm_identity(completed, request):
     result = await consume(c, authority)
     assert result.strict_success and result.arm == c.f.c.arm["arm"]
     assert result.original_outcome == c.outcome
+    assert result.acceptance_passed is True and result.regression_passed is True
+    assert result.execution_started_at == c.f.c.allocated.attempt.started_at
+    assert result.final_completed_at == datetime.fromisoformat(
+        c.f.case.ledger.checkpoint_receipt(c.outcome.account_id, coordinator.OUTCOME)["created_at"]
+    )
     account = c.f.case.ledger.account(c.outcome.account_id)
     assert account["budget"]["input_tokens"] == (
         100_000 if request.node.callspec.params["campaign_scoring"] == "v1" else 500_000
@@ -222,6 +227,10 @@ async def test_early_failure_remains_assigned_with_full_cost_and_no_semantic_cal
     assert result.operation_receipts == c.outcome.operation_receipts
     assert result.model_microdollars == c.outcome.model_microdollars > 0
     assert result.infrastructure_microdollars == c.outcome.infrastructure_microdollars
+    if c.outcome.status == "CANDIDATE_FAILED":
+        assert result.acceptance_passed is result.regression_passed is None
+    else:
+        assert result.acceptance_passed is False and result.regression_passed is False
     assert c.f.state["semantic_calls"] == [] and snapshot(c.f.case.ledger) == before
 
 

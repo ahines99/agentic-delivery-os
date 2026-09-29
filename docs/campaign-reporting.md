@@ -74,6 +74,36 @@ comparison, remaining time/criterion/regression metrics and human pilot signoff 
 Neither an empty queue nor a complete set of parsed rows authorizes a phase transition,
 execution, pilot, merge or completed-campaign claim.
 
+## Prospective phase statistics
+
+New freezes pin the [phase statistics policy](adr/ADR-019-prospective-phase-statistics.md).
+Reports with that original policy include phase-specific primary and stability summaries,
+primary Wilson intervals, paired A/B success/cost bootstrap intervals, and resolved-pair
+success discordances. Repeats do not enter primary comparisons or task-level intervals.
+Earlier pinned policies remain readable with `phase_statistics=null`; the method cannot
+be backfilled. Bootstrap seed and sample count are not caller-selected reporting options.
+
+The version-2 whole-attempt consumption report now exposes its actual validated acceptance/regression booleans
+and allocation-start/final-completion timestamps. Regression rates use only completed trusted
+runs, with incomplete runs reported over all assignments. Candidate failures before scoring
+have null scoring booleans. Timing summaries describe validated completed attempts and
+include any exact adjudication tail; they do not silently infer timeout observations for
+unfinished work. Functional acceptance here is deterministic acceptance, and stratum-specific
+rubric/criterion coverage remains separate unfinished reporting work.
+Original version-1 execution outcomes and grants are unchanged; the expanded consumption
+report is freshly reconstructed metadata and does not replace those original artifacts.
+
+Attempt cost summaries retain missing accounts and reservations. They exclude preparation
+cost, which remains in the campaign-level accounting. Complete attempt cost requires every
+assigned attempt's concrete proof, actual account and settled operations. Paired cost intervals
+are explicitly conditional on both attempts having validated completion; unknown costs are
+never zero-filled. Human effort and time savings stay unmeasured.
+
+Individual per-arm numeric checks report `PASS`, `FAIL` or `INCOMPLETE`. Repeat strict-success
+thresholds are `NOT_APPLICABLE`. An unrun sealed phase does not change validation's own
+denominators or checks. Criterion coverage, infrastructure incidents, full program cost and
+operational gates remain explicitly unavailable; numeric checks grant no phase or pilot authority.
+
 ## Verification
 
 Sixteen focused checks passed in 115.46 seconds after the chronology guard was added;

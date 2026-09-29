@@ -96,6 +96,11 @@ async def test_empty_campaign_retains_every_primary_and_stability_assignment(cas
     assert report.preparation_status == "UNAVAILABLE"
     assert not report.all_assignment_proof_available and not report.all_selected_accounts_settled
     assert not report.phase_promoted and not report.campaign_complete
+    assert len(report.phase_statistics) == 3
+    assert all(
+        phase.primary_comparison.unresolved_pairs == phase.primary_comparison.assigned_pairs
+        for phase in report.phase_statistics
+    )
 
 
 async def test_legacy_journal_cannot_backfill_reporting_policy(case):
@@ -404,5 +409,22 @@ async def test_concrete_semantic_success_and_adjudication_retain_original_outcom
         assert report.observed_totals.model_spent_microdollars == row.completed.model_microdollars
         assert snapshot(c.f.case.ledger) == before
         assert not report.all_assignment_proof_available
+        phase = next(p for p in report.phase_statistics if p.phase == row.assignment.split)
+        arm = next(
+            a for a in phase.arms if (a.arm, a.kind) == (row.assignment.arm, row.assignment.kind)
+        )
+        assert arm.functional_acceptance.numerator == 1
+        assert arm.regression.denominator == 1 and arm.regression.numerator == 0
+        assert arm.strict_success.numerator == int(expected_verdict == "PASS")
+        assert arm.false_ready.numerator == int(expected_verdict == "FAIL")
+        assert arm.elapsed_wall_observed_attempts == 1
+        assert (
+            arm.median_elapsed_wall_seconds
+            == (
+                row.completed.final_completed_at - row.completed.execution_started_at
+            ).total_seconds()
+        )
+        assert row.completed.final_completed_at >= row.completed.original_outcome.completed_at
+        assert not phase.phase_promoted
     finally:
         await generator.aclose()

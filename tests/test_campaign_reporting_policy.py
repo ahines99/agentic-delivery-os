@@ -56,6 +56,8 @@ def test_readiness_pinned_before_phase_and_repeated_freeze_adds_no_writes(case, 
     assert policy.declared_ready(arm="B", candidate_status="REVIEW_APPROVED")
     assert not policy.declared_ready(arm="A", candidate_status="FAILED")
     assert not policy.final_score_defines_readiness
+    assert policy.statistics.seed == case.campaign.specification.seed
+    assert policy.statistics.samples == 2000
 
 
 @pytest.mark.parametrize("stage", ["phase", "intent", "outcome"])
@@ -122,6 +124,51 @@ def test_low_level_metadata_pin_is_not_validated_reporting_policy(case, fault):
 
 def test_registered_preparation_inventory_is_exact_metadata_copy(case):
     assert case.journal.registered_preparation_accounts(case.ref) == case.preparation
+
+
+async def test_legacy_policy_inspection_does_not_backfill_statistics(case):
+    from test_campaign_reporting import context
+
+    from agentic_delivery.evaluation.campaign_reporting import generate_campaign_report
+    from agentic_delivery.evaluation.campaign_reporting_policy import CampaignReportingPolicy
+
+    value = CampaignReportingPolicy(
+        campaign_artifact=case.ref,
+        scoring_code_commit=case.campaign.specification.scoring_code_commit,
+    ).model_dump(mode="json", exclude_none=True)
+    assert "statistics" not in value
+    reference = case.output.put(json.dumps(value).encode())
+    case.journal.pin_reporting_policy(
+        case.ref, policy_artifact=reference, expected_sequence=0, current_guard=lambda: None
+    )
+    before = case.journal.inspect(case.ref)
+    assert read(case)[0].statistics is None
+    assert freeze(case)[0].statistics is None
+    assert case.journal.inspect(case.ref) == before
+    report = await generate_campaign_report(case.ref, context=context(case))
+    assert report.phase_statistics is None
+
+
+@pytest.mark.parametrize("field,value", [("seed", 99999), ("samples", 1000)])
+def test_foreign_statistics_method_or_seed_is_refused(case, field, value):
+    from agentic_delivery.evaluation.campaign_reporting_policy import (
+        CampaignReportingPolicy,
+        CampaignStatisticsPolicy,
+    )
+
+    document = CampaignReportingPolicy(
+        campaign_artifact=case.ref,
+        scoring_code_commit=case.campaign.specification.scoring_code_commit,
+        statistics=CampaignStatisticsPolicy(seed=case.campaign.specification.seed),
+    ).model_dump(mode="json")
+    assert document["statistics"][field] != value
+    document["statistics"][field] = value
+    reference = case.output.put(json.dumps(document).encode())
+    case.journal.pin_reporting_policy(
+        case.ref, policy_artifact=reference, expected_sequence=0, current_guard=lambda: None
+    )
+    with pytest.raises(ReportingPolicyFailure):
+        read(case)
 
 
 def test_current_guard_revoked_before_pin_leaves_no_event(case):

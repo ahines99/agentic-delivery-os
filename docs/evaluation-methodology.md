@@ -106,6 +106,10 @@ pins arm A's `BUILD_VERIFIED` and arm B's `REVIEW_APPROVED` declarations before 
 opening or canonical allocation. Final scoring cannot define or revise that declaration.
 Older journals without the policy cannot acquire it retrospectively for this report profile.
 
+[ADR-019](adr/ADR-019-prospective-phase-statistics.md) additionally pins the statistical method
+and seed for new policy freezes. Phase-scoped numeric observations remain separate from the
+complete operational, cost and pilot promotion decision.
+
 All rates include integer numerators and denominators. Report each split/arm separately; the release headline uses sealed test only. The development/validation counts establish the 30+ historical-task coverage but are not an unbiased headline.
 
 | Metric | Definition |

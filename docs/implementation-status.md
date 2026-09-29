@@ -4,8 +4,8 @@ Updated 2026-09-29 UTC during continued controlled implementation. This is the c
 the original milestone documents remain the release targets. Source code alone is not a passed
 integration or production release gate.
 
-Latest complete hosted verification: [CI at `6b5179a`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36630852603)
-passed both Python versions (2,772 tests and 88 explicit skips each), 88 actual service
+Latest complete hosted verification: [CI at `9c72b37`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36634011617)
+passed both Python versions (2,829 tests and 89 explicit skips each), 89 actual service
 integration tests and secret scanning. This includes the [campaign journal](campaign-journal.md),
 [completed semantic reader](semantic-consumption.md) and [whole-attempt reader](completed-attempt-reporting.md).
 They reconstruct original outcomes, early failures and optional exact adjudication under
@@ -37,15 +37,26 @@ cost promotion remain open. See [accounting scope](campaign-accounting.md#declar
 The [prospective readiness policy](adr/ADR-018-prospective-readiness-reporting.md) passed
 15 focused tests. It pins A/B candidate-status declarations before phase opening or
 allocation and refuses retrospective insertion. This supplies the frozen reporting rule;
-the report below provides concrete all-assignment consumption. Promotion remains open. The later
-accounting/policy changes still require their own final-head hosted verification.
+the report below provides concrete all-assignment consumption. Promotion remains open.
+The hosted result above includes these accounting/policy changes.
 
 The [all-assignment report](campaign-reporting.md) now consumes concrete completed-attempt
 proof, the original readiness policy, every canonical account and selected preparation
 inventories. Seventeen focused cases cover missing outcomes, retained uncertainty, chronology,
 successful/failed scoring and exact adjudication. Three existing execution/consumption checks
 also passed. It does not attest complete program-ledger coverage or supply numerical,
-statistical, operational or pilot promotion. Its exact-head hosted verification remains required.
+statistical, operational or pilot promotion. The hosted result above includes this report.
+Later whole-ledger census and prospective phase-statistics changes require their own verification.
+
+Prospective [phase statistics](adr/ADR-019-prospective-phase-statistics.md) now pin the bootstrap
+method and campaign seed before execution. The version-2 completed-attempt reader exposes
+verified acceptance/regression results and final checkpoint timing. Reports keep phases and
+stability attempts separate, retain missing/unknown costs, and supply primary Wilson and
+paired success/cost intervals plus individual numeric checks. All 69 combined policy,
+statistics, completed-attempt, aggregate-report and ledger-coverage checks passed in
+456.39 seconds. Lint/format, types and builds also passed; exact-head hosted CI remains required.
+Criterion-level coverage, infrastructure incident classification, full program cost enforcement,
+operational gates and pilot signoff remain open. No historical result or promotion is claimed.
 
 The [transaction/outbox fault matrix](postgres-faults.md) also passed 12 scoped actual
 PostgreSQL/Temporal cases, and [model-provider ledger faults](model-provider-faults.md) passed

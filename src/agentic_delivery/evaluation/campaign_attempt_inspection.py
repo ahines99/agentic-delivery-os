@@ -76,7 +76,7 @@ class AttemptConsumptionAuthority:
 
 
 class ValidatedCompletedAttempt(Contract):
-    schema_version: Literal[1] = 1
+    schema_version: Literal[2] = 2
     kind: Literal["validated-completed-campaign-attempt"] = "validated-completed-campaign-attempt"
     consumption_authorization_digest: Digest
     outcome_artifact: Digest
@@ -89,6 +89,10 @@ class ValidatedCompletedAttempt(Contract):
     candidate_status: Literal["FAILED", "BUILD_VERIFIED", "REVIEW_APPROVED"]
     verdict: Literal["PASS", "FAIL", "UNRESOLVED"]
     strict_success: bool = Field(strict=True)
+    acceptance_passed: bool | None = Field(strict=True)
+    regression_passed: bool | None = Field(strict=True)
+    execution_started_at: AwareDatetime
+    final_completed_at: AwareDatetime
     adjudication_result_artifact: Digest | None
     operation_receipts: dict[str, Digest]
     model_microdollars: int = Field(strict=True, ge=0)
@@ -427,6 +431,7 @@ async def _validate(
             <= _time(row["settled_at"])
             <= outcome.completed_at
         )
+    final_completed_at = completed
     if semantic is not None:
         _require(
             semantic.operation_receipts == {key: row["receipt_digest"] for key, row in rows.items()}
@@ -443,6 +448,8 @@ async def _validate(
                 and tail_end is not None
                 and completed <= tail_start <= tail_end < attempt.deadline
             )
+            assert tail_end is not None
+            final_completed_at = tail_end
         verdict = semantic.verdict
     _require(await stages.candidate(task) == candidate)
     if scoring is not None:
@@ -471,6 +478,10 @@ async def _validate(
         candidate_status=candidate.sealed.status,
         verdict=verdict,
         strict_success=semantic is not None and semantic.strict_success,
+        acceptance_passed=scoring.acceptance_passed if scoring is not None else None,
+        regression_passed=scoring.regression_passed if scoring is not None else None,
+        execution_started_at=attempt.started_at,
+        final_completed_at=final_completed_at,
         adjudication_result_artifact=semantic.adjudication_result_artifact if semantic else None,
         operation_receipts={key: row["receipt_digest"] for key, row in rows.items()},
         **_totals(rows),

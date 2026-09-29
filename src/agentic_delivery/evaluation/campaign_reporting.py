@@ -26,6 +26,7 @@ from agentic_delivery.evaluation.campaign_ledger_coverage import (
     read_declared_ledgers,
 )
 from agentic_delivery.evaluation.campaign_reporting_policy import validate_reporting_policy
+from agentic_delivery.evaluation.campaign_statistics import PhaseStatistics, phase_statistics
 from agentic_delivery.evaluation.execution_store import EvaluationExecutionStore
 from agentic_delivery.evaluation.harness import HistoricalTask
 from agentic_delivery.evaluation.preparation_accounting import (
@@ -124,6 +125,7 @@ class CampaignAggregateReport(Contract):
     no_active_dispatches: bool = Field(strict=True)
     ledger_coverage: CampaignLedgerCoverage | None = None
     ledger_coverage_status: Literal["NOT_REQUESTED", "UNAVAILABLE", "OBSERVED"] = "NOT_REQUESTED"
+    phase_statistics: tuple[PhaseStatistics, ...] | None = None
     # The declared selection still needs complete program-ledger inventory attestation,
     # numerical/operational promotion and pilot signoff; this reader cannot supply them.
     complete_program_inventory: Literal[False] = False
@@ -300,6 +302,7 @@ async def generate_campaign_report(
                         and dispatch.created_at
                         <= usage.created_at
                         <= candidate.original_outcome.completed_at
+                        <= candidate.final_completed_at
                         <= finish.created_at
                         and all(
                             operation.settled_at is not None
@@ -400,6 +403,11 @@ async def generate_campaign_report(
                 for name in UsageTotals.model_fields
             }
         )
+        statistics = (
+            phase_statistics(tuple(rows), accounting=after, method=policy.statistics)
+            if policy.statistics is not None
+            else None
+        )
         guard()
         if context.ledger_census_guard is not None:
             census_guard()
@@ -424,6 +432,7 @@ async def generate_campaign_report(
             ),
             no_active_dispatches=not any(r.journal_state == "DISPATCH_OPEN" for r in rows),
             ledger_coverage=coverage,
+            phase_statistics=statistics,
             ledger_coverage_status=(
                 "OBSERVED"
                 if coverage is not None
