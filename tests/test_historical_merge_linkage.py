@@ -70,8 +70,15 @@ def test_legacy_class_query_and_default_function_goldens():
         ),
     ):
         tree = ast.parse(inspect.getsource(value)).body[0]
+        # Python 3.13 omits empty lists by default; retain the original 3.12
+        # representation so these goldens keep checking the same contracts.
+        dump_options = (
+            {"show_empty": True} if "show_empty" in inspect.signature(ast.dump).parameters else {}
+        )
         assert (
-            hashlib.sha256(ast.dump(tree, include_attributes=False).encode()).hexdigest()
+            hashlib.sha256(
+                ast.dump(tree, include_attributes=False, **dump_options).encode()
+            ).hexdigest()
             == expected
         )
 

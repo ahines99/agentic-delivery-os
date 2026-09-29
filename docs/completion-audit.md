@@ -1027,3 +1027,12 @@ webhook-disable mutation was confirmed by a fresh provider read. The verified tu
 gateway processes stopped, ports 18090–18092 had no listeners, and both planning workers
 were absent. Original tickets, workflow plans, usage and zero-approval records remain retained.
 Unrelated services were unchanged. Ongoing intake requires a durable replacement endpoint.
+
+E126: [Hosted CI at `e00796e`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36510490919)
+passed Python 3.12 with 2,639 tests and 88 explicit skips in 916.18 seconds. Actual services
+passed 88 tests in 227.81 seconds; secret scanning passed. Python 3.13 retained one AST golden
+failure, with 2,638 passed and 88 skipped in 888.13 seconds. Python 3.13's default dump omits
+empty lists; the test now explicitly preserves the original representation where supported,
+without changing the frozen hashes or production code. All 37 merge-linkage tests passed on
+local Python 3.12 and 3.13 in 9.17 and 11.26 seconds respectively. Full fixed-head hosted
+verification remains required; the earlier failed run is retained.
