@@ -73,3 +73,8 @@ cover grant/expiry revocation, uncertainty, duplicate provider identities, malfo
 collector bindings, protected edits, shared budget exhaustion, large-context refusal
 and missing receipt recovery. No paid model call, historical candidate scoring or
 campaign result follows from this evidence.
+
+The separate [sealed candidate reader](candidate-inspection.md) reconstructs these
+records without credentials or effects under fresh, exact consumption authority.
+It can inspect completed history after execution expiry while still requiring current
+qualification and data-use permission; it grants no new execution or spending.
