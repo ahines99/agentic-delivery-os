@@ -406,9 +406,16 @@ class SemanticExecution:
         )
         rows = self._rows(grant.account_id)
         expected = [case.operation_id for case in plan.invocations]
+        from agentic_delivery.evaluation.semantic_adjudication_execution import (
+            _continuation_operations,
+        )
+
+        tail = _continuation_operations(self)
         _require(not set(plan.prior_operations) & set(expected))
         _require(
-            set(plan.prior_operations) <= rows.keys() <= set(plan.prior_operations) | set(expected)
+            set(plan.prior_operations)
+            <= rows.keys()
+            <= set(plan.prior_operations) | set(expected) | tail
         )
         for op, digest in plan.prior_operations.items():
             _require(rows[op]["status"] == "SETTLED" and digest_json(rows[op]) == digest)
@@ -583,9 +590,16 @@ def validate_semantic_scoring(
             == evidence
         )
         expected = {case.operation_id for case in plan.invocations[: len(evidence.reviews)]}
+        from agentic_delivery.evaluation.semantic_adjudication_execution import (
+            _continuation_operations,
+        )
+
+        tail = _continuation_operations(execution)
         _require(
             set(execution._rows(plan.authorization.account_id))
-            == set(plan.prior_operations) | expected
+            == set(plan.prior_operations)
+            | expected
+            | (tail & set(execution._rows(plan.authorization.account_id)))
         )
         execution._guard(plan.authorization, plan)
         return evidence

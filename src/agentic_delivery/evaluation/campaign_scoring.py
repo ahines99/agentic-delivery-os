@@ -475,6 +475,14 @@ class CampaignScoringExecution:
         from agentic_delivery.evaluation.semantic_execution import _active_reservation
 
         semantic_reserved = _active_reservation(self)
+        from agentic_delivery.evaluation.semantic_adjudication_execution import (
+            _active_adjudication_reservation,
+        )
+
+        adjudication_reserved = _active_adjudication_reservation(self)
+        _require(semantic_reserved is None or adjudication_reserved is None)
+        if adjudication_reserved is not None:
+            semantic_reserved = adjudication_reserved
         _require(active_operation_id is None or semantic_reserved is None)
         if semantic_reserved is not None:
             active_reserved = semantic_reserved
