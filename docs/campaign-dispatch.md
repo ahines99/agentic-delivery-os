@@ -81,8 +81,10 @@ against arbitrary execution outside the trusted controller.
 ## Remaining campaign work
 
 This composes individual A/B attempts and optional adjudication. The bounded
-[phase driver](campaign-phase.md) now schedules one already-authorized phase. Frozen
-readiness mapping, all-assignment aggregate reporting, preparation-cost reconciliation,
+[phase driver](campaign-phase.md) now schedules one already-authorized phase. The
+[readiness mapping](adr/ADR-018-prospective-readiness-reporting.md) can be pinned prospectively,
+and [selected preparation inventories](campaign-accounting.md) can be reconciled.
+All-assignment aggregate reporting, complete preparation-program coverage,
 numerical promotion and restricted-pilot decisions remain required. Sealed-case access
 retains the journal's ordering/exposure checks and separate current authorization. No
 historical campaign, model accuracy, human benefit or complete MVP follows from this API.

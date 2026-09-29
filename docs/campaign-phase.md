@@ -7,6 +7,11 @@ finite positive `max_attempts` bound. The driver does not open phases, renew gra
 budgets or alter the schedule. Current admission, calibration, source access, model limits,
 runtime checks and original deadlines remain obligations of the concrete attempt executors.
 
+For the new A/B reporting profile, the controller first pins the
+[prospective readiness policy](adr/ADR-018-prospective-readiness-reporting.md), then opens
+the separately authorized phase. Legacy phase execution does not acquire retrospective
+permission to report under that profile.
+
 The driver pins the original phase authorization for its whole invocation. A replacement,
 expiry or revocation stops progression even if the replacement would independently be valid.
 All original phase assignments, including stability attempts, retain their frozen order.

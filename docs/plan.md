@@ -155,6 +155,11 @@ cancellation; it does not silently merge, delete branches, or roll back producti
 
 ## Evaluation and promotion
 
+[ADR-018](adr/ADR-018-prospective-readiness-reporting.md) defines prospective A/B readiness
+from each arm's sealed candidate status before final scoring. Its journal policy must be
+pinned before phase opening or allocation; it supplies neither promotion nor execution
+authority. Missing outcome/readiness evidence remains visible in the full assigned denominator.
+
 [ADR-016](adr/ADR-016-prospective-campaign-token-ceilings.md) accepts a prospective,
 explicitly selected `agentic-historical-v2`: 500,000 input and 64,000 output tokens
 per attempt, with unchanged USD 5 model, USD 1 infrastructure, 30-minute and USD 1,000

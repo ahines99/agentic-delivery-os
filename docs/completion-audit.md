@@ -1156,3 +1156,19 @@ model payload access, historical task execution or paid request occurred. Exact 
 references and private metadata reports were retained. [The accounting record](campaign-accounting.md)
 includes digests, token counts and explicit exclusions; this is not complete campaign cost
 or provider invoice reconciliation.
+
+E140: [Hosted CI at `f1d6d17`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36627522389)
+passed all four checks. Python 3.12 passed 2,755 tests with 88 explicit skips in 1,630.99
+seconds; Python 3.13 passed the same counts in 1,023.73 seconds. Actual service integration
+passed 88 tests in 255.17 seconds; secret scanning passed. The phase driver was subsequently
+pushed as `6b5179a` and requires its own hosted result. Later isolated accounting/reporting
+changes are not covered by this dispatcher result.
+
+E141: Prospective readiness policy pinning passed 15 focused tests in 27.26 seconds. The
+preceding combined journal/dispatch/policy run retained 69 passes and one fixture failure
+in 151.65 seconds: its foreign commit was identical to the original owned fixture commit.
+The corrected fixture asserts a different value. Policy pinning now refuses
+retrospective insertion, existing canonical accounts, changed policies and mismatched
+campaign/commit/mapping data, and preserves original policy inspection without artifact writes.
+All 55 existing journal/dispatch-journal checks passed in the combined run. This establishes
+prospective rules and metadata behavior, not aggregate results or promotion.

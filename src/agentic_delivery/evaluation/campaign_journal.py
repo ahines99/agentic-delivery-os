@@ -71,6 +71,7 @@ class JournalEvent(Contract):
     sequence: int = Field(strict=True, ge=1)
     event_id: str = Field(strict=True, min_length=1, max_length=200)
     kind: Literal[
+        "REPORTING_POLICY",
         "PHASE",
         "SEALED_OPEN",
         "INTENT",
@@ -473,7 +474,15 @@ class CampaignJournal:
                 event.created_at >= (result[-1].created_at if result else registration.created_at)
             )
             data = event.document
-            if event.kind == "PHASE":
+            if event.kind == "REPORTING_POLICY":
+                _require(
+                    index == 1
+                    and event.event_id == "reporting-policy"
+                    and set(data) == {"policy_artifact"}
+                    and isinstance(data["policy_artifact"], str)
+                    and bool(re.fullmatch(r"[a-f0-9]{64}", data["policy_artifact"]))
+                )
+            elif event.kind == "PHASE":
                 _require(set(data) == {"authorization"})
                 current = JournalPhaseAuthorization.model_validate(data["authorization"])
                 _require(
@@ -913,3 +922,43 @@ class CampaignJournal:
         with self._transaction() as connection:
             registration, _ = self._registration(connection, campaign_artifact)
             return registration, tuple(self._events(connection, campaign_artifact))
+
+    def pin_reporting_policy(
+        self,
+        campaign_artifact: str,
+        *,
+        policy_artifact: str,
+        expected_sequence: int,
+        current_guard: Callable[[], None],
+    ) -> JournalEvent:
+        """Pin caller-validated reporting rules before any phase or intent is recorded."""
+        _require(bool(re.fullmatch(r"[a-f0-9]{64}", policy_artifact)))
+        with self._transaction() as connection:
+            current_guard()
+            events = self._events(connection, campaign_artifact)
+            if events and events[0].kind == "REPORTING_POLICY":
+                _require(events[0].document == {"policy_artifact": policy_artifact})
+                current_guard()
+                return events[0]
+            self._cas(events, expected_sequence)
+            _require(not events)
+            current_guard()
+            return self._append(
+                connection,
+                campaign_artifact,
+                events,
+                "reporting-policy",
+                "REPORTING_POLICY",
+                {"policy_artifact": policy_artifact},
+            )
+
+    def registered_preparation_accounts(
+        self, campaign_artifact: str
+    ) -> tuple[PreparationAccountIdentity, ...]:
+        """Return the immutable declared inventory; declarations are not accounting proof."""
+        with self._transaction() as connection:
+            _, document = self._registration(connection, campaign_artifact)
+            return tuple(
+                PreparationAccountIdentity.model_validate(value)
+                for value in document["preparation_accounts"]
+            )

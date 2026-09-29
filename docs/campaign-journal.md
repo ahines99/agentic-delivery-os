@@ -71,6 +71,17 @@ entire journal and its authority providers.
 
 ## Sealed-set exposure
 
+The prospective [readiness reporting policy](adr/ADR-018-prospective-readiness-reporting.md)
+can be pinned as a `REPORTING_POLICY` first event, before any phase or intent. The journal
+pins its artifact identity; the concrete policy wrapper validates its content and rejects
+existing canonical accounts. The same policy can be inspected again without another write;
+a different policy or retrospective insertion is refused. Legacy histories remain readable
+but cannot supply this new reporting profile without its original prospective event.
+
+`registered_preparation_accounts(...)` returns the immutable declared preparation references.
+Their presence is not proof of complete cost: the [accounting reconciler](campaign-accounting.md)
+must validate the exact inventory and current accounting, including unknown reservations.
+
 The first test intent atomically records a sealed-opening event and indexes every test
 case before returning. Development and validation intents also retain their case exposure,
 so moving a previously used case into a new test split does not make it unopened. Checks

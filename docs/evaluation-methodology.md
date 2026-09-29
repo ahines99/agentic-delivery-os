@@ -101,6 +101,11 @@ require matching successful calibration; this decision supplies no execution gra
 
 ## Outcomes and denominators
 
+The prospective [A/B readiness profile](adr/ADR-018-prospective-readiness-reporting.md)
+pins arm A's `BUILD_VERIFIED` and arm B's `REVIEW_APPROVED` declarations before phase
+opening or canonical allocation. Final scoring cannot define or revise that declaration.
+Older journals without the policy cannot acquire it retrospectively for this report profile.
+
 All rates include integer numerators and denominators. Report each split/arm separately; the release headline uses sealed test only. The development/validation counts establish the 30+ historical-task coverage but are not an unbiased headline.
 
 | Metric | Definition |
