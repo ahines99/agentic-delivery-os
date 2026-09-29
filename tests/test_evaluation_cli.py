@@ -203,14 +203,22 @@ def test_success_cannot_contradict_regression_evidence(field: str) -> None:
 
 
 @pytest.mark.asyncio
-async def test_unqualified_tasks_cannot_export_source_or_score(tmp_path: Path) -> None:
+async def test_unqualified_tasks_cannot_export_source_or_score(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     task = HistoricalTask.model_validate(synthetic_task("one"))
     artifacts = ArtifactStore(tmp_path / "protected")
+    results = ArtifactStore(tmp_path / "results")
+
     # No artifact exists: qualification must reject before touching source or Docker.
+    def forbidden_read(*args, **kwargs):
+        raise AssertionError("Unqualified tasks must not read artifacts")
+
+    monkeypatch.setattr(ArtifactStore, "get", forbidden_read)
     with pytest.raises(ValueError, match="independent-agents-v2"):
         task.worker_input(artifacts)
     with pytest.raises(ValueError, match="independent-agents-v2"):
-        await score_candidate(task, {}, artifacts, artifacts)
+        await score_candidate(task, {}, artifacts, results)
 
 
 def test_qualification_cli_does_not_promote_structural_manifest(tmp_path: Path) -> None:
