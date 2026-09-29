@@ -323,7 +323,7 @@ async def test_concrete_completed_failure_reports_cost_without_execution(
 
 
 @pytest.mark.parametrize("campaign_scoring", ["v2"], indirect=True)
-@pytest.mark.parametrize("dispatched_case", [True], indirect=True)
+@pytest.mark.parametrize("dispatched_case", ["criterion-inventory"], indirect=True)
 @pytest.mark.parametrize("mode", ["PASS", "FAIL", "adjudicated:PASS", "late-dispatch"])
 async def test_concrete_semantic_success_and_adjudication_retain_original_outcome(
     dispatched_case, monkeypatch, mode
@@ -413,6 +413,14 @@ async def test_concrete_semantic_success_and_adjudication_retain_original_outcom
         arm = next(
             a for a in phase.arms if (a.arm, a.kind) == (row.assignment.arm, row.assignment.kind)
         )
+        judgments = row.completed.criterion_judgments
+        assert judgments.required == len(c.f.case.task.item.acceptance_criteria)
+        assert arm.semantic_criteria.passed == judgments.counts.passed
+        assert arm.semantic_criteria.failed == judgments.counts.failed
+        assert arm.semantic_criteria.unresolved == judgments.counts.unresolved
+        assert arm.semantic_criteria.unscored == arm.required_criteria - judgments.required
+        assert arm.semantic_criteria.total == arm.required_criteria
+        assert phase.criterion_coverage_gate == "UNAVAILABLE"
         assert arm.functional_acceptance.numerator == 1
         assert arm.regression.denominator == 1 and arm.regression.numerator == 0
         assert arm.strict_success.numerator == int(expected_verdict == "PASS")

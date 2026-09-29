@@ -453,6 +453,20 @@ async def test_consumes_exact_adjudication_tail_after_expiry_without_effects(
     monkeypatch.delenv(c.f.c.config.api_key_env)
     result = await consume(c)
     assert result.verdict == c.tail.result.verdict
+    judgments = result.criterion_judgments
+    merged = c.tail.result.merge
+    criteria = c.f.case.task.item.acceptance_criteria
+    assert judgments.required == len(criteria)
+    if merged is None:
+        assert judgments.counts.unresolved == len(criteria)
+        assert judgments.blocking_new_concerns is None
+    else:
+        statuses = [f.status for f in merged.findings if f.target_kind == "criterion"]
+        assert judgments.counts.passed == statuses.count("PASS")
+        assert judgments.counts.failed == statuses.count("FAIL")
+        assert judgments.counts.unresolved == statuses.count("UNRESOLVED")
+        assert judgments.blocking_new_concerns == merged.blocking_new_concerns
+    assert judgments.counts.unscored == 0
     assert result.strict_success == c.tail.result.strict_success
     assert result.adjudication_result_artifact == c.tail.binding.result_artifact
     assert set(result.operation_receipts) == set(c.outcome.operation_receipts) | {
@@ -596,6 +610,12 @@ async def test_consumes_after_original_window_with_current_authority_without_eff
     monkeypatch.delenv(c.f.c.config.api_key_env)
     result = await consume(c)
     assert result.verdict == c.outcome.verdict
+    counts = result.criterion_judgments.counts
+    expected_field = {"PASS": "passed", "FAIL": "failed", "UNRESOLVED": "unresolved"}[
+        result.verdict
+    ]
+    assert getattr(counts, expected_field) == len(c.f.case.task.item.acceptance_criteria)
+    assert counts.unscored == 0
     assert result.strict_success == (c.outcome.verdict == "PASS")
     assert not c.outcome.strict_success
     assert result.operation_receipts == c.outcome.operation_receipts

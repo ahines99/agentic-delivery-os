@@ -36,6 +36,11 @@ from agentic_delivery.evaluation.campaign_scoring_inspection import (
     ValidatedCompletedScoring,
     validate_completed_scoring_consumption,
 )
+from agentic_delivery.evaluation.criterion_judgments import (
+    CriterionJudgments,
+    Status,
+    count_criterion_judgments,
+)
 from agentic_delivery.evaluation.execution_store import (
     INFRA_RECEIPT,
     INFRA_TERMS,
@@ -54,6 +59,7 @@ from agentic_delivery.evaluation.semantic_adjudication import (
     AdjudicationOutput,
     HistoricalAdjudicationContextClaim,
     HistoricalReviewClaim,
+    StructuralAdjudicationMerge,
     executed_adjudication_prompt_v2,
     merge_adjudication_structure,
 )
@@ -232,7 +238,7 @@ class SemanticConsumptionPolicy(Contract):
 
 
 class ValidatedCompletedSemantic(Contract):
-    schema_version: Literal[1] = 1
+    schema_version: Literal[2] = 2
     kind: Literal["validated-completed-semantic"] = "validated-completed-semantic"
     consumption_authorization_digest: Digest
     initial_result_artifact: Digest
@@ -243,6 +249,7 @@ class ValidatedCompletedSemantic(Contract):
     phase: Split
     verdict: Literal["PASS", "FAIL", "UNRESOLVED"]
     strict_success: bool = Field(strict=True)
+    criterion_judgments: CriterionJudgments
     operation_receipts: dict[str, Digest]
     model_microdollars: int = Field(strict=True, ge=0)
     infrastructure_microdollars: int = Field(strict=True, ge=0)
@@ -742,9 +749,10 @@ async def _validate(
     _require(result == expected)
     initial_ops = prefix | {inv.operation_id for inv in plan.invocations[: len(result.reviews)]}
     expected_operations = set(initial_ops)
+    adjudicated = None
     if use.adjudication is not None:
         _require(result.status == "DISAGREEMENT" and len(peers) == 2)
-        verdict = _adjudication(
+        adjudicated = _adjudication(
             authority,
             use,
             plan,
@@ -756,6 +764,7 @@ async def _validate(
             initial_ops,
             identities,
         )
+        verdict = adjudicated[0]
         expected_operations.add(use.account_id + ":historical-adjudication-v1")
     else:
         _require(
@@ -784,7 +793,7 @@ async def _validate(
                 initial_ops,
                 identities,
             )
-            == verdict
+            == adjudicated
         )
     _require(_closed_account(stages, expected_operations, use.account_id, plan.deadline) == rows)
     _require(
@@ -795,6 +804,29 @@ async def _validate(
     )
     guard()
     account = ledger.account(use.account_id)
+    merged = adjudicated[1] if adjudicated is not None else None
+    criterion_peers: tuple[dict[str, Status], ...]
+    if adjudicated is not None:
+        criterion_peers = (
+            ({f.target_id: f.status for f in merged.findings if f.target_kind == "criterion"},)
+            if merged is not None
+            else ()
+        )
+    else:
+        criterion_peers = (
+            tuple(
+                {f.target_id: f.status for f in output.findings if f.target_kind == "criterion"}
+                for output in outputs
+            )
+            if all(validity)
+            else ()
+        )
+    judgments = count_criterion_judgments(
+        material.task_spec.acceptance_criteria,
+        criterion_peers,
+        blocking_new_concerns=merged.blocking_new_concerns if merged is not None else None,
+    )
+    guard()
     return ValidatedCompletedSemantic(
         consumption_authorization_digest=digest_json(use.model_dump(mode="json")),
         initial_result_artifact=use.initial_result_artifact,
@@ -805,6 +837,7 @@ async def _validate(
         phase=use.phase,
         verdict=verdict,
         strict_success=verdict == "PASS",
+        criterion_judgments=judgments,
         operation_receipts={op: row["receipt_digest"] for op, row in rows.items()},
         model_microdollars=account["model_spent_microdollars"],
         infrastructure_microdollars=account["infrastructure_spent_microdollars"],
@@ -824,7 +857,7 @@ def _adjudication(
     config: ModelConfig,
     initial_ops: set[str],
     identities: set[tuple[str, str]],
-) -> str:
+) -> tuple[str, StructuralAdjudicationMerge | None]:
     binding = use.adjudication
     assert binding is not None
     stages, calibration = authority.stages, authority.adjudication_calibration
@@ -976,4 +1009,4 @@ def _adjudication(
         )
         == completed
     )
-    return result.verdict
+    return result.verdict, merged

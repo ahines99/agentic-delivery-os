@@ -82,6 +82,8 @@ async def test_preserves_protocol_and_arm_identity(completed, request):
     result = await consume(c, authority)
     assert result.strict_success and result.arm == c.f.c.arm["arm"]
     assert result.original_outcome == c.outcome
+    assert result.criterion_judgments is not None
+    assert result.criterion_judgments.required == len(c.f.case.task.item.acceptance_criteria)
     assert result.acceptance_passed is True and result.regression_passed is True
     assert result.execution_started_at == c.f.c.allocated.attempt.started_at
     assert result.final_completed_at == datetime.fromisoformat(
@@ -223,6 +225,7 @@ async def test_early_failure_remains_assigned_with_full_cost_and_no_semantic_cal
     deny_effects(c, monkeypatch)
     result = await consume(c, authority)
     assert result.original_outcome == c.outcome and result.verdict == "FAIL"
+    assert result.criterion_judgments is None
     assert not result.strict_success and result.adjudication_result_artifact is None
     assert result.operation_receipts == c.outcome.operation_receipts
     assert result.model_microdollars == c.outcome.model_microdollars > 0

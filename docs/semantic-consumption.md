@@ -67,12 +67,15 @@ concerns cannot be silently promoted to success. Existing initial result bytes a
 original outcome are not replaced.
 
 `ValidatedCompletedSemantic` returns the derived verdict, scoped strict-success flag,
-exact operation receipt inventory and complete settled costs/tokens. It explicitly denies
+exact operation receipt inventory and complete settled costs/tokens. Its version-2 output
+also includes [criterion judgment counts](criterion-judgments.md), with invalid/disputed
+criteria unresolved and valid adjudication concerns retained separately. It explicitly denies
 execution authority, phase promotion and campaign completion. It does not establish that
 the system declared readiness before final scoring, evaluate a whole-campaign threshold,
 or measure human benefit. The separate [completed-attempt reader](completed-attempt-reporting.md)
-composes initial outcomes and candidate/deterministic failures. Complete campaign
-denominators, phase execution and aggregate reporting remain open.
+composes initial outcomes and candidate/deterministic failures. The
+[aggregate report](campaign-reporting.md) retains full assignment denominators and missing
+proof; actual historical phase execution and release promotion remain open.
 
 Owned tests use actual coordinator/scoring/adjudication APIs, controlled HTTP responses
 and SQLite receipts. Qualification, protected context admission and calibration are explicit

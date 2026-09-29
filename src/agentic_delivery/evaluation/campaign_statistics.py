@@ -12,6 +12,7 @@ from agentic_delivery.evaluation.campaign import Split
 from agentic_delivery.evaluation.campaign_criterion_inventory import CampaignCriterionInventory
 from agentic_delivery.evaluation.campaign_reporting_policy import CampaignStatisticsPolicy
 from agentic_delivery.evaluation.comparison import _percentile
+from agentic_delivery.evaluation.criterion_judgments import JudgmentCounts
 from agentic_delivery.evaluation.harness import wilson
 
 if TYPE_CHECKING:
@@ -46,6 +47,8 @@ class ArmStatistics(Contract):
     final_verdict_unresolved: int
     required_criteria: int | None
     required_criteria_by_verification_type: dict[VerificationType, int] | None
+    semantic_criteria: JudgmentCounts | None
+    semantic_criteria_by_verification_type: dict[VerificationType, JudgmentCounts] | None
     strict_success: BinaryRate
     functional_acceptance: BinaryRate
     regression: BinaryRate
@@ -106,6 +109,38 @@ class PhaseStatistics(Contract):
     pilot_authorized: Literal[False] = False
 
 
+def _criterion_counts(
+    rows: tuple["AssignmentReport", ...], inventory: CampaignCriterionInventory | None
+) -> dict[VerificationType, JudgmentCounts] | None:
+    if inventory is None:
+        return None
+    tasks = {task.task_id: task for task in inventory.tasks}
+    result = {kind: dict.fromkeys(JudgmentCounts.model_fields, 0) for kind in VerificationType}
+    for row in rows:
+        expected = tasks[row.assignment.task_id]
+        proof = row.completed
+        judgments = proof.criterion_judgments if proof is not None else None
+        if proof is not None and proof.task_manifest_digest != expected.task_manifest_digest:
+            raise ValueError("Criterion inventory does not match completed task")
+        if judgments is None:
+            for kind in VerificationType:
+                result[kind]["unscored"] += expected.by_verification_type[kind]
+            continue
+        if (
+            judgments.criterion_identity_digest != expected.criterion_identity_digest
+            or judgments.required != expected.required
+            or any(
+                judgments.by_verification_type[kind].total != expected.by_verification_type[kind]
+                for kind in VerificationType
+            )
+        ):
+            raise ValueError("Criterion inventory does not match validated judgments")
+        for kind in VerificationType:
+            for field in JudgmentCounts.model_fields:
+                result[kind][field] += getattr(judgments.by_verification_type[kind], field)
+    return {kind: JudgmentCounts(**counts) for kind, counts in result.items()}
+
+
 def _arm(
     rows: tuple["AssignmentReport", ...],
     accounting: AccountingSnapshot,
@@ -115,6 +150,7 @@ def _arm(
     if arm not in {"A", "B"}:
         raise ValueError("Unsupported statistics arm")
     assert arm in ("A", "B")
+    judgments = _criterion_counts(rows, inventory)
     requirements = None
     if inventory is not None:
         by_task = {t.task_id: t for t in inventory.tasks}
@@ -166,6 +202,17 @@ def _arm(
         final_verdict_unresolved=unresolved,
         required_criteria=sum(requirements.values()) if requirements is not None else None,
         required_criteria_by_verification_type=requirements,
+        semantic_criteria=(
+            JudgmentCounts(
+                **{
+                    field: sum(getattr(c, field) for c in judgments.values())
+                    for field in JudgmentCounts.model_fields
+                }
+            )
+            if judgments is not None
+            else None
+        ),
+        semantic_criteria_by_verification_type=judgments,
         strict_success=rate(successes, len(rows)),
         functional_acceptance=rate(sum(p.acceptance_passed is True for p in proofs), len(rows)),
         regression=rate(sum(p.regression_passed is False for p in regression), len(regression)),

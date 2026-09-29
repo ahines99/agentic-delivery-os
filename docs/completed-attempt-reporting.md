@@ -50,6 +50,11 @@ Unavailable proof, unknown usage, expired access or inconsistent records raise a
 to retry. A campaign aggregate must retain their assignments with unavailable evidence and
 incomplete accounting; this reader does not invent those aggregate dispositions.
 
+The version-3 consumption report also includes [semantic criterion judgments](criterion-judgments.md)
+when final semantic scoring occurred. Candidate and deterministic failures have null judgment
+summaries. Acceptance/regression booleans and verified allocation/final-checkpoint timing
+remain separately available. No original coordinator outcome is rewritten.
+
 ## Meaning and limits
 
 `ValidatedCompletedAttempt.strict_success` is the reconstructed candidate-level result

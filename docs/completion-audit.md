@@ -1250,3 +1250,32 @@ export on denial, retained legacy unknowns and unrun-task denominators without p
 context loading. Ruff/format (358 files), mypy (113 sources) and package builds passed.
 No actual historical inventory, private answer access, paid call, criterion score or
 promotion is claimed; complete criterion-evidence consumption remains open.
+
+
+E150: The full local Windows suite at unchanged `1c0ba98` completed with 2,837 passed and
+100 explicitly skipped tests in 3,651.55 seconds. This invocation did not configure service
+integration environments; service and POSIX/symlink limitations remain explicit skips.
+Hosted service evidence remains the separate E148 result. The root checkout was then
+fast-forwarded, preserving the original phase-statistics and inventory commit identities,
+to `7138173`. This Windows run does not verify later commits or criterion-judgment changes.
+
+
+E151: [Criterion judgment reporting](criterion-judgments.md) now reconstructs content-free
+semantic status counts through the concrete completed-semantic and whole-attempt readers.
+It preserves agreements, unresolved/invalid judgments and separately counted adjudication
+concerns; early candidate/deterministic failures have no semantic summary. Aggregate counts
+match the frozen requirement inventory and retain unscored requirements for missing proof.
+Manual-type automated judgments do not supply human approval; required evidence completeness,
+operational/infrastructure/full-program-cost gates and promotion remain open.
+
+The counts/statistics/inventory scope passed 50 tests in 52.76 seconds. The broader consumer,
+whole-attempt and aggregate scope passed 60 tests with four setup errors in 782.76 seconds.
+Those four owned fixtures incorrectly accessed `JournalRegistration.manifest_digest`; they
+now read the frozen campaign's manifest digest. The corrected four actual aggregate cases
+passed in 85.54 seconds, with production source unchanged. The original process had already
+imported the prior fixture. Tests preserve actual controlled receipts and current-authority
+checks, explicit qualification/calibration/runtime stand-ins and authored prospective owned
+inventory metadata. Ruff/format (361 files), mypy (114 sources), package builds, 486 local
+documentation links and staged secret scanning passed. New-head hosted CI and independent
+review remain required. No historical payloads, paid calls, renewed grants or release success
+are established by these changes.

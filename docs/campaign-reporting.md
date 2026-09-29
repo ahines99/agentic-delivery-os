@@ -83,13 +83,13 @@ success discordances. Repeats do not enter primary comparisons or task-level int
 Earlier pinned policies remain readable with `phase_statistics=null`; the method cannot
 be backfilled. Bootstrap seed and sample count are not caller-selected reporting options.
 
-The version-2 whole-attempt consumption report now exposes its actual validated acceptance/regression booleans
+The whole-attempt consumption report (version 3 with criterion judgments) exposes its actual validated acceptance/regression booleans
 and allocation-start/final-completion timestamps. Regression rates use only completed trusted
 runs, with incomplete runs reported over all assignments. Candidate failures before scoring
 have null scoring booleans. Timing summaries describe validated completed attempts and
 include any exact adjudication tail; they do not silently infer timeout observations for
 unfinished work. Functional acceptance here is deterministic acceptance, and stratum-specific
-rubric/criterion coverage remains separate unfinished reporting work.
+criterion-level required evidence completeness remains separate unfinished reporting work.
 Original version-1 execution outcomes and grants are unchanged; the expanded consumption
 report is freshly reconstructed metadata and does not replace those original artifacts.
 
@@ -108,7 +108,10 @@ An optional [prospective requirement inventory](campaign-criterion-inventory.md)
 complete per-arm requirement counts, including unrun assignments, grouped by verification
 type. It must be pinned in the first reporting policy event. Its absence yields null counts;
 reporting cannot backfill the inventory or load unstarted task contents to infer a denominator.
-Counts alone do not close the criterion-coverage gate or supply passing/manual evidence.
+The [criterion judgment reader](criterion-judgments.md) now supplies validated semantic
+status counts against this inventory, retaining unscored requirements for missing proof
+and early failures. Those judgments do not close the criterion-coverage gate or supply
+manual approval; new adjudication concerns remain visible on the completed proof.
 
 ## Verification
 

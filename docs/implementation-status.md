@@ -66,7 +66,15 @@ without loading protected task contexts; policies without an inventory retain un
 The combined inventory/policy/statistics/reporting suite passed 66 tests in 188.43 seconds;
 one additional capture-permission revocation case passed in 5.90 seconds. Qualification is an
 explicit owned-fixture boundary in these inventory tests. No historical inventory was captured,
-and passing criterion evidence remains a separate unfinished consumer.
+and complete required criterion evidence remains unfinished. A subsequent
+[criterion judgment consumer](criterion-judgments.md) carries actual validated semantic
+status counts through whole-attempt reporting and checks them against the frozen inventory.
+Unscored requirements remain visible; semantic judgments do not supply human decisions or
+complete execution evidence. Its counts/statistics/inventory scope passed 50 tests; the
+consumer/whole-attempt/report scope passed 60 with four fixture setup errors, and the
+corrected four aggregate cases then passed. Production code did not change between those
+runs. See the linked record for timings and the retained setup error. New-head full CI
+and independent review remain outstanding.
 
 The [transaction/outbox fault matrix](postgres-faults.md) also passed 12 scoped actual
 PostgreSQL/Temporal cases, and [model-provider ledger faults](model-provider-faults.md) passed

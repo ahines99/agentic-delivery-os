@@ -107,12 +107,52 @@ def dispatched_case(attempt_case, campaign_seed, tmp_path, request):
     if getattr(request, "param", False):
         from agentic_delivery.evaluation.campaign_reporting_policy import freeze_reporting_policy
 
+        inventory_ref = None
+        if request.param == "criterion-inventory":
+            from agentic_delivery.evaluation.campaign import ExecutionCampaign, _read
+            from agentic_delivery.evaluation.campaign_criterion_inventory import (
+                CampaignCriterionInventory,
+                TaskRequirementCount,
+            )
+            from agentic_delivery.evaluation.criterion_judgments import count_criterion_judgments
+            from agentic_delivery.evaluation.qualification import qualification_task_digest
+
+            # Authored prospective metadata for owned manifests; this deliberately does
+            # not claim actual corpus qualification or exercise protected capture again.
+            counts = []
+            for task in sorted(tasks, key=lambda t: t.id):
+                judgments = count_criterion_judgments(task.item.acceptance_criteria, ())
+                counts.append(
+                    TaskRequirementCount(
+                        task_id=task.id,
+                        task_manifest_digest=qualification_task_digest(
+                            task.model_dump(mode="json")
+                        ),
+                        qualification_artifact=task.qualification_artifact,
+                        criterion_identity_digest=judgments.criterion_identity_digest,
+                        required=judgments.required,
+                        by_verification_type={
+                            k: c.total for k, c in judgments.by_verification_type.items()
+                        },
+                    )
+                )
+            inventory = CampaignCriterionInventory(
+                campaign_artifact=ref,
+                registration_digest=registration.registration_digest,
+                manifest_digest=ExecutionCampaign.model_validate(
+                    _read(f.case.frozen_store, ref)
+                ).manifest_digest,
+                captured_at=journal.clock(),
+                tasks=tuple(counts),
+            )
+            inventory_ref = f.case.output.put(inventory.model_dump_json().encode())
         freeze_reporting_policy(
             journal,
             campaign_artifact=ref,
             campaign_artifacts=f.case.frozen_store,
             policy_artifacts=f.case.output,
             current_guard=lambda: None,
+            criterion_inventory_artifact=inventory_ref,
         )
     journal.open_phase(
         authorization_provider=provider, expected_sequence=len(journal.inspect(ref)[1])

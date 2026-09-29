@@ -203,6 +203,8 @@ async def test_unrun_assignments_retain_denominators_without_loading_task_contex
         assert phase.criterion_coverage_gate == "UNAVAILABLE"
         for arm in phase.arms:
             assert arm.required_criteria == (10 if arm.kind == "primary" else 4)
+            assert arm.semantic_criteria.unscored == arm.required_criteria
+            assert arm.semantic_criteria.passed == arm.semantic_criteria.failed == 0
             assert (
                 arm.required_criteria_by_verification_type[VerificationType.UNIT_TEST]
                 == arm.required_criteria

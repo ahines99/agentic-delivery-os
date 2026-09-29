@@ -48,8 +48,9 @@ unreferenced artifact but grants no execution or policy authority.
 
 These are verified capture denominators within that controller boundary, not passing
 criterion evidence. `criteria_scored` and `execution_authorized` remain false. The report's
-criterion-coverage gate stays unavailable until a concrete per-criterion consumer binds
-valid passing, failed and unresolved evidence to these requirements and verification types.
+criterion-coverage gate stays unavailable. The [judgment consumer](criterion-judgments.md)
+now binds validated semantic status counts to these requirements and verification types;
+complete required execution/manual evidence remains a separate gate.
 Manual requirements are counted separately; counting them does not supply a human decision.
 No phase promotion, pilot signoff or historical accuracy claim follows from this inventory.
 

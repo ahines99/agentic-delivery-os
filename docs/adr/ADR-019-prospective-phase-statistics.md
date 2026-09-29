@@ -57,8 +57,9 @@ complete task-count sidecar under current qualification before policy/phase/allo
 Its reference is pinned in the original reporting policy, preserving existing campaign
 manifest and registration hashes. Statistics read that metadata without loading unstarted
 protected task contexts. Older policies without the inventory retain unknown denominators;
-they cannot be backfilled. A later criterion consumer must still establish valid passing,
-failed and unresolved evidence against those requirements before closing the coverage gate.
+they cannot be backfilled. The [criterion judgment consumer](../criterion-judgments.md)
+now binds semantic counts to that inventory. Required execution/manual evidence completeness
+remains separate; semantic passing counts alone do not close the coverage gate.
 
 ## Verification
 
