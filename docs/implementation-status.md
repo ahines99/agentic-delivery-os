@@ -4,16 +4,17 @@ Updated 2026-09-29 UTC during continued controlled implementation. This is the c
 the original milestone documents remain the release targets. Source code alone is not a passed
 integration or production release gate.
 
-Latest complete hosted verification: [CI at `e7c67ca`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36618308416)
-passed both Python versions (2,684 tests and 88 explicit skips each), the actual service
-integration job and secret scanning, including the [campaign journal](campaign-journal.md).
-The subsequent [completed semantic reader](semantic-consumption.md) passed 32 owned tests
-and two final write-protection checks; final-head hosted verification remains required.
-It reconstructs completed initial reviews and an optional exact adjudication under current
-report permission, without renewing execution. The [whole-attempt reader](completed-attempt-reporting.md)
-also passed 13 controlled cases plus two protocol/arm cases, preserving early failures,
-the original outcome and complete accounting. Journal composition, aggregate reporting
-and full phase execution remain open. Earlier live calibration and data grants are historical evidence;
+Latest complete hosted verification: [CI at `c75822c`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36623838216)
+passed both Python versions (2,731 tests and 88 explicit skips each), 88 actual service
+integration tests and secret scanning. This includes the [campaign journal](campaign-journal.md),
+[completed semantic reader](semantic-consumption.md) and [whole-attempt reader](completed-attempt-reporting.md).
+They reconstruct original outcomes, early failures and optional exact adjudication under
+current report permission, without renewing execution or dropping costs. The subsequent
+[serial dispatcher](campaign-dispatch.md) passed all 69 focused journal/dispatch tests,
+including process exit, cancellation, revoked authority, optional adjudication and lost
+completion acknowledgement. Ruff/format (335 files), mypy (105 sources) and package build
+passed; its final-head hosted check remains required. Aggregate reporting, numerical promotion and full phase execution
+remain open. Earlier live calibration and data grants are historical evidence;
 expired authority cannot authorize current consumption or new runs.
 
 The [transaction/outbox fault matrix](postgres-faults.md) also passed 12 scoped actual

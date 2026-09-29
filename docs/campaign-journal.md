@@ -47,11 +47,19 @@ under its still-current authorization returns the original record, including a s
 authorization check. It grants no permission to repeat its execution. Expired authority
 cannot be renewed by changing the journal clock or creating a replacement intent.
 
+`claim_dispatch(...)` adds a nonrenewable dispatch claim under the original current
+phase grant. It permits only one unfinished dispatch across campaigns in this journal.
+`finish_dispatch(...)` requires the matching outcome reference; its trusted caller must
+validate that proof before asserting completion. Older journal readers reject these new
+event kinds. Existing histories without dispatch events retain their metadata semantics.
+
 `record_observation(...)` appends `STOPPED`, `UNKNOWN` or `OUTCOME_REFERENCE` metadata
 with an evidence reference. It never fabricates an `AttemptOutcome`, classifies a stop
 as an infrastructure incident, settles a reservation or creates another attempt account.
 A later outcome reference can supplement an uncertain observation; it cannot erase the
-original or replace an already recorded outcome reference. Every assigned ordinal remains
+original or replace an already recorded outcome reference. An active dispatch remains
+fenced until `DISPATCH_FINISHED`; uncertainty or an outcome reference alone cannot release
+the next assignment. Every assigned ordinal remains
 in the registration. A caller must reconstruct the referenced proof before scoring it.
 
 `inspect(...)` reads retained metadata, including after phase authorization expires.
@@ -85,8 +93,9 @@ development use, registry copies and storage aliases. Corpus qualification is a 
 fixture boundary. These tests make no model/provider/runtime calls and establish no
 historical campaign result or actual process/host-loss recovery.
 
-The serial execution adapter, journal-to-report composition, numerical promotion reader
-and full phase execution remain open. The [completed-attempt reader](completed-attempt-reporting.md)
+The [serial dispatcher](campaign-dispatch.md) now connects this journal to the concrete
+single-attempt coordinator and optional adjudication. Whole-phase driving, all-assignment
+reporting and numerical promotion remain open. The [completed-attempt reader](completed-attempt-reporting.md)
 now reconstructs individual outcomes, failures and exact adjudication accounting under
 current report authority. Journal observations alone cannot substitute for that proof. The existing
 [single-attempt coordinator](single-attempt-coordinator.md),

@@ -1109,3 +1109,25 @@ executable baseline/reference and oracle, without emitting contents or measuring
 context. Subsequent metadata-only screens made 20 requests (125,219 bytes), retaining six
 unsupported changes and four further markdownify candidates. Those candidates remain
 unacquired and unqualified; their metadata cannot establish independent task families.
+
+E134: [Hosted CI at `96432d0`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36620914674)
+passed all four jobs. Python 3.12 passed 2,716 tests with 88 explicit skips in 1,388.31
+seconds; Python 3.13 passed the same counts in 709.83 seconds. Actual services passed
+88 tests in 247.25 seconds; secret scanning passed. This includes semantic consumption.
+
+E135: [Hosted CI at `c75822c`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36623838216)
+passed all four jobs, including whole-attempt reporting. Python 3.12 passed 2,731 tests
+with 88 explicit skips in 1,225.95 seconds; Python 3.13 passed the same counts in 1,231.33
+seconds. Actual PostgreSQL/Temporal/Docker integration passed 88 tests in 252.89 seconds;
+secret scanning passed. Later dispatch changes require their own final-head verification.
+
+E136: Serial campaign dispatch passed 69 focused journal and execution tests in 334.65
+seconds. The scope includes transactional exclusion across campaigns, a subprocess exiting
+after committing a dispatch, concurrent controllers, cancellation, current-phase revocation,
+optional exact adjudication and three lost-completion-acknowledgement boundaries. Completed
+proof recovery forbids model, artifact and spending-ledger writes; incomplete proof retains
+the active fence. Final Ruff/format (335 files), mypy (105 source files) and wheel/sdist build
+passed. These owned SQLite/coordinator/controlled-HTTP tests substitute admission and runtime
+boundaries; no paid call, historical campaign or incomplete-worker quiescence is established.
+The change has root review, not an additional independent agent review. Exact-head hosted CI
+remains required; phase execution, aggregates and numerical promotion remain open.

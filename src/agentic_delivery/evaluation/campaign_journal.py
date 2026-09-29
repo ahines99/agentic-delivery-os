@@ -70,7 +70,16 @@ class JournalEvent(Contract):
     campaign_artifact: Digest
     sequence: int = Field(strict=True, ge=1)
     event_id: str = Field(strict=True, min_length=1, max_length=200)
-    kind: Literal["PHASE", "SEALED_OPEN", "INTENT", "STOPPED", "UNKNOWN", "OUTCOME_REFERENCE"]
+    kind: Literal[
+        "PHASE",
+        "SEALED_OPEN",
+        "INTENT",
+        "DISPATCH",
+        "DISPATCH_FINISHED",
+        "STOPPED",
+        "UNKNOWN",
+        "OUTCOME_REFERENCE",
+    ]
     document: dict[str, Any]
     created_at: AwareDatetime
     previous_digest: Digest
@@ -448,6 +457,8 @@ class CampaignJournal:
         intents: dict[str, int] = {}
         closed: set[int] = set()
         outcomes: set[int] = set()
+        active_dispatches: set[int] = set()
+        dispatched: set[int] = set()
         opened = False
         for index, row in enumerate(rows, 1):
             event = JournalEvent.model_validate_json(row[2])
@@ -512,6 +523,46 @@ class CampaignJournal:
                     _require(type(data["ordinal"]) is int and data["ordinal"] == len(intents))
                     _require(data["assignment"] == assignment and (phase.phase != "test" or opened))
                     intents[identity] = data["ordinal"]
+            elif event.kind == "DISPATCH":
+                _require(set(data) == {"intent_id", "ordinal", "authorization_digest"})
+                _require(data["intent_id"] in intents and phase is not None)
+                assert phase is not None
+                ordinal = intents[data["intent_id"]]
+                _require(
+                    type(data["ordinal"]) is int
+                    and data["ordinal"] == ordinal
+                    and ordinal not in dispatched
+                    and ordinal not in closed
+                    and not active_dispatches
+                    and event.event_id == "dispatch:" + data["intent_id"]
+                    and phase.issued_at <= event.created_at < phase.expires_at
+                    and data["authorization_digest"] == digest_json(phase.model_dump(mode="json"))
+                )
+                original = next(
+                    e for e in result if e.kind == "INTENT" and e.document["ordinal"] == ordinal
+                )
+                _require(original.document["authorization_digest"] == data["authorization_digest"])
+                dispatched.add(ordinal)
+                active_dispatches.add(ordinal)
+            elif event.kind == "DISPATCH_FINISHED":
+                _require(set(data) == {"intent_id", "ordinal", "evidence_artifact"})
+                _require(data["intent_id"] in intents)
+                ordinal = intents[data["intent_id"]]
+                _require(
+                    type(data["ordinal"]) is int
+                    and data["ordinal"] == ordinal
+                    and ordinal in active_dispatches
+                    and ordinal in outcomes
+                    and event.event_id == "dispatch-finished:" + data["intent_id"]
+                )
+                outcome = next(
+                    e
+                    for e in result
+                    if e.kind == "OUTCOME_REFERENCE" and e.document["ordinal"] == ordinal
+                )
+                _require(outcome.document == data)
+                active_dispatches.remove(ordinal)
+                closed.add(ordinal)
             else:
                 _require(set(data) == {"intent_id", "ordinal", "evidence_artifact"})
                 _require(isinstance(data["intent_id"], str) and data["intent_id"] in intents)
@@ -526,7 +577,8 @@ class CampaignJournal:
                     isinstance(data["evidence_artifact"], str)
                     and bool(re.fullmatch(r"[a-f0-9]{64}", data["evidence_artifact"]))
                 )
-                closed.add(ordinal)
+                if ordinal not in active_dispatches:
+                    closed.add(ordinal)
                 if event.kind == "OUTCOME_REFERENCE":
                     outcomes.add(ordinal)
             result.append(event)
@@ -581,11 +633,112 @@ class CampaignJournal:
 
     @staticmethod
     def _closed(events: list[JournalEvent]) -> set[int]:
-        return {
+        closed = {
             e.document["ordinal"]
             for e in events
             if e.kind in {"STOPPED", "UNKNOWN", "OUTCOME_REFERENCE"}
         }
+        dispatched = {e.document["ordinal"] for e in events if e.kind == "DISPATCH"}
+        finished = {e.document["ordinal"] for e in events if e.kind == "DISPATCH_FINISHED"}
+        return closed - (dispatched - finished)
+
+    def claim_dispatch(
+        self,
+        *,
+        intent_id: str,
+        authorization_provider: Callable[[], JournalPhaseAuthorization],
+        expected_sequence: int,
+    ) -> JournalEvent:
+        """One irreversible dispatch claim across this journal; no lease or automatic retry."""
+        with self._transaction() as connection:
+            grant = self._grant(connection, authorization_provider)
+            events = self._events(connection, grant.campaign_artifact)
+            self._cas(events, expected_sequence)
+            for (campaign,) in connection.execute("SELECT artifact FROM campaigns"):
+                history = self._events(connection, campaign)
+                dispatched = {e.document["ordinal"] for e in history if e.kind == "DISPATCH"}
+                finished = {e.document["ordinal"] for e in history if e.kind == "DISPATCH_FINISHED"}
+                _require(dispatched == finished)
+            intent = next(
+                (e for e in events if e.kind == "INTENT" and e.document["intent_id"] == intent_id),
+                None,
+            )
+            _require(intent is not None)
+            assert intent is not None
+            _require(
+                not any(
+                    e.document.get("intent_id") == intent_id and e.kind != "INTENT" for e in events
+                )
+            )
+            phases = [e for e in events if e.kind == "PHASE"]
+            _require(
+                bool(phases)
+                and phases[-1].document["authorization"] == grant.model_dump(mode="json")
+            )
+            _require(
+                intent.document["authorization_digest"]
+                == digest_json(grant.model_dump(mode="json"))
+            )
+            _require(self._grant(connection, authorization_provider) == grant)
+            return self._append(
+                connection,
+                grant.campaign_artifact,
+                events,
+                "dispatch:" + intent_id,
+                "DISPATCH",
+                {
+                    "intent_id": intent_id,
+                    "ordinal": intent.document["ordinal"],
+                    "authorization_digest": intent.document["authorization_digest"],
+                },
+            )
+
+    def finish_dispatch(
+        self,
+        campaign_artifact: str,
+        *,
+        intent_id: str,
+        outcome_artifact: str,
+        expected_sequence: int,
+    ) -> JournalEvent:
+        """Trusted caller must validate completed proof first; metadata alone is no proof."""
+        with self._transaction() as connection:
+            events = self._events(connection, campaign_artifact)
+            outcome = next(
+                (
+                    e
+                    for e in events
+                    if e.kind == "OUTCOME_REFERENCE" and e.document["intent_id"] == intent_id
+                ),
+                None,
+            )
+            _require(
+                outcome is not None and outcome.document["evidence_artifact"] == outcome_artifact
+            )
+            assert outcome is not None
+            _require(
+                any(e.kind == "DISPATCH" and e.document["intent_id"] == intent_id for e in events)
+            )
+            previous = next(
+                (
+                    e
+                    for e in events
+                    if e.kind == "DISPATCH_FINISHED" and e.document["intent_id"] == intent_id
+                ),
+                None,
+            )
+            if previous is not None:
+                _require(previous.document == outcome.document)
+                return previous
+            self._cas(events, expected_sequence)
+            return self._append(
+                connection,
+                campaign_artifact,
+                events,
+                "dispatch-finished:" + intent_id,
+                "DISPATCH_FINISHED",
+                outcome.document,
+            )
 
     def open_phase(
         self,
