@@ -53,7 +53,7 @@ def test_v1_golden_bytes_and_existing_serialized_schemas_unchanged():
     )
 
 
-@pytest.mark.parametrize("version", ["v1", "v2"])
+@pytest.mark.parametrize("version", ["v1", "v2", "v3"])
 def test_only_exact_known_prompt_artifacts_resolve(version):
     rubric = "Inspect the frozen behavior.\n"
     prompt = calibration.semantic_prompt_for_version(rubric, version=version)
@@ -72,7 +72,7 @@ def test_only_exact_known_prompt_artifacts_resolve(version):
 @pytest.mark.parametrize(
     "mutation", ["newline", "prefix", "crlf", "rubric", "unicode", "modified", "text"]
 )
-@pytest.mark.parametrize("version", ["v1", "v2"])
+@pytest.mark.parametrize("version", ["v1", "v2", "v3"])
 def test_unknown_or_modified_artifact_never_falls_back(version, mutation):
     prompt = calibration.semantic_prompt_for_version("Owned rubric", version=version).encode()
     mutated = {
@@ -88,13 +88,13 @@ def test_unknown_or_modified_artifact_never_falls_back(version, mutation):
         calibration.resolve_semantic_prompt("Owned rubric", mutated)
 
 
-@pytest.mark.parametrize("version", ["latest", "V2", "v3", None, 2])
+@pytest.mark.parametrize("version", ["latest", "V2", "v4", None, 2])
 def test_preparation_version_requires_explicit_supported_choice(version):
     with pytest.raises(calibration.SemanticCalibrationFailure):
         calibration.semantic_prompt_for_version("Owned rubric", version=version)
 
 
-@pytest.mark.parametrize("version", ["v1", "v2"])
+@pytest.mark.parametrize("version", ["v1", "v2", "v3"])
 async def test_completed_calibration_receipts_wire_bytes_and_cached_readback(
     build, monkeypatch, version
 ):
@@ -106,7 +106,7 @@ async def test_completed_calibration_receipts_wire_bytes_and_cached_readback(
     ]
     rubric = case.artifacts.get(case.spec.rubric_artifact).decode()
     prompt = calibration.semantic_prompt_for_version(rubric, version=version)
-    if version == "v2":
+    if version != "v1":
         pin_calibration_prompt(case, prompt.encode())
         assert {
             key for key in old_spec if old_spec[key] != case.spec.model_dump(mode="json")[key]
@@ -141,8 +141,8 @@ async def test_completed_calibration_receipts_wire_bytes_and_cached_readback(
         assert receipt.prompt_digest == hashlib.sha256(prompt.encode()).hexdigest()
         assert receipt.request_digest == forecast.request_digest
         assert row["reserved_microdollars"] == forecast.reservation_microdollars
-    # Merely preparing v2 can never migrate a completed v1 record.
-    case.artifacts.put(calibration.semantic_prompt_for_version(rubric, version="v2").encode())
+    # Merely preparing v3 cannot migrate a completed v1/v2 record.
+    case.artifacts.put(calibration.semantic_prompt_for_version(rubric, version="v3").encode())
     before = case.ledger.account(plan.account_id)
     monkeypatch.delenv(case.config.api_key_env)
     assert await run(case) == ref and validate(case, ref) == evidence
@@ -157,13 +157,17 @@ async def test_completed_calibration_receipts_wire_bytes_and_cached_readback(
     ]
 
 
-async def test_completed_v1_account_cannot_rebind_to_v2(build):
+@pytest.mark.parametrize("original,new", [("v1", "v2"), ("v1", "v3"), ("v2", "v3")])
+async def test_completed_account_cannot_rebind_prompt_version(build, original, new):
     case = await build()
-    ref = await run(case)
-    before = case.ledger.account(case.state["grant"].account_id)
     rubric = case.artifacts.get(case.spec.rubric_artifact).decode()
     pin_calibration_prompt(
-        case, calibration.semantic_prompt_for_version(rubric, version="v2").encode()
+        case, calibration.semantic_prompt_for_version(rubric, version=original).encode()
+    )
+    ref = await run(case)
+    before = case.ledger.account(case.state["grant"].account_id)
+    pin_calibration_prompt(
+        case, calibration.semantic_prompt_for_version(rubric, version=new).encode()
     )
     with pytest.raises(calibration.SemanticCalibrationFailure):
         validate(case, ref)
@@ -182,11 +186,12 @@ async def test_unknown_prompt_pinned_in_new_spec_denies_before_account_or_call(b
         case.ledger.account(case.state["grant"].account_id)
 
 
-async def test_v2_does_not_relax_out_of_range_citation_validation(build):
+@pytest.mark.parametrize("version", ["v2", "v3"])
+async def test_prompt_does_not_relax_out_of_range_citation_validation(build, version):
     case = await build()
     rubric = case.artifacts.get(case.spec.rubric_artifact).decode()
     pin_calibration_prompt(
-        case, calibration.semantic_prompt_for_version(rubric, version="v2").encode()
+        case, calibration.semantic_prompt_for_version(rubric, version=version).encode()
     )
     case.state["fault"] = "bad_citation"
     ref = await run(case)
@@ -197,11 +202,12 @@ async def test_v2_does_not_relax_out_of_range_citation_validation(build):
         validate(case, ref)
 
 
-async def test_v2_still_requires_acceptance_nodes_on_each_finding(build):
+@pytest.mark.parametrize("version", ["v2", "v3"])
+async def test_prompt_still_requires_acceptance_nodes_on_each_finding(build, version):
     case = await build()
     rubric = case.artifacts.get(case.spec.rubric_artifact).decode()
     pin_calibration_prompt(
-        case, calibration.semantic_prompt_for_version(rubric, version="v2").encode()
+        case, calibration.semantic_prompt_for_version(rubric, version=version).encode()
     )
     original_transport = case.model.client._transport
 
@@ -225,14 +231,15 @@ async def test_v2_still_requires_acceptance_nodes_on_each_finding(build):
     assert evidence.metrics.model_microdollars == 900 and len(case.requests) == 5
 
 
-async def test_semantic_executor_uses_exact_v2_with_same_schema_and_account(executed):
+@pytest.mark.parametrize("version", ["v2", "v3"])
+async def test_semantic_executor_uses_exact_prompt_with_same_schema_and_account(executed, version):
     case = executed
     grant = case.state["grant"]
     spec = calibration.SemanticCalibrationSpec.model_validate(
         calibration._read(case.case.protected, grant.calibration_spec_artifact)
     )
     rubric = case.case.protected.get(grant.rubric_artifact).decode()
-    prompt = calibration.semantic_prompt_for_version(rubric, version="v2")
+    prompt = calibration.semantic_prompt_for_version(rubric, version=version)
     prompt_ref = case.case.protected.put(prompt.encode())
     spec_ref = calibration._put(
         case.case.protected, spec.model_copy(update={"prompt_artifact": prompt_ref})
@@ -279,3 +286,43 @@ async def test_semantic_executor_uses_exact_v2_with_same_schema_and_account(exec
     with pytest.raises(execution.SemanticExecutionFailure):
         await execution.run_semantic_scoring(execution=case.execution, model=case.model)
     assert len(case.requests) == 2 and case.case.ledger.account(grant.account_id) == before
+
+
+def test_v2_golden_bytes_and_v3_is_only_generic_append():
+    # Captured from e56828d before adding v3; v1's independent golden is above.
+    rubric = "Frozen rubric \u03a9\n"
+    v2 = calibration.semantic_prompt_for_version(rubric, version="v2")
+    assert hashlib.sha256(v2.encode()).hexdigest() == (
+        "9048199635d572fc34feb159bf919f43b3be6f23bea00b2ea0982f35fd854bde"
+    )
+    v3 = calibration.semantic_prompt_for_version(rubric, version="v3")
+    assert v3.startswith(v2)
+    suffix = v3[len(v2) :]
+    assert "own stated predicate" in suffix and "execution conditions" in suffix
+    assert "independently supported by evidence" in suffix
+    assert "Compute the overall verdict only after" in suffix
+    assert all(
+        value not in suffix
+        for value in ("batch_", "retention", "ordering", "owned-", "case-", "fixture", "expected")
+    )
+    for other in ("Other rubric", "Different\nmultiline rubric"):
+        other_v2 = calibration.semantic_prompt_for_version(other, version="v2")
+        assert (
+            calibration.semantic_prompt_for_version(other, version="v3")[len(other_v2) :] == suffix
+        )
+
+
+@pytest.mark.parametrize(
+    "old,new",
+    [
+        ("own stated predicate", "global outcome"),
+        ("specified input domain", "observed examples only"),
+        ("independently supported by evidence", "assumed from the verdict"),
+        ("only after completing", "before completing"),
+    ],
+)
+def test_v3_grading_guidance_cannot_be_modified_under_known_version(old, new):
+    prompt = calibration.semantic_prompt_for_version("Frozen rubric", version="v3")
+    assert old in prompt
+    with pytest.raises(calibration.SemanticCalibrationFailure):
+        calibration.resolve_semantic_prompt("Frozen rubric", prompt.replace(old, new).encode())

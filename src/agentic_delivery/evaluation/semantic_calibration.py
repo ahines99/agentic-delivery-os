@@ -161,7 +161,7 @@ def semantic_prompt(rubric: str) -> str:
     )
 
 
-SemanticPromptVersion = Literal["v1", "v2"]
+SemanticPromptVersion = Literal["v1", "v2", "v3"]
 
 
 def semantic_prompt_for_version(rubric: str, *, version: SemanticPromptVersion) -> str:
@@ -169,6 +169,24 @@ def semantic_prompt_for_version(rubric: str, *, version: SemanticPromptVersion) 
     original = semantic_prompt(rubric)
     if version == "v1":
         return original
+    if version == "v3":
+        return semantic_prompt_for_version(rubric, version="v2") + (
+            "\n\nIndependent finding assessment protocol v3:\n"
+            "Grade each criterion against its own stated predicate over the specified input "
+            "domain and execution conditions. Do not propagate another criterion's failure, "
+            "an integrity failure, or the global verdict into unrelated findings. "
+            "For each finding, use FAIL when the supplied evidence establishes a violation "
+            "of that finding's predicate; use UNRESOLVED when necessary requirements or "
+            "evidence are insufficient to decide it; use PASS when the supplied evidence "
+            "supports that predicate over its stated scope. Passing observed tests alone "
+            "does not establish uncovered behavior. "
+            "Assess each integrity finding separately against its own stated concern. "
+            "The same defect may affect multiple findings only when each effect is "
+            "independently supported by evidence; explain that connection in each reason. "
+            "Keep reasons concise and attach each finding's required citations. "
+            "Compute the overall verdict only after completing all individual findings, "
+            "using the existing FAIL-before-UNRESOLVED-before-PASS rule."
+        )
     if version != "v2":
         raise SemanticCalibrationFailure("Unsupported semantic scoring prompt version")
     return original + (
@@ -213,7 +231,7 @@ def resolve_semantic_prompt(
     """Resolve only exact known prompt bytes; no fallback, inferred version or normalization."""
     if not isinstance(artifact_bytes, bytes):
         raise SemanticCalibrationFailure("Invalid semantic scoring prompt artifact")
-    for version in ("v1", "v2"):
+    for version in ("v1", "v2", "v3"):
         prompt = semantic_prompt_for_version(rubric, version=version)
         if artifact_bytes == prompt.encode():
             return version, prompt
