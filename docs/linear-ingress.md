@@ -63,5 +63,28 @@ preserving the same current-content check used by the product.
 The API and gateway use separately tracked hidden processes bound only to loopback. The
 gateway has no credentials. No worker or dispatcher was started for these intake checks;
 planning, approval, candidate execution and review-state handoff are separate evidence.
-The webhook and tunnel are temporary test infrastructure requiring tracked cleanup or
-replacement before durable operation.
+After the planning checks below, the exact temporary webhook was disabled through one
+mutation and a separate provider read verified `enabled=false`. The tunnel, API and gateway
+were stopped after checking their original process identities; ports 18090, 18091 and 18092
+had no remaining listeners. Both planning workers were absent. All ticket, workflow, plan
+and accounting records were retained; unrelated local services remained unchanged. A new
+durable endpoint and configured webhook are still required for ongoing intake.
+
+## Actual ticket-to-plan checks
+
+After intake testing, each controlled issue received one narrowly scoped Temporal dispatch
+and a planning-only worker. PER-5 reached `NEEDS_CLARIFICATION` with five criteria and seven
+questions. Its single settled call used 2,091 input and 3,007 output tokens, costing 85,630
+microdollars. Its original workflow and queue remain available for an authorized continuation.
+
+PER-6 describes an exact optional status filter within the already onboarded owned sample
+repository. It reached `PLAN_REVIEW` with five criteria and no clarification questions. Its
+single settled call used 2,466 input and 2,101 output tokens, costing 64,855 microdollars.
+The plan binds base `e00796e4cccc5371efe8603fabe883e1aba77eb4` and artifact
+`4d8ec3ac32f6092fb3e4fc79a4eafaa114b4a8260849a094582b14e3562abcda`.
+
+Both accounts retained zero reserved balance, and both workers were gracefully stopped and
+their absence verified. Plan prose and readable review files remain private. No approval,
+candidate build, publication or review-state update was issued. These are real provider and
+orchestrator observations for owned test tickets, not historical benchmark results or a
+complete Linear-to-GitHub delivery.

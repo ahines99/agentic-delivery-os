@@ -147,3 +147,19 @@ The original 36 metadata candidates remain unqualified. Development candidates a
 not counted again for environment or model-configuration versions. PR 463 remains
 rejected by the deterministic gate; PR 404 and PR 337 are two qualified development tasks. The
 30+ task corpus, paired campaign execution and complete release gates remain open.
+
+## Additional development metadata screen and acquisition refusal
+
+A later bounded metadata-only screen examined up to 100 merged pull requests each from
+`python-validators/validators`, `pallets-eco/blinker` and `jd/tenacity`. It made 23 provider
+requests (657,607 response bytes), without opening issue bodies, source or patches. Three
+candidates passed that limited screen: validators PRs 411 and 402, and blinker PR 83.
+This did not establish requirements, rights, executable oracles or qualification.
+
+A protected acquisition attempt for blinker PR 83 stopped after 16 successful HTTP responses
+(53,892 bytes), before a complete capture or any protected artifact was published. A separate
+bounded diagnostic made two reads (13,981 bytes) and verified that the failing Git blob was
+a 3,627-byte binary asset that could not satisfy the UTF-8 snapshot contract. No blob contents,
+issue text or reference solution entered implementation-agent context. The failed attempt
+and diagnostic metadata remain retained; the acquisition was not reissued or weakened by
+excluding the asset. No derivation, import, runtime operation, model call or admission followed.

@@ -1000,3 +1000,30 @@ an exact hash-matched signed replay left two inbox receipts and still one workfl
 outbox record. No additional execution budget was created. The initial description-comparison
 refusal made zero mutations and remains recorded. This proves bounded live intake/replay,
 not durable ingress, provider-triggered retries, review-state handoff or GitHub delivery.
+
+E122: Two controlled real Linear tickets passed actual Temporal planning. PER-5 reached
+`NEEDS_CLARIFICATION` with one settled call (2,091 input/3,007 output tokens, 85,630
+microdollars). PER-6 reached `PLAN_REVIEW` with five criteria and no questions; one settled
+call used 2,466 input/2,101 output tokens for 64,855 microdollars. Both accounts have zero
+reserved balance, and isolated workers stopped with absence verified. Exact revision-bound
+plan artifacts remain private. No human approval, build, publication or status handoff is
+inferred; see [the actual planning record](linear-ingress.md#actual-ticket-to-plan-checks).
+
+E123: The subsequent read-only protected evaluation ledger inventory includes the retained
+v41/v42 reservations and passing v44 calibration: three SQLite ledgers, 33 distinct accounts,
+214 operations, 9,424,997 settled microdollars and 948,834 reserved across five unsettled rows.
+Every account cost/token counter matched its operation rows, with no duplicate account IDs
+across files. It read metadata only and made no ledger writes. This excludes product planning
+and is neither provider invoice reconciliation nor a complete campaign cost gate.
+
+E124: A bounded additional development metadata screen found three candidates across
+validators and blinker, without admitting any task. The protected blinker PR 83 acquisition
+stopped on a binary asset outside the text-only snapshot contract; separate bounded diagnosis
+confirmed byte size/hash/type without exposing content. All refusals remain retained, with no
+partial capture, model call, runtime operation or admission. See [the acquisition record](historical-development-attempts.md#additional-development-metadata-screen-and-acquisition-refusal).
+
+E125: Temporary Linear test infrastructure was closed with tracked identities. Exactly one
+webhook-disable mutation was confirmed by a fresh provider read. The verified tunnel/API/
+gateway processes stopped, ports 18090–18092 had no listeners, and both planning workers
+were absent. Original tickets, workflow plans, usage and zero-approval records remain retained.
+Unrelated services were unchanged. Ongoing intake requires a durable replacement endpoint.

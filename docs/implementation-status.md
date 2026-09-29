@@ -129,7 +129,7 @@ verification below remains recorded separately. See [E55–E56](completion-audit
   for the same source ticket return conflict rather than creating parallel budget allocations.
   Projection idempotency checks include the complete audit event digest.
 - Signed Linear webhook intake with workspace/team/assignee scope and payload/semantic deduplication.
-  This is tested with signed fixtures, not a live Linear workspace.
+  Signed fixtures and controlled real workspace tickets passed; see the later live evidence below.
 - Real Anthropic structured generation for planner, builder and fresh reviewer; OpenAI Responses
   wire contract tested using a mock transport. No cached success is treated as a new paid call.
 - Pinned Git snapshots and safe text-file edits; path/secret/sensitive-code rejection, original-test
@@ -155,7 +155,7 @@ verification below remains recorded separately. See [E55–E56](completion-audit
   generation CAS plus a 60-second cache. Workflow CI polling has an absolute deadline and cancellation.
   Linear review-state handoff is a separate activity after CI, with before/after authorization checks
   and intent/result artifacts; uncertain provider outcomes remain UNKNOWN. These are controlled
-  transport/workflow tests; live product App/Linear onboarding remains required.
+  transport/workflow tests; live product App onboarding and Linear review-state handoff remain required.
 - Evaluation schema, family/split validation, protected worker-input projection, isolated scoring,
   strict denominators, missing-task accounting and Wilson intervals. `delivery-eval` exports schemas,
   validates manifests and creates reproducible reports; no historical benchmark run exists.
@@ -415,7 +415,7 @@ unmeasured.
    The user's authenticated CLI is used for maintaining this project, never as the product's PAT fallback.
 2. Complete durable Linear ingress and actual review-state handoff. The authorized personal key,
    local mapping and temporary Issue-only webhook now pass discovery, actual signed intake,
-   non-content update and exact replay checks. Full ticket-to-plan/build/PR delivery remains open.
+   non-content update, exact replay and actual clarification/plan-review checks. Build/PR delivery remains open.
 3. Extend security qualification beyond the exercised memory/PID/disk/dependency-hook controls.
    Current Docker tests do not establish general runtime-escape resistance or hostile multi-tenant isolation.
 4. Qualify the implemented check-run/suite ingestion and REST readiness gate with the live product App.
@@ -501,13 +501,13 @@ not yet schedule phases or adjudicate disagreements, and no historical campaign 
 The shared v2 adjudication prompt passed five focused broker/version tests. Its first live
 owned calibration request returned HTTP 400 before usable evidence; a separate schema-only
 diagnostic identified unsupported `prefixItems` in the provider-facing fixed-tuple schema.
-Both reservations remain retained because no usage was reported. Adjudication calibration
-has not passed; changing the wire projection requires a new prospective frozen run.
+Both reservations remain retained because no usage was reported. That calibration attempt
+did not pass; the later prospective run after the wire correction is recorded below.
 
 Linear's owner-supplied personal key now passes actual read-only workspace/team/member/state
 discovery through the product adapter. Local configuration pins the matching team, active
-assignee and In Review state. No Linear write, signed webhook delivery or product handoff
-is implied. GitHub App onboarding remains open.
+assignee and In Review state. Those discovery reads alone establish no delivery or handoff;
+subsequent signed delivery is recorded below. GitHub App onboarding remains open.
 
 After the narrow homogeneous fixed-tuple projection, a separately frozen live owned
 adjudicator calibration passed all five exact dispute maps and verdicts, with no false-ready,
@@ -527,3 +527,10 @@ controlled ticket PER-5 created one durable workflow/start command. A real non-c
 and exact signed replay preserved that single workflow and budget. Private routes and unsigned
 requests were rejected externally. These checks do not establish durable hosting or live
 GitHub/Linear review-state handoff; see [the detailed evidence](linear-ingress.md).
+
+The two controlled real tickets then exercised actual planning on separate, narrowly dispatched
+Temporal queues. PER-5 reached `NEEDS_CLARIFICATION` (one settled call, 85,630 microdollars);
+PER-6 reached `PLAN_REVIEW` (one settled call, 64,855 microdollars), with five criteria and no
+clarification questions. Both retained zero reserved balance and their original workflow/budget
+identities. Private plan artifacts remain local. Both workers stopped at these boundaries;
+no plan approval, candidate execution, publication or Linear review-state update occurred.

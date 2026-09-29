@@ -68,8 +68,8 @@ use the [runbook](runbook.md) for their configuration and operation.
 
 GitHub App publication and Linear integration code are contract/fixture tested. Authorized
 Linear credentials now pass live read-only discovery, and local workspace/team/assignee/review-state
-mapping is configured. One controlled real ticket passed signed intake and exact replay through
-a temporary HTTPS gateway; live status handoff and durable ingress remain open, as does
+mapping is configured. Controlled real tickets passed signed intake, exact replay and persisted
+clarification/plan-review paths through a temporary HTTPS gateway. Live status handoff and durable ingress remain open, as does
 GitHub App/private-key onboarding. OpenAI's
 wire adapter is contract tested; the recorded live model runs used Anthropic. Tests of named
 Docker controls do not establish general hostile-code isolation. Complete recovery, identity,
@@ -215,7 +215,7 @@ architecture. Licensing is intentionally not granted by this scaffold; the owner
 an open-source license before public distribution. A remote owner/name and secrets are not
 guessed. These facts do not block the local plan or repository setup.
 
-Next release work: onboard the GitHub App and Linear workspace, qualify the historical evaluation
+Next release work: onboard the GitHub App, complete durable Linear ingress and handoff, qualify the historical evaluation
 corpus, and satisfy the remaining acceptance gates listed in
 [implementation status](implementation-status.md). Durable storage, Temporal, model-driven local
 execution and the controlled candidate path are implemented; follow that current status record

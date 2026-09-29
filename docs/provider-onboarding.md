@@ -49,7 +49,10 @@ workspace, team, active assignee and workflow states. The ignored local configur
 this repository to that team and its In Review state. This establishes read access and
 configuration. A subsequent temporary Issue-only webhook delivered a controlled owner-assigned
 ticket into the durable inbox; a non-content update and exact signed replay preserved one workflow
-and start command. See [the ingress record](linear-ingress.md). Durable hosting, actual review-state
+and start command. Real planning then persisted a clarification result for PER-5 and a reviewable
+plan for PER-6, each with one settled model operation and no remaining reservation.
+The temporary webhook is now disabled and its test processes stopped; tickets and evidence
+remain retained. See [the ingress record](linear-ingress.md). Durable hosting, actual review-state
 handoff and complete Linear-to-GitHub delivery remain open.
 The key stays in the ignored `.local/linear.env`; service processes must receive it through
 their environment, without logging it. Reading a local dotenv file does not configure an

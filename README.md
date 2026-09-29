@@ -26,7 +26,8 @@ A synthetic customer task reached `LOCAL_REVIEW_READY`; its durable workflow sto
 GitHub App publication and Linear adapters exist and have contract/fixture tests. The authorized
 Linear key now passes live workspace/team discovery, and a controlled real ticket passed signed
 webhook intake, a non-content update and exact signed replay through a temporary HTTPS gateway.
-One workflow/start command was retained. Status handoff remains unverified. GitHub App credentials
+One workflow/start command was retained. Two real test tickets subsequently reached persisted
+`NEEDS_CLARIFICATION` and `PLAN_REVIEW` states through metered planning. Status handoff remains unverified. GitHub App credentials
 are still absent. Complete
 recovery/security qualification and the independently scored 30+ historical-task evaluation
 remain release gates. The Docker checks establish named controls, not safety against arbitrary
