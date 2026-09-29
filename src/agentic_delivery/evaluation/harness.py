@@ -171,6 +171,11 @@ def _scoring_material(
 ) -> tuple[dict[str, str], Any]:
     from agentic_delivery.evaluation.qualification_admission import QualificationAuthority
 
+    protected_root = protected_artifacts.root.resolve()
+    output_root = output_artifacts.root.resolve()
+    if output_root.is_relative_to(protected_root) or protected_root.is_relative_to(output_root):
+        raise ValueError("Scoring output and protected input stores must be disjoint")
+
     validated = task.validate_qualification(
         protected_artifacts, authority=authority, purpose="scoring"
     )
@@ -187,10 +192,6 @@ def _scoring_material(
         *repository.protected_paths,
     )
 
-    protected_root = protected_artifacts.root.resolve()
-    output_root = output_artifacts.root.resolve()
-    if output_root.is_relative_to(protected_root) or protected_root.is_relative_to(output_root):
-        raise ValueError("Scoring output and protected input stores must be disjoint")
     # Both stores are evaluator-only: receipts can contain withheld test names/output.
     source = json.loads(protected_artifacts.get(task.snapshot_artifact))
     oracle = json.loads(protected_artifacts.get(task.oracle_artifact))

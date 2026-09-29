@@ -763,13 +763,14 @@ def test_qualification_cli_cannot_overwrite_protected_evidence_or_manifest(
 async def test_scoring_rejects_overlapping_protected_and_result_stores(
     records, location, monkeypatch
 ):
-    from types import SimpleNamespace
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Overlapping stores must fail before qualification reads")
 
-    # Unit boundary only: retain the separate store-isolation invariant after current admission.
+    # Reject invalid storage before reading qualification or protected payloads.
     monkeypatch.setattr(
         HistoricalTask,
         "validate_qualification",
-        lambda *args, **kwargs: SimpleNamespace(qualification_input=None),
+        forbidden,
     )
     store, _, _ = records
     task = historical_task(records)
