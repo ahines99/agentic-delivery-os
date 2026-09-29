@@ -23,8 +23,10 @@ on Python 3.12/3.13, real service integration and secret scanning.
 A synthetic customer task reached `LOCAL_REVIEW_READY`; its durable workflow stopped at
 `POLICY_BLOCKED` because publication was disabled. No PR, merge, or deployment is implied.
 
-GitHub App publication and Linear adapters exist and have contract/fixture tests, but live
-GitHub App credentials and authorized Linear workspace keys are not configured. Complete
+GitHub App publication and Linear adapters exist and have contract/fixture tests. The authorized
+Linear key now passes live read-only workspace/team discovery, and its local repository mapping
+is configured; signed webhook intake and status handoff remain unverified. GitHub App credentials
+are still absent. Complete
 recovery/security qualification and the independently scored 30+ historical-task evaluation
 remain release gates. The Docker checks establish named controls, not safety against arbitrary
 hostile code. See [implementation status](docs/implementation-status.md) for recorded runs,
@@ -108,6 +110,8 @@ skip without the runbook's service variables.
 | [docs/worker-process-loss.md](docs/worker-process-loss.md) | Actual killed-worker cleanup and explicit uncertain outcomes |
 | [ADR-014](docs/adr/ADR-014-campaign-execution-budgets.md) | Separate immutable qualification and frozen campaign execution budgets |
 | [docs/protocol-v2-implementation.md](docs/protocol-v2-implementation.md) | Explicit prospective protocol contracts with strict v1 compatibility |
+| [docs/single-attempt-coordinator.md](docs/single-attempt-coordinator.md) | Shared-account candidate, deterministic and two-scorer composition |
+| [docs/historical-merge-linkage.md](docs/historical-merge-linkage.md) | Explicit first-parent merge metadata with unchanged current authorization |
 | [ADR-016](docs/adr/ADR-016-prospective-campaign-token-ceilings.md) | Prospective explicit token ceilings with unchanged financial caps |
 | [ADR-015](docs/adr/ADR-015-bounded-candidate-cleanup.md) | Bounded trusted cleanup following candidate activity failure |
 | [docs/operator-rotation.md](docs/operator-rotation.md) | Restart-based HTTP token rotation and paused-admission rehearsal |

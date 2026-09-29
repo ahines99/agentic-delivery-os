@@ -919,3 +919,49 @@ passed 16 scoped cases. Root integration at `4951133` passed seven broker/projec
 expectation/read-only/concern cases in 106.53 seconds (41 deselected). Ruff/format
 (308 files) and mypy (98 sources) passed. No live adjudicator calibration or historical
 adjudication was executed by these controlled tests.
+
+E112: [Hosted CI at `700fc45`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36506867142)
+failed the CLI unqualified-task denial fixture on Python 3.12 (2464 passed, 88 skipped,
+730.82 seconds). It reused the protected store as output, triggering the correctly earlier
+disjoint-store guard. Fix `006477b` supplies separate stores and prohibits artifact reads;
+104 CLI/qualification tests passed in 13.63 seconds with one optional Docker skip. Python
+3.13's check annotation confirms cancellation at its 15-minute job ceiling; it has no complete
+test result. Actual services passed 88 cases in 251.50 seconds, and secret scanning passed.
+The quality job now permits 30 minutes without reducing tests or product runtime deadlines.
+
+E113: [Explicit merge linkage](historical-merge-linkage.md), source `5406f9e` integrated as
+`0689cc1`, implements [ADR-017](adr/ADR-017-explicit-first-parent-merge-linkage.md). The author
+passed 144 affected cases, independent review passed 77 linkage cases in 17.73 seconds, and
+root passed 121 merge/linkage/import/derived-input cases in 46.40 seconds. These scopes overlap.
+V1 goldens and refusals remain preserved. No historical capture, rights grant or admission was
+performed; non-Python derivation restrictions remain unchanged.
+
+E114: The shared provenance-conditional adjudication prompt v2 at `c34c33e` preserves exact
+v1 resolution and unchanged output schemas, peer judgments and expectations. Root passed five
+broker/version controls in 131.01 seconds (46 deselected). Actual owned calibration v41 then
+stopped on its first HTTP 400, with 218,940 microdollars reserved and unknown usage. One separate
+schema-only diagnostic v42 reported HTTP 400/invalid request and allowlisted unsupported
+`prefixItems` hints; its 136,664-microdollar reservation also remains. No output, calibration
+pass, retry authority or zero-charge conclusion was inferred. Neither failed operation was
+reissued. Provider wire compatibility needs correction before a new prospective frozen run.
+
+E115: [Single-attempt composition](single-attempt-coordinator.md), source `6c06a7e` integrated
+as `84413a8`, joins canonical allocation, A/B candidate production, deterministic execution and
+two final scorers on the original account/deadline. The author passed 24 combined tests in
+255.97 seconds plus two later focused negatives; independent review passed 16 cases in
+150.19 seconds. These use actual stage APIs/broker/SQLite and controlled qualification,
+calibration, semantic-context and sandbox fixtures. No actual historical execution, phase
+promotion, adjudication or strict-success release claim follows from them.
+Root integration passed ten complete-result/UNKNOWN cases in 103.28 seconds (16 deselected).
+
+E116: A read-only metadata inventory of three protected evaluation SQLite files checked all
+30 account counters against 207 operation rows, including reserved tokens: 9,044,553 settled
+microdollars and 593,230 reserved across three unsettled rows. No account IDs overlapped across
+files. This snapshot precedes v41/v42, reads no model outputs and makes no ledger writes. It is
+neither a provider invoice reconciliation nor a complete product/campaign cost gate.
+
+E117: On 2026-09-29, the owner supplied an ignored local Linear key. Actual `LinearClient`
+queries verified workspace/team discovery, active owner membership and In Review state;
+all returned connection pages were complete. The ignored local configuration now binds this
+repository to those exact IDs and retains publication disabled. No provider mutation, issue
+delivery, signed webhook or live handoff was performed by these read-only checks.

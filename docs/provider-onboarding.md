@@ -44,6 +44,14 @@ and [permission selection](https://docs.github.com/en/apps/creating-github-apps/
 
 ## Linear
 
+On 2026-09-29, the owner's locally supplied personal key passed actual adapter reads for
+workspace, team, active assignee and workflow states. The ignored local configuration maps
+this repository to that team and its In Review state. This establishes read access and
+configuration only; no provider mutation, signed webhook or end-to-end handoff was tested.
+The key stays in the ignored `.local/linear.env`; service processes must receive it through
+their environment, without logging it. Reading a local dotenv file does not configure an
+already running worker automatically.
+
 Configure one workspace organization ID, one team per repository, a worker assignee ID and
 a review-state ID. Record these as `linear_organization_id`, `linear_team_id`,
 `linear_assignee_id`, and `linear_review_state_id`. Supply an authorized personal API key as

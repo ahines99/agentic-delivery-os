@@ -413,8 +413,9 @@ unmeasured.
 1. Configure a GitHub App installation/private key for only the target repository, set branch
    protections without bot bypass, and exercise actual publication/head-change reconciliation.
    The user's authenticated CLI is used for maintaining this project, never as the product's PAT fallback.
-2. Configure a Linear organization/team/worker, signing/API secrets, HTTPS callback and review state.
-   Run actual delivery/replay/status fixtures. No authorized Linear workspace credentials were found.
+2. Complete Linear signing-secret/HTTPS webhook setup and actual delivery/replay/status fixtures.
+   The authorized personal key now passes live read-only discovery, and local organization/team/
+   assignee/review-state mapping is configured; existing processes still need the updated environment.
 3. Extend security qualification beyond the exercised memory/PID/disk/dependency-hook controls.
    Current Docker tests do not establish general runtime-escape resistance or hostile multi-tenant isolation.
 4. Qualify the implemented check-run/suite ingestion and REST readiness gate with the live product App.
@@ -477,3 +478,33 @@ The separate Opus 5.5/v3 final-scorer profile subsequently passed all five exact
 anchors (365,540 microdollars, no reservation), including current read-only passing
 validation. This supersedes the absence of any passing configuration, not earlier
 failed records. It supplies neither held-out accuracy nor historical spending authority.
+
+The subsequent [hosted run at `700fc45`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36506867142)
+retains one Python 3.12 test failure (2464 passed, 88 skipped, 730.82 seconds), and Python
+3.13 exceeded the 15-minute job limit. Service integration passed 88 cases in 251.50 seconds;
+secret scanning passed. The CLI denial fixture incorrectly reused its protected store as
+output storage, so the earlier isolation check correctly rejected first. The fixture now
+uses disjoint stores and forbids all artifact reads; 104 CLI/qualification tests passed with
+one optional Docker skip. The growing full-suite job receives 30 minutes, with no tests or
+runtime execution deadlines removed. New-head full verification remains required.
+
+[Explicit merge linkage](historical-merge-linkage.md) implements
+[ADR-017](adr/ADR-017-explicit-first-parent-merge-linkage.md), preserving v1 while admitting
+only structurally valid first-parent/two-parent metadata under an explicit new profile.
+Owned tests and independent review passed; no historical admission follows from those tests.
+
+The [single-attempt coordinator](single-attempt-coordinator.md) composes allocation, A/B
+candidate production, deterministic checks and two initial semantic scorers on one account
+and deadline. Controlled composition/recovery tests and independent review passed. It does
+not yet schedule phases or adjudicate disagreements, and no historical campaign was run.
+
+The shared v2 adjudication prompt passed five focused broker/version tests. Its first live
+owned calibration request returned HTTP 400 before usable evidence; a separate schema-only
+diagnostic identified unsupported `prefixItems` in the provider-facing fixed-tuple schema.
+Both reservations remain retained because no usage was reported. Adjudication calibration
+has not passed; changing the wire projection requires a new prospective frozen run.
+
+Linear's owner-supplied personal key now passes actual read-only workspace/team/member/state
+discovery through the product adapter. Local configuration pins the matching team, active
+assignee and In Review state. No Linear write, signed webhook delivery or product handoff
+is implied. GitHub App onboarding remains open.
