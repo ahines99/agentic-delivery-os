@@ -51,3 +51,8 @@ executor using the same account must add an explicit trusted active-operation bi
 before polling this reader during a model call. It must validate that operation's
 ownership and immutable terms while continuing to reject every unrelated unknown
 reservation; the current reader intentionally does not silently permit model spend.
+
+The separate [completed deterministic scoring reader](scoring-inspection.md) can
+reconstruct existing evidence after execution expiry under fresh, exact consumption
+authority. Current qualification/calibration and scoring data-use permission remain
+required. It grants no new work and does not change this live scorer's deadline checks.
