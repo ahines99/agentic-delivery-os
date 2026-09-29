@@ -50,7 +50,7 @@ async def build(setup, tmp_path, monkeypatch):
     monkeypatch.setenv("OWNED_CALIBRATION_TEST_KEY", "synthetic-not-a-provider-credential")
     resources = []
 
-    async def create(*, controlled=True, provider="anthropic"):
+    async def create(*, controlled=True, provider="anthropic", prompt_version=1):
         root = tmp_path / uuid4().hex
         artifacts = ArtifactStore(root / "artifacts")
         expectations = ArtifactStore(root / "expectations")
@@ -95,9 +95,12 @@ async def build(setup, tmp_path, monkeypatch):
             max_output_tokens=4000,
             timeout_seconds=30,
         )
-        prompt = artifacts.put(
-            calibration.adjudication_calibration_prompt(artifacts.get(rubric).decode()).encode()
+        prompt_builder = (
+            calibration.adjudication_calibration_prompt
+            if prompt_version == 1
+            else calibration.executed_adjudication_prompt_v2
         )
+        prompt = artifacts.put(prompt_builder(artifacts.get(rubric).decode()).encode())
         spec = calibration.AdjudicationCalibrationSpec(
             fixtures=tuple(fixtures),
             rubric_artifact=rubric,
@@ -254,10 +257,11 @@ def validate(case, ref, **kwargs):
 
 
 @pytest.mark.parametrize("provider", ["anthropic", "openai"])
+@pytest.mark.parametrize("prompt_version", [1, 2])
 async def test_five_actual_broker_receipts_exact_metrics_and_cached_resume(
-    build, monkeypatch, provider
+    build, monkeypatch, provider, prompt_version
 ):
-    case = await build(provider=provider)
+    case = await build(provider=provider, prompt_version=prompt_version)
     ref = await run(case)
     result = validate(case, ref)
     assert result.status == "CALIBRATED" and result.admitted is False
@@ -290,6 +294,20 @@ async def test_five_actual_broker_receipts_exact_metrics_and_cached_resume(
     assert validate(case, ref) == result
     assert await run(case) == ref
     assert len(case.requests) == 5
+
+
+def test_exact_version_resolution_rejects_modified_and_unknown_prompt_bytes():
+    rubric = "Assess bounded predicates from evidence."
+    legacy = calibration.adjudication_calibration_prompt(rubric)
+    shared = calibration.executed_adjudication_prompt_v2(rubric)
+    assert legacy != shared
+    for prompt in (legacy, shared):
+        assert calibration.resolve_adjudication_prompt(rubric, prompt.encode()) == prompt
+        for changed in (prompt + " ", prompt.replace("protocol", "modified protocol")):
+            with pytest.raises(calibration.AdjudicationCalibrationFailure):
+                calibration.resolve_adjudication_prompt(rubric, changed.encode())
+    with pytest.raises(calibration.AdjudicationCalibrationFailure):
+        calibration.resolve_adjudication_prompt(rubric, b"unknown adjudication protocol v3")
 
 
 @pytest.mark.parametrize(

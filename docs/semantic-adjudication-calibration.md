@@ -25,11 +25,21 @@ replacement expectations do not become valid merely by updating an allowlist. Ex
 in a disjoint private store outside authored/runtime/model artifact trees and worker roots.
 Private context artifacts and the dedicated evaluation ledger also remain outside worker roots.
 
-`adjudication_calibration_prompt(rubric)` produces one exact purpose-specific prompt. It builds
-on the adjudication structural contract and explicitly applies execution-receipt citation rules
-to executed owned contexts. The schema and prompt bytes, rubric, configuration, and exact request
-are bound to every operation. Unknown or modified prompt bytes are rejected; no implicit version
-upgrade occurs.
+`adjudication_calibration_prompt(rubric)` preserves the exact owned-only v1 prompt.
+`executed_adjudication_prompt_v2(rubric)` provides a prospective shared executed-evidence prompt
+with provenance-conditional instructions. `resolve_adjudication_prompt(rubric, prompt_bytes)`
+accepts only exact v1 or v2 bytes; the pinned spec selects the version, with no implicit upgrade.
+Both apply the same structural output schema, target-specific citation rules and frozen
+expectations. Prompt bytes, rubric, configuration and exact request bind every operation.
+
+The v2 prompt distinguishes owned executed evidence with authored hypothetical peers from
+historical evidence with initial model-review references. It never treats serialized claims as
+authority. Owned calibration retains its existing truthful purpose and input contracts unchanged;
+a historical executor must use a distinct historical purpose and reconstruct actual initial
+review receipts. These are different context profiles with a common `context` and
+`disputed_findings` projection shape, not identical inputs. Owned calibration measures the
+authored dispute cases only; historical provenance, qualification and current authority require
+separate controller validation. V1 evidence cannot qualify a historical v2 execution.
 
 ## Model input and structural merge
 

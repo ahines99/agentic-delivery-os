@@ -27,6 +27,7 @@ from agentic_delivery.evaluation.semantic_adjudication import (
     TargetKind,
     adjudication_prompt,
     disputed_targets,
+    executed_adjudication_prompt_v2,
     merge_adjudication_structure,
 )
 from agentic_delivery.evaluation.semantic_adjudication_examples import (
@@ -231,6 +232,17 @@ def _require(condition: bool) -> None:
         )
 
 
+def resolve_adjudication_prompt(rubric: str, prompt: bytes) -> str:
+    """Resolve exact frozen prompt bytes without changing legacy plans or model inputs."""
+    for candidate in (
+        adjudication_calibration_prompt(rubric),
+        executed_adjudication_prompt_v2(rubric),
+    ):
+        if prompt == candidate.encode("utf-8"):
+            return candidate
+    raise AdjudicationCalibrationFailure("Adjudication prompt is not an exact supported version")
+
+
 def _pairs(values: list[tuple[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, value in values:
@@ -288,8 +300,7 @@ def _load(
     roots = (artifacts.root.resolve(), expectations.root.resolve())
     _require(not roots[0].is_relative_to(roots[1]) and not roots[1].is_relative_to(roots[0]))
     rubric = artifacts.get(spec.rubric_artifact).decode("utf-8")
-    prompt = adjudication_calibration_prompt(rubric)
-    _require(artifacts.get(spec.prompt_artifact) == prompt.encode())
+    prompt = resolve_adjudication_prompt(rubric, artifacts.get(spec.prompt_artifact))
     _require(
         len({case.id for case in spec.fixtures}) == 5
         and len({case.context_artifact for case in spec.fixtures}) == 5
