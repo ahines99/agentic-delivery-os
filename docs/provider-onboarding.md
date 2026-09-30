@@ -13,6 +13,38 @@ Use the [combined webhook gateway](linear-ingress.md) when enabling public callb
 It forwards Linear and GitHub callbacks to the private API while leaving operator
 commands private. The original Linear-only gateway will reject GitHub callbacks.
 
+## Current source and execution profile
+
+The installed source profile admits bounded UTF-8 text snapshots: at most 1,000 files,
+256 KiB per file and 8 MiB total, with a 16 MiB Git/archive output limit. It rejects
+links, unsupported file types and protected execution-control or environment files.
+This includes common `pyproject.toml`, lockfiles and `conftest.py` files. A configured
+directory prefix restricts the source scope; it does not remove every archive-wide
+admission check. The pinned default sandbox contains pytest and Ruff, not a general
+project's dependencies. Pytest uses the image-owned configuration, disables plugin
+autoload and ignores repository conftest files.
+
+Therefore repository IDs, an installed App and a green upstream CI run are insufficient
+onboarding evidence. A target must first pass actual snapshot admission and its
+operator-selected baseline inside the pinned execution profile. Additional dependency
+preparation and unsupported pytest fixtures need implementation and qualification;
+do not enable automatic execution merely because credentials are available.
+
+A metadata-only inspection on 2026-09-30 found:
+
+| Local portfolio repository / inspected HEAD | Tracked files / bytes | Initial compatibility findings |
+| --- | --- | --- |
+| Agentic Product Ops / `90b8fae` | 233 / 1,520,933 | Within size limits; four denied control/environment paths, including conftest; 12 declared runtime dependencies |
+| Portco Data Onboarding / `e1f8e36` | 428 / 3,319,638 | Two files over the per-file limit; control/environment files; 20 declared runtime dependencies |
+| Systematic Research Factory / `7e56f61` | 353 / 29,744,890 | Above total snapshot limit, 16 oversized files; control/environment files; 14 declared runtime dependencies |
+
+The observations use committed file metadata and each pinned `pyproject.toml`.
+They are not executed baseline results or complete compatibility/secret scans.
+No private environment values, repository source bodies, model calls or configuration
+changes were needed. None of these repositories was enabled for automatic execution.
+The existing verified target remains the protected sample scope documented in the
+[runbook](runbook.md#use-the-existing-installation).
+
 ## GitHub App
 
 1. Open this [prefilled private App registration](https://github.com/settings/apps/new?name=ahines99-agentic-delivery-os&url=https%3A%2F%2Fgithub.com%2Fahines99%2Fagentic-delivery-os&public=false&request_oauth_on_install=false&webhook_active=false&contents=write&pull_requests=write&checks=read).

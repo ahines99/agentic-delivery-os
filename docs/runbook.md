@@ -3,6 +3,37 @@
 Run control-plane processes as a dedicated operator. Target code runs only through the fixed
 Docker runner. Never mount the Docker socket into the HTTP API or a target job.
 
+## Use the existing installation
+
+The Windows task `AgenticDeliveryOS` supervises the local service. Keep this machine
+awake and Docker Desktop running. Its configured target is `agentic-delivery-os`,
+base branch `delivery-workbench-v2`, with changes scoped to `demos/sample_repo`.
+Create a new Backlog ticket in the Personal Project Portfolio Linear team, leave it
+unassigned, include `Repository: agentic-delivery-os`, and describe the required
+behavior and acceptance criteria within that scope. Detection runs every 30 seconds.
+Ambiguity pauses the workflow; edit the ticket to answer the clarification. A
+successful run attaches a tested draft PR and moves the ticket to In Review.
+Human review and merge remain separate.
+
+The installed application is `6b74944`; its hosted checks and supervised restart
+passed. Newer workflow publication recovery awaits full qualification and installation.
+See the [upgrade record](local-runtime-upgrade.md) and [verification status](implementation-status.md)
+for exact evidence. GitHub App and Linear credentials are already configured here.
+Installing the App on all repositories does not enable additional execution targets;
+see [source compatibility](provider-onboarding.md#current-source-and-execution-profile).
+
+These local checks are read-only:
+
+```powershell
+Get-ScheduledTask -TaskName AgenticDeliveryOS | Select-Object TaskName, State
+Invoke-RestMethod http://127.0.0.1:18090/readyz
+```
+
+Readiness checks API/database access; use the authenticated operations view and
+worker/monitor observations when diagnosing delivery. Avoid starting a second
+foreground supervisor while the Windows task is already running. The following
+setup instructions are for a new environment or a deliberately stopped installation.
+
 ## Start a reproducible local environment
 
 ```sh
@@ -31,7 +62,7 @@ the database credential; an ignored filename does not protect it from other loca
 For local use, start the API, worker and dispatcher together from the project directory:
 
 ```sh
-uv run --env-file .local/linear.env delivery-service run --config config.local.json
+uv run --env-file .local/linear.env --env-file .local/model.env delivery-service run --config config.local.json
 ```
 
 This runs the existing services in one foreground process. The API listens on
@@ -202,32 +233,39 @@ tests together, three actual PostgreSQL/Temporal/Docker cancellation/expiry/clea
 one PostgreSQL-backed socket HTTP rotation rehearsal, and 31 retention tests with two explicit
 Windows skips (symlink privilege and POSIX FIFO). The retention scope includes a disposable
 PostgreSQL read-only planning drill. These scopes overlap and cannot be summed into a full-suite
-result; the latest full suite remains pending. Follow the linked drill documents for synthetic
+result. Later complete hosted and Windows results are recorded at their exact source
+revisions in [implementation status](implementation-status.md); these older scoped runs
+do not supersede them. Follow the linked drill documents for synthetic
 inputs, exact fault injection and the boundaries of each observation.
 The two `scripts/live_*_check.py` scripts are operator-invoked development checks that spend model
 tokens; they require explicit environment-file and image inputs and were exercised against the
 recorded local services. They are not an unattended benchmark campaign.
 
-For offline evaluation tooling, `uv run delivery-eval --help` lists schema export, manifest
-validation and deterministic reporting. Follow [evals/README.md](../evals/README.md); structural
-validation does not establish executed qualification of historical tasks. The separate
-[curation worklist](evaluation-curation.md) has 36 metadata-only UNQUALIFIED candidates and zero
-qualified/scored tasks. [ADR-007](adr/ADR-007-automated-benchmark-qualification.md) now requires two
-actual isolated agent passes with immutable provenance and deterministic baseline/reference checks
-three times each. Disagreements require a distinct adjudication context or remain unresolved;
-rights/risk failures cannot be voted into success. The bounded qualification validator has
-local contract and synthetic Docker receipt tests; no actual qualification is claimed. Use `validate-qualification`
-with protected `--manifest` and `--artifacts` inputs and a distinct `--output` outside the artifact
-store; [evaluation instructions](../evals/README.md) show the command. Worker-input export and scoring
-refuse unverified structural manifests before snapshot reads or Docker execution. A real qualifier
-runner is still missing; this command validates existing evidence only. Proposed splits are not
-frozen campaign authorization. Do not invent human reviewer identities, minutes or benefit claims.
-Human plan approval, pilot signoff and merge authority are unchanged.
+For evaluation tooling, `uv run delivery-eval --help` lists implemented qualification,
+campaign, scoring and reporting commands. Follow [evals/README.md](../evals/README.md)
+and the [qualification controller](qualification-controller.md). Schema validation
+alone cannot qualify a task. Executed qualification requires current data/spending
+authority, deterministic baseline/oracle checks and two independent metered agent
+reviews with immutable provenance. Disputes follow separate adjudication; rights/risk
+failures cannot be voted into success. Protected source, oracle/reference material
+and private generated artifacts stay outside implementation-agent context.
+
+The [original 36-entry catalog](evaluation-curation.md) remains unqualified. Five
+separately acquired historical development tasks have completed qualification; none
+has been scored or used in a campaign. The [attempt record](historical-development-attempts.md)
+preserves failures and accounting alongside those completions. Owned scorer/adjudicator
+calibration is not historical accuracy or validation promotion. Further paid evaluation
+needs sufficient current finite authority, including retained unknown liabilities;
+restoring provider billing does not enlarge that authority. Do not reset reservations
+or claim unobserved human benefit. Automatic low-risk plan approval, human manual
+criteria, pilot signoff and human-only merge retain their separately documented rules.
 
 The [local backup drill](local-backup.md) was exercised against the Compose database and artifacts.
 Stop all writers before invoking it; the script only restores into a newly created disposable
-database. It does not restore Temporal or provider state. Follow [provider onboarding](provider-onboarding.md)
-to supply the live integration inputs and keep publication disabled until they are verified.
+database. It does not restore Temporal or provider state. For an additional installation,
+follow [provider onboarding](provider-onboarding.md) and keep publication disabled until
+its inputs and target are verified; the existing installation has passed its bounded
+live handoff.
 
 For a closed workflow's damaged read projection, preview first:
 
