@@ -13,7 +13,8 @@ including controlled HTTP faults, SQLite persistence and fresh-client/store repl
 Ruff, formatting and mypy passed. This is not an atomic provider lock or a live
 provider-fault exercise. Source `0bcd0ee` was installed through an idle supervised
 restart; readiness returned, Linear polling advanced and both existing review
-handoffs remained persisted. Its full local suite is running. [Hosted CI at
+handoffs remained persisted. Its full Windows suite at `91f1b21` completed with
+3,205 passed and 130 explicit skips in 4,459.49 seconds. [Hosted CI at
 `91f1b21`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36732891287)
 passed Python 3.12 and 3.13 (3,215 tests and 120 explicit skips each), all 120 service
 integration tests, package builds and secret scanning. This includes the intake,
@@ -25,8 +26,9 @@ and Linear handoff waits for those decisions plus current CI. The focused suite 
 270 tests with six explicit Docker skips; eight actual PostgreSQL/Temporal scenarios
 passed, including restart, stale/revoked decisions, cancellation and unknown GitHub
 update outcome. [Hosted CI](https://github.com/ahines99/agentic-delivery-os/actions/runs/36735702473)
-has passed its service and secret-scan jobs; full Python jobs and the full local run
-are still pending. These are owned scripted operator identities, not a human pilot
+passed Python 3.12 and 3.13 (3,294 tests and 129 explicit skips each), all 129 service
+integration tests, package builds and secret scanning. Its full local run is still
+pending. These are owned scripted operator identities, not a human pilot
 signoff. [Operator instructions](manual-acceptance.md) describe the API.
 
 The follow-on sandbox fix at `430bc19` replaces the two-hour keepalive with the approved

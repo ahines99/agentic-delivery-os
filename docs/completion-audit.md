@@ -55,9 +55,12 @@ The row updates below reconcile later evidence with the original acceptance text
 older dated evidence entries remain historical. They do not approve a release.
 [CI at `91f1b21`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36732891287)
 passed 3,215 tests on each Python version and all 120 service integration tests,
-package builds and secret scanning. Manual acceptance at `3550009` and independent
-container lifetime at `430bc19` are implemented on development branches; full checks
-and installation remain pending as detailed in [implementation status](implementation-status.md).
+package builds and secret scanning. The matching full Windows suite passed 3,205
+tests with 130 explicit skips. Manual acceptance at `3550009` subsequently passed
+all hosted jobs (3,294 tests per Python version and 129 service integration tests).
+Independent container lifetime at `430bc19` remains under full verification. Local
+feature-suite completion and installation are pending as detailed in
+[implementation status](implementation-status.md).
 
 The [backlog](backlog.md) explicitly permits controlled provider faults for M4-01.
 Provoking real vendor outages, proving arbitrary hostile-code isolation or claiming
