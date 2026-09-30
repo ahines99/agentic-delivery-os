@@ -13,6 +13,7 @@ from sqlalchemy import event, func, select
 from sqlalchemy.orm import Session
 from temporalio import activity
 from temporalio.client import Client
+from temporalio.exceptions import WorkflowAlreadyStartedError
 from temporalio.worker import Replayer, Worker
 
 from agentic_delivery.config import Budget, Operator, RepositoryConfig, Settings
@@ -281,13 +282,25 @@ async def fault_matrix_planner(_: dict[str, Any]) -> dict[str, Any]:
     return {"state": "READY", "reason": "Synthetic dispatch fault plan", "plan_digest": "a" * 64}
 
 
+@activity.defn(name="analyze")
+async def fault_matrix_denied_planner(_: dict[str, Any]) -> dict[str, Any]:
+    return {"state": "POLICY_BLOCKED", "reason": "Owned terminal redelivery fixture"}
+
+
 class StartObservation:
     def __init__(self, client: Client, lose_response: bool) -> None:
         self.client, self.lose_response = client, lose_response
         self.run_ids: list[str] = []
+        self.start_requests = 0
+        self.closed_rejections = 0
 
     async def start_workflow(self, *args: Any, **kwargs: Any) -> Any:
-        handle = await self.client.start_workflow(*args, **kwargs)
+        self.start_requests += 1
+        try:
+            handle = await self.client.start_workflow(*args, **kwargs)
+        except WorkflowAlreadyStartedError:
+            self.closed_rejections += 1
+            raise
         self.run_ids.append((await handle.describe()).run_id)
         if self.lose_response:
             self.lose_response = False
@@ -299,10 +312,12 @@ class StartObservation:
 
 
 @pytest.mark.parametrize("boundary", ["temporal_response", "before_outbox_ack", "after_outbox_ack"])
+@pytest.mark.parametrize("terminal_before_redelivery", [False, True])
 async def test_lost_dispatch_ack_redelivery_keeps_same_actual_temporal_execution(
     pg_store: Store,
     monkeypatch: pytest.MonkeyPatch,
     boundary: str,
+    terminal_before_redelivery: bool,
 ) -> None:
     address = os.environ.get("TEST_TEMPORAL_ADDRESS")
     if not address:
@@ -357,11 +372,20 @@ async def test_lost_dispatch_ack_redelivery_keeps_same_actual_temporal_execution
     pending = outbox(pg_store, identity)
     assert pending["delivered"] is False and pending["attempts"] == 1
     assert pending["last_error"] == "OSError" and len(observed.run_ids) == 1
-    expire_own_lease(pg_store, pending["id"])
-    assert await dispatch_once(settings, pg_store, observed, workflow_id=identity) == 1
-    assert len(observed.run_ids) == 2 and len(set(observed.run_ids)) == 1
-    assert outbox(pg_store, identity)["delivered"] is True
-    assert await dispatch_once(settings, pg_store, observed, workflow_id=identity) == 0
+
+    async def redeliver() -> None:
+        expire_own_lease(pg_store, pending["id"])
+        assert await dispatch_once(settings, pg_store, observed, workflow_id=identity) == 1
+        assert observed.start_requests == 2
+        assert len(observed.run_ids) == (1 if terminal_before_redelivery else 2)
+        assert len(set(observed.run_ids)) == 1
+        assert observed.closed_rejections == int(terminal_before_redelivery)
+        assert (await client.get_workflow_handle(identity).describe()).run_id == observed.run_ids[0]
+        assert outbox(pg_store, identity)["delivered"] is True
+        assert await dispatch_once(settings, pg_store, observed, workflow_id=identity) == 0
+
+    if not terminal_before_redelivery:
+        await redeliver()
     services = Activities(settings, pg_store)
     handle = client.get_workflow_handle(identity)
     async with Worker(
@@ -372,26 +396,57 @@ async def test_lost_dispatch_ack_redelivery_keeps_same_actual_temporal_execution
             services.project,
             services.command_status,
             services.resolve_command,
-            fault_matrix_planner,
+            fault_matrix_denied_planner if terminal_before_redelivery else fault_matrix_planner,
         ],
     ):
-        async with asyncio.timeout(15):
-            while pg_store.workflow(identity)["state"] != "PLAN_REVIEW":
-                await asyncio.sleep(0.05)
-        current = pg_store.workflow(identity)
-        cancel = pg_store.enqueue_command(
-            identity,
-            kind="cancel",
-            actor=actor,
-            key=uuid4().hex,
-            payload={
-                "expected_sequence": current["sequence"],
-                "spec_digest": current["spec_digest"],
-            },
-        )
-        assert await dispatch_once(settings, pg_store, observed, workflow_id=identity) == 1
-        assert (await asyncio.wait_for(handle.result(), timeout=15))["state"] == "CANCELLED"
-        assert pg_store.command(cancel["command_id"])["status"] == "APPLIED"
+        if terminal_before_redelivery:
+            assert (await asyncio.wait_for(handle.result(), timeout=15))[
+                "state"
+            ] == "POLICY_BLOCKED"
+            prior = pg_store.workflow(identity)
+            prior_history = json.loads((await handle.fetch_history()).to_json())
+            await redeliver()
+            fresh = Store(create_database(os.environ["TEST_DATABASE_URL"]))
+            try:
+                assert fresh.workflow(identity) == prior
+                with Session(fresh.engine) as session:
+                    assert (
+                        session.scalar(
+                            select(func.count())
+                            .select_from(RunRecord)
+                            .where(RunRecord.id == identity)
+                        )
+                        == 1
+                    )
+                    assert (
+                        session.scalar(
+                            select(func.count())
+                            .select_from(CommandRecord)
+                            .where(CommandRecord.workflow_id == identity)
+                        )
+                        == 1
+                    )
+            finally:
+                fresh.engine.dispose()
+            assert json.loads((await handle.fetch_history()).to_json()) == prior_history
+        else:
+            async with asyncio.timeout(15):
+                while pg_store.workflow(identity)["state"] != "PLAN_REVIEW":
+                    await asyncio.sleep(0.05)
+            current = pg_store.workflow(identity)
+            cancel = pg_store.enqueue_command(
+                identity,
+                kind="cancel",
+                actor=actor,
+                key=uuid4().hex,
+                payload={
+                    "expected_sequence": current["sequence"],
+                    "spec_digest": current["spec_digest"],
+                },
+            )
+            assert await dispatch_once(settings, pg_store, observed, workflow_id=identity) == 1
+            assert (await asyncio.wait_for(handle.result(), timeout=15))["state"] == "CANCELLED"
+            assert pg_store.command(cancel["command_id"])["status"] == "APPLIED"
     history = await handle.fetch_history()
     assert (
         await Replayer(workflows=[DeliveryWorkflow]).replay_workflow(history)
@@ -405,7 +460,8 @@ async def test_lost_dispatch_ack_redelivery_keeps_same_actual_temporal_execution
                 "temporal_run_id": observed.run_ids[0],
                 "start_requests": 2,
                 "distinct_temporal_runs": 1,
-                "terminal_state": "CANCELLED",
+                "terminal_before_redelivery": terminal_before_redelivery,
+                "terminal_state": "POLICY_BLOCKED" if terminal_before_redelivery else "CANCELLED",
                 "replay": "passed",
             }
         )

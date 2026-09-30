@@ -64,10 +64,32 @@ sleep; it is not a clock-skew experiment. The old-owner assertion concerns an al
 The PostgreSQL server and Python process stay healthy; database-driver errors, disk loss,
 failover, power loss, process kill and backup restoration need separate evidence. Raising
 after a successful method return simulates caller uncertainty; no real response packet is
-dropped. The Temporal worker starts only after redelivery so the tested execution remains
-open during duplicate start requests. This result does not generalize to arbitrary
+dropped. In the original run, the worker started only after redelivery, leaving the
+execution open during duplicate starts. This result does not generalize to arbitrary
 external side effects, exactly-once provider execution, or all terminal-workflow races.
 
 Retained pending rows from pure persistence cases and closed workflows from Temporal cases
 are synthetic test data, not campaign results. The fixture demonstrates these named M1/M4
 boundaries; it does not close every transaction, recovery or operational release gate.
+
+## Terminal redelivery follow-up (2026-09-30)
+
+The same three acknowledgement boundaries now also execute to a terminal workflow
+before the outbox is redelivered. An owned planner returns POLICY_BLOCKED through
+the production workflow and projector. A subsequent duplicate start reaches the
+actual Temporal server, which rejects reuse of that completed workflow ID. The
+dispatcher acknowledges the retained outbox instead of creating another execution.
+
+The test requires two observed start requests, one server rejection and the same
+actual run ID. A fresh PostgreSQL engine confirms the unchanged terminal projection,
+one workflow and one command. The complete decoded Temporal history remains equal
+before/after redelivery and replays successfully. JSON object ordering is ignored;
+all event data and event order remain part of the comparison. There is no model,
+candidate or publication activity in the terminal case.
+
+The combined suite passed **15 tests in 8.43 seconds** against a disposable database
+and unique Temporal queues, including the original three active-redelivery cases.
+Ruff, formatting and mypy passed. No production code change was needed: the existing
+REJECT_DUPLICATE reuse policy supplies this behavior. This proves late start
+redelivery for the named completed-workflow case, not remote side-effect recovery,
+Temporal retention expiry or arbitrary terminal races.

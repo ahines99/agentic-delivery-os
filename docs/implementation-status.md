@@ -14,6 +14,12 @@ subsequently passed Python 3.12/3.13 (3,304 tests and 136 explicit skips each), 
 136 service integration tests, package builds and secret scanning. The full Windows
 feature runs and later test-fixture correction remain separately tracked.
 
+The [terminal outbox redelivery follow-up](postgres-faults.md#terminal-redelivery-follow-up-2026-09-30)
+passed the expanded 15-case PostgreSQL/Temporal fault suite in 8.43 seconds. All three
+lost-acknowledgement boundaries now also prove that redelivery after completion is
+rejected by Temporal without a new run, changed terminal state or altered history.
+The existing dispatcher behavior required no production code change.
+
 The [Linear PR-link recovery](linear-attachment-recovery.md) follow-up adds one
 bounded confirming read after a lost attachment response, with current ticket and
 authorization checks before any status update. The expanded monitor, ingress,
@@ -54,8 +60,8 @@ signoff. [Operator instructions](manual-acceptance.md) describe the API.
 The follow-on sandbox fix at `430bc19` replaces the two-hour keepalive with the approved
 command timeout plus a fixed 60-second lifecycle allowance. Ten profile cases and a
 real Docker worker-tree kill case passed together (11 tests in 75.17 seconds); the
-container exited without replacement-worker cleanup. Full local verification is
-still running. Complete
+container exited without replacement-worker cleanup. Its full Windows suite finished
+with 3,294 passed and 140 explicit skips in 4,898.68 seconds. Complete
 [hosted verification](https://github.com/ahines99/agentic-delivery-os/actions/runs/36737373590)
 passed Python 3.12/3.13 (3,304 tests and 130 explicit skips each), all 130 service
 integration tests, package builds and secret scanning. See
@@ -68,8 +74,8 @@ now allows thirty seconds for startup, surfaces an earlier preparation failure, 
 always cancels/awaits its helper tasks. All four cases then passed in 31.83 seconds;
 Ruff, format and mypy passed. Production deadlines, cancellation assertions and
 retained-unknown-cost requirements are unchanged. The manual-feature full run ended
-with those four startup timeouts; the original container-lifetime run is still
-running on its original revision. The targeted result does not erase the failed run.
+with those four startup timeouts; the later container-lifetime run passed on its
+original revision. The targeted result does not erase the failed run.
 
 The [compromised-builder admission matrix](product-admission-controls.md) subsequently
 passed six actual Docker cases in 21.92 seconds on unchanged application source
