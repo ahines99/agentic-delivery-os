@@ -11,8 +11,8 @@ integration and secret scanning. The corresponding local package-profile suite p
 `ec72597` passed 43 focused controller/admission tests with one explicit Docker skip,
 Ruff, formatting, mypy and package builds; full CI for that fix remains pending.
 
-Three historical development tasks have now completed qualification. The newest
-markdownify attempt passed a freshly ordered runtime matrix, two independent reviews
+Four historical development tasks have now completed qualification. Both new
+markdownify attempts passed a freshly ordered runtime matrix, two independent reviews
 and authority validation; an earlier late-plan attempt and its costs remain retained.
 No historical scoring or campaign ran. See the [protected attempt record](historical-development-attempts.md).
 

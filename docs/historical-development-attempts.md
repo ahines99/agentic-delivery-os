@@ -294,8 +294,21 @@ account closed. These observations are bounded evidence, not exhaustive clearanc
 
 The existing v2 importer accepted task `markdownify-pr230-issue226-development-v88`
 with one acceptance selector and 83 frozen regression nodes, retaining exact source and
-oracle bytes. Its runtime dependencies match the already pinned image. The state is
-**IMPORTED_NOT_QUALIFIED**: no model call, repository execution or qualification has
+oracle bytes. Its runtime dependencies match the already pinned image. At import the state
+was **IMPORTED_NOT_QUALIFIED**: no model call, repository execution or qualification had
 occurred. The other three candidates remain metadata-only. Related-task grouping,
-runtime and independent semantic qualification remain obligations; the accepted solution
-and oracle stay outside implementation-agent context.
+runtime and independent semantic qualification were still required at import; the accepted
+solution and oracle stay outside implementation-agent context.
+
+Its first full qualification then froze a prospective plan at `81fd892`, before any
+runtime operation. Thirteen deterministic operations completed the isolation preflight
+and twelve-run matrix; two independent model reviews and current admission validation
+passed without adjudication. Qualification artifact:
+`dd67753438480b20b423d31b931506de0df10a300a0cb8e1dfec73d91ac9ce96`.
+
+Account `markdownify-pr230-development-v89` closed after all 15 operations settled:
+1,331,350 model microdollars (176,100 input and 18,034 output tokens) plus 26 configured
+infrastructure microdollars. No reservation or unknown operation remains in that account.
+This is the fourth completed development qualification, with no worker export, scoring
+or campaign authorization. Related markdownify tasks stay in the same development family;
+these results do not establish the required corpus or a benchmark success rate.

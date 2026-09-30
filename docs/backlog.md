@@ -83,7 +83,7 @@ Gate: a real admitted Python change is built and validated with demonstrated con
 | M3-04 | Human handoff, Linear status and external outcome observation | M3-03 | Only complete current evidence makes PR review-ready; authenticated human review/merge controls; changed head invalidates readiness; actual merge/close observed separately; no deployment success inference |
 | M3-05 | Pre-pilot development and validation A/B runs | M1-08, M3-04 | Execute builder-only and independently reviewed configurations under the evaluation protocol; retain all task outcomes/costs; validation promotion thresholds checked before any pilot; held-out campaign remains untouched |
 
-Gate: a real Linear ticket reaches one GitHub PR with independent evidence and human merge. A draft PR may precede independent review; `HUMAN_REVIEW` requires the completed gate. Green tests or model approval alone never establish delivery.
+Gate: a real Linear ticket reaches one GitHub PR with independent evidence and human merge. Under ADR-006, independent review and local acceptance precede publication. The PR stays draft for human review; `HUMAN_REVIEW` requires the complete current gate, including required GitHub checks. Green tests or model approval alone never establish delivery.
 
 ## M4 — Reliability and pilot acceptance
 

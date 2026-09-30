@@ -104,7 +104,7 @@ The five original research reviews and the full milestone plan remain retained a
 The automated evaluation path now uses [ADR-011](adr/ADR-011-current-qualification-authority.md):
 executed v2 qualification with current consumption authority and separate metered scoring grants.
 Legacy records allow inspection only. Live development calibration and synthetic qualification
-have completed, and three historical development tasks have passed qualification. Qualification of the
+have completed, and four historical development tasks have passed qualification. Qualification of the
 required corpus and full campaign execution remain open. See the
 [calibration record](evaluation-calibration.md) and
 [historical attempts](historical-development-attempts.md) for outcomes and their limits.
