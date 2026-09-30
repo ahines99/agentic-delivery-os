@@ -710,16 +710,13 @@ class Store:
             }
 
     def list_workflows(
-        self, repositories: tuple[str, ...], limit: int = 50
+        self, repositories: tuple[str, ...], limit: int = 50, *, state: str | None = None
     ) -> list[dict[str, Any]]:
+        query = select(RunRecord.id).join(WorkRecord).where(WorkRecord.repository.in_(repositories))
+        if state is not None:
+            query = query.where(RunRecord.state == state)
         with Session(self.engine) as session:
-            ids = session.scalars(
-                select(RunRecord.id)
-                .join(WorkRecord)
-                .where(WorkRecord.repository.in_(repositories))
-                .order_by(RunRecord.created_at.desc())
-                .limit(limit)
-            ).all()
+            ids = session.scalars(query.order_by(RunRecord.created_at.desc()).limit(limit)).all()
         return [self.workflow(identity) for identity in ids]
 
     def latest_source_workflow(self, item: WorkItem) -> dict[str, Any] | None:

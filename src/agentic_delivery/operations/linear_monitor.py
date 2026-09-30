@@ -203,9 +203,7 @@ def approve_plans(settings: Settings, store: Store) -> int:
     activities = Activities(settings, store)
     count = 0
     repositories = tuple(repo.id for repo in settings.repositories if repo.automatic_execution)
-    for run in store.list_workflows(repositories, limit=1000):
-        if run["state"] != "PLAN_REVIEW":
-            continue
+    for run in store.list_workflows(repositories, limit=1000, state="PLAN_REVIEW"):
         plan = run["result"].get("plan_digest")
         if not isinstance(plan, str):
             continue

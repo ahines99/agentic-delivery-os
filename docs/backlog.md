@@ -16,19 +16,25 @@ decision remains unexercised. Remaining qualification and portfolio release targ
 below stay open.
 
 **Code review follow-ups (2026-09-30).** A read-only review found these
-open items outside the enforced invariants. They are recorded rather than changed
-because each alters a live publication or workflow path:
+items outside the enforced invariants. Fixed in the same pass: lifecycle-edge enforcement
+on projection, reserved system actor ids, monitor survival after approval failures,
+422 for malformed signed Linear payloads, and a state-filtered automatic-approval scan.
+Still open, recorded rather than changed because each alters a live publication path:
 
 - `/workflows/{id}/checks` recomputes approval authority from configured operators, so
   runs approved by `delivery-automation` (ADR-025) report `ready: false` there even after
   a completed handoff. The worker's own handoff gate is correct; the endpoint is advisory.
-- Publication does not verify branch protection or rulesets on the base branch.
-- The CI wait keeps polling a failed required check until `ci_wait_seconds` expires
-  instead of stopping at the first definitive failure (a workflow change needs a patch marker).
+- Publication does not verify base-branch protection itself. On 2026-09-30 the configured
+  `delivery-workbench-v2` and `main` both required one approving review, stale-review
+  dismissal, the four CI checks with strict status, admin enforcement, and no force pushes
+  or deletions.
 - A local-clone snapshot uses the clone's `HEAD` rather than the configured base branch;
-  a mismatch is only caught at publication, after model spend.
-- Published blobs use mode `100644`, so a modified executable file loses its executable bit.
-- The Linear monitor's automatic approval scan reads at most 1,000 recent workflows.
+  a mismatch is caught at publication ("Base branch advanced"), after model spend.
+- Published blobs use mode `100644`; the pipeline does not carry file modes, so a modified
+  executable file would lose its executable bit. The onboarded sample has none.
+
+The CI wait deliberately keeps polling a failed required check until `ci_wait_seconds`,
+so an authorized rerun can still succeed within the window ([CI evidence](ci-evidence.md)).
 
 Refer to [implementation status](implementation-status.md) for recorded evidence and remaining gates. Code presence, mock-provider tests and one synthetic live run do not close an entire backlog item.
 

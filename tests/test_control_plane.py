@@ -499,3 +499,23 @@ def test_applied_approval_expires_and_revocation_is_checked_at_use(
     with pytest.raises(AccessDenied, match="expired"):
         Activities(settings, store).validate_approval(identity, "a" * 64)
     assert store.command(receipt["command_id"])["status"] == "APPLIED"
+
+
+def test_workflow_listing_filters_by_state_before_limit(store: Store) -> None:
+    identities = [
+        store.submit(
+            item().model_copy(update={"id": f"item-{index}"}),
+            actor="human",
+            key=str(uuid4()),
+            budget=Budget(),
+        )["workflow_id"]
+        for index in range(3)
+    ]
+    store.project(identities[0], 1, "INGESTED", actor="workflow", reason="oldest ingested")
+    repositories = (item().repository,)
+    assert [run["id"] for run in store.list_workflows(repositories, 1, state="INGESTED")] == [
+        identities[0]
+    ]
+    assert {run["id"] for run in store.list_workflows(repositories, state="NEW")} == set(
+        identities[1:]
+    )
