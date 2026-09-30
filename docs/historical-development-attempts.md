@@ -185,6 +185,36 @@ review, protected issue capture/import, runtime/dependency compatibility, full-c
 feasibility and current independently calibrated qualification remain prerequisites.
 Earlier expired data/calibration grants cannot authorize this new candidate.
 
+On 2026-09-30, this candidate advanced through protected issue capture, two matching
+accepted-fix linkage reads, exact MIT-text/notice observation and license-history
+verification. A scan of 26 prospective input files found no configured secret patterns.
+Static dependency inspection found four declarations with no unresolved expressions;
+the two attribution flags were identical literal package-contact metadata in the
+baseline and accepted snapshots. The original files and notices were preserved.
+These are bounded controller observations, not exhaustive rights or semantic clearance.
+
+The existing v2 importer accepted a fresh development task with one acceptance selector
+and 83 regression nodes, under separately pinned parent/derived data authorizations.
+A new image, `sha256:0680ef9e0c987f14ea04810db1255cd713b24f873e6a685b88cbc2ed1c260c20`,
+adds pinned Beautiful Soup 4.13.5, six 1.17.0, Soup Sieve 2.8 and typing extensions 4.15.0.
+Wheels and notices were retained and hash-verified against PyPI metadata. Installation
+ran without network access; package smoke tests and `pip check` passed. Image settings,
+the nonroot user and the existing test collector were unchanged.
+
+Actual deterministic execution passed isolation preflight, then stopped at the first
+baseline acceptance command: exit 4, zero collected tests. Protected diagnostics
+confirmed that the whole-file relocation breaks a relative import of an unchanged
+sibling helper. This is **unsupported by the current relocation profile**, not a
+behavioral baseline failure or a qualification result. The task remains unqualified;
+no selector pruning, source/oracle edits, automatic retry or model call followed.
+The failed receipt and original command selection remain retained.
+
+Scanning, image preparation and this failed runtime used three prospectively enrolled
+accounts. All operations settled and all three accounts closed with zero reservation;
+their configured local infrastructure estimates total 14 microdollars (1 + 9 + 4).
+This is not an infrastructure invoice or complete acquisition/project cost. No numerical
+benchmark claim, historical admission, worker export or campaign score resulted.
+
 A separate protected size inventory measured 120,147 bytes for the executable baseline,
 120,185 for the executable reference and 20,851 for the oracle under compact JSON encoding
 (261,183 combined). It emitted only counts and digests. This is a partial evidence-size
