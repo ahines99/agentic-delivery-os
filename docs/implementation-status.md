@@ -4,6 +4,14 @@ Updated 2026-09-30 UTC during continued controlled implementation. This is the c
 the original milestone documents remain the release targets. Source code alone is not a passed
 integration or production release gate.
 
+The [tool-output admission follow-up](product-admission-controls.md#tool-output-repair-follow-up)
+adds an actual Ruff diagnostic containing hostile instructions, followed by a
+controlled compromised repair response. The production edit guard rejects replacement
+of an original test before further execution or review. All seven product admission
+cases passed on the pinned Docker image in 32.31 seconds; Ruff, format and mypy
+passed. This is an added test with no application change; hosted inclusion remains
+pending and no live-model injection quality is inferred.
+
 [Lifecycle metrics in operational exports](operations-export.md#optional-lifecycle-metrics-schema-version-2)
 now derive state timing, clarification/cancellation counts, classified repair operations
 and settled/unknown model costs from the existing read-only snapshot. The manual-review
