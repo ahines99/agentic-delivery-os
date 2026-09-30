@@ -16,6 +16,10 @@ from agentic_delivery.evaluation.campaign_allocation import (
 )
 from agentic_delivery.evaluation.campaign_candidate import BINDING_CHECKPOINT, RESULT_CHECKPOINT
 from agentic_delivery.evaluation.campaign_scoring import SCORING_CHECKPOINT
+from agentic_delivery.evaluation.criterion_acceptance import (
+    CriterionAcceptanceEvidence,
+    join_criterion_acceptance,
+)
 from agentic_delivery.evaluation.criterion_execution_evidence import CriterionExecutionEvidence
 from agentic_delivery.evaluation.criterion_judgments import CriterionJudgments
 from agentic_delivery.evaluation.execution_store import INFRA_RECEIPT
@@ -78,7 +82,7 @@ class AttemptConsumptionAuthority:
 
 
 class ValidatedCompletedAttempt(Contract):
-    schema_version: Literal[4] = 4
+    schema_version: Literal[5] = 5
     kind: Literal["validated-completed-campaign-attempt"] = "validated-completed-campaign-attempt"
     consumption_authorization_digest: Digest
     outcome_artifact: Digest
@@ -93,6 +97,7 @@ class ValidatedCompletedAttempt(Contract):
     strict_success: bool = Field(strict=True)
     criterion_judgments: CriterionJudgments | None
     criterion_execution: CriterionExecutionEvidence
+    criterion_acceptance: CriterionAcceptanceEvidence
     acceptance_passed: bool | None = Field(strict=True)
     regression_passed: bool | None = Field(strict=True)
     execution_started_at: AwareDatetime
@@ -484,6 +489,12 @@ async def _validate(
         strict_success=semantic is not None and semantic.strict_success,
         criterion_judgments=semantic.criterion_judgments if semantic is not None else None,
         criterion_execution=candidate.criterion_execution,
+        criterion_acceptance=join_criterion_acceptance(
+            candidate.criterion_execution,
+            semantic.criterion_judgments if semantic else None,
+            acceptance_passed=scoring.acceptance_passed if scoring else None,
+            regression_passed=scoring.regression_passed if scoring else None,
+        ),
         acceptance_passed=scoring.acceptance_passed if scoring is not None else None,
         regression_passed=scoring.regression_passed if scoring is not None else None,
         execution_started_at=attempt.started_at,

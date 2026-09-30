@@ -12,6 +12,16 @@ from agentic_delivery.evaluation.campaign import Split
 from agentic_delivery.evaluation.campaign_criterion_inventory import CampaignCriterionInventory
 from agentic_delivery.evaluation.campaign_reporting_policy import CampaignStatisticsPolicy
 from agentic_delivery.evaluation.comparison import _percentile
+from agentic_delivery.evaluation.criterion_acceptance import (
+    CriterionAcceptanceCounts,
+    CriterionEvidenceProfile,
+)
+from agentic_delivery.evaluation.criterion_acceptance_statistics import (
+    EvidenceCheck,
+    acceptance_counts,
+    combine_checks,
+    evidence_checks,
+)
 from agentic_delivery.evaluation.criterion_execution_evidence import ExecutionEvidenceCounts
 from agentic_delivery.evaluation.criterion_judgments import JudgmentCounts
 from agentic_delivery.evaluation.harness import wilson
@@ -55,6 +65,14 @@ class ArmStatistics(Contract):
         dict[VerificationType, ExecutionEvidenceCounts] | None
     )
     candidate_criterion_test_coverage: BinaryRate | None
+    criterion_acceptance: CriterionAcceptanceCounts | None
+    criterion_acceptance_by_verification_type: (
+        dict[VerificationType, CriterionAcceptanceCounts] | None
+    )
+    criterion_acceptance_coverage: BinaryRate | None
+    criterion_disposition_coverage: BinaryRate | None
+    complete_criterion_dispositions: EvidenceCheck
+    declared_ready_criterion_evidence: EvidenceCheck
     strict_success: BinaryRate
     functional_acceptance: BinaryRate
     regression: BinaryRate
@@ -108,7 +126,8 @@ class PhaseStatistics(Contract):
     primary_comparison: PairedStatistics
     # These checks do not consume operational, infrastructure-incident or total program proof.
     infrastructure_incident_gate: Literal["UNAVAILABLE"] = "UNAVAILABLE"
-    criterion_coverage_gate: Literal["UNAVAILABLE"] = "UNAVAILABLE"
+    criterion_coverage_gate: EvidenceCheck = "UNAVAILABLE"
+    evidence_completeness_gate: EvidenceCheck = "UNAVAILABLE"
     complete_program_cost_gate: Literal["UNAVAILABLE"] = "UNAVAILABLE"
     operational_gate: Literal["UNAVAILABLE"] = "UNAVAILABLE"
     phase_promoted: Literal[False] = False
@@ -185,6 +204,7 @@ def _arm(
     rows: tuple["AssignmentReport", ...],
     accounting: AccountingSnapshot,
     inventory: CampaignCriterionInventory | None,
+    criterion_evidence_profile: CriterionEvidenceProfile | None,
 ) -> ArmStatistics:
     arm = rows[0].assignment.arm
     if arm not in {"A", "B"}:
@@ -192,6 +212,20 @@ def _arm(
     assert arm in ("A", "B")
     judgments = _criterion_counts(rows, inventory)
     executed = _execution_counts(rows, inventory)
+    accepted = acceptance_counts(rows, inventory)
+    accepted_totals = (
+        CriterionAcceptanceCounts(
+            **{
+                f: sum(getattr(c, f) for c in accepted.values())
+                for f in CriterionAcceptanceCounts.model_fields
+            }
+        )
+        if accepted is not None
+        else None
+    )
+    complete_dispositions, ready_evidence = evidence_checks(
+        rows, accepted_totals, criterion_evidence_profile
+    )
     execution_totals = (
         ExecutionEvidenceCounts(
             **{
@@ -265,6 +299,22 @@ def _arm(
         ),
         semantic_criteria_by_verification_type=judgments,
         candidate_criterion_tests=execution_totals,
+        criterion_acceptance=accepted_totals,
+        criterion_acceptance_by_verification_type=accepted,
+        criterion_acceptance_coverage=_rate(
+            accepted_totals.passed, accepted_totals.total, intervals=False
+        )
+        if accepted_totals
+        else None,
+        criterion_disposition_coverage=_rate(
+            accepted_totals.total - accepted_totals.unavailable,
+            accepted_totals.total,
+            intervals=False,
+        )
+        if accepted_totals
+        else None,
+        complete_criterion_dispositions=complete_dispositions,
+        declared_ready_criterion_evidence=ready_evidence,
         candidate_criterion_tests_by_verification_type=executed,
         candidate_criterion_test_coverage=(
             _rate(execution_totals.passed, execution_totals.total, intervals=False)
@@ -375,6 +425,7 @@ def phase_statistics(
     accounting: AccountingSnapshot,
     method: CampaignStatisticsPolicy,
     criterion_inventory: CampaignCriterionInventory | None = None,
+    criterion_evidence_profile: CriterionEvidenceProfile | None = None,
 ) -> tuple[PhaseStatistics, ...]:
     """Internal arithmetic over fresh concrete readers; parsed statistics confer no authority."""
     result = []
@@ -390,11 +441,19 @@ def phase_statistics(
                     r for r in selected if (r.assignment.arm, r.assignment.kind) == (arm, kind)
                 )
                 if group:
-                    summaries.append(_arm(group, accounting, criterion_inventory))
+                    summaries.append(
+                        _arm(group, accounting, criterion_inventory, criterion_evidence_profile)
+                    )
         result.append(
             PhaseStatistics(
                 phase=phase,
                 arms=tuple(summaries),
+                criterion_coverage_gate=combine_checks(
+                    tuple(a.declared_ready_criterion_evidence for a in summaries)
+                ),
+                evidence_completeness_gate=combine_checks(
+                    tuple(a.complete_criterion_dispositions for a in summaries)
+                ),
                 primary_comparison=_paired(
                     tuple(r for r in selected if r.assignment.kind == "primary"), method
                 ),

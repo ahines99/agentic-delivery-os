@@ -109,6 +109,16 @@ crash recovery or live-provider reconciliation.
 
 ## Implemented and exercised
 
+[Joint criterion evidence](criterion-acceptance-evidence.md) now joins final-candidate tests
+and independent semantic findings by criterion after concrete whole-attempt reconstruction.
+The explicitly selected [ADR-024 profile](adr/ADR-024-prospective-criterion-evidence-gates.md)
+checks complete recorded dispositions and passing evidence for every declared-ready candidate.
+Passing coverage still uses all assigned requirements; a documented failure does not become a
+pass. Manual criteria remain pending without human decisions. The final 20-case joint scope and
+44 concrete reader/reporting cases passed, alongside inventory/policy regressions. Original
+policies cannot acquire this profile retrospectively. New-head full CI, infrastructure,
+program-inventory/cost, operational, corpus and pilot promotion requirements remain open.
+
 The new [schema-2 program policy](program-legacy-liabilities.md) now pins a concrete archived
 ledger inventory at creation and subtracts all its settled/reserved liability from available
 capacity. Old policy bytes and registries remain unchanged. Current program/campaign reports

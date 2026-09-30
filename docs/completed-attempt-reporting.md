@@ -6,6 +6,11 @@ and semantic consumers. It reconstructs candidate failures, deterministic failur
 initial semantic results and an optional separately authorized adjudication continuation.
 It neither executes a stage nor creates an attempt, spending capacity or replacement result.
 
+Consumption schema 5 also carries [joint criterion evidence](criterion-acceptance-evidence.md)
+derived after that complete reconstruction. Current final test and independent semantic facts
+are joined by criterion inside the protected consumer; only reduced counts are serialized.
+Original sealed outcomes and execution grants remain unchanged.
+
 ## Authority and provenance
 
 `AttemptConsumptionAuthorization` has the fixed purpose `campaign-report`, a window of

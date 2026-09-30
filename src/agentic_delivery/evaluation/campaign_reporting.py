@@ -468,6 +468,7 @@ async def generate_campaign_report(
                 accounting=after,
                 method=policy.statistics,
                 criterion_inventory=criterion_inventory,
+                criterion_evidence_profile=policy.criterion_evidence_profile,
             )
             if policy.statistics is not None
             else None

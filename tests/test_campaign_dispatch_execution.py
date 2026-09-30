@@ -102,7 +102,7 @@ def dispatched_case(attempt_case, campaign_seed, tmp_path, request):
         from agentic_delivery.evaluation.campaign_reporting_policy import freeze_reporting_policy
 
         inventory_ref = None
-        if request.param == "criterion-inventory":
+        if request.param in {"criterion-inventory", "criterion-evidence"}:
             from agentic_delivery.evaluation.campaign import ExecutionCampaign, _read
             from agentic_delivery.evaluation.campaign_criterion_inventory import (
                 CampaignCriterionInventory,
@@ -147,6 +147,9 @@ def dispatched_case(attempt_case, campaign_seed, tmp_path, request):
             policy_artifacts=f.case.output,
             current_guard=lambda: None,
             criterion_inventory_artifact=inventory_ref,
+            criterion_evidence_profile="current-final-criterion-evidence-v1"
+            if request.param == "criterion-evidence"
+            else None,
         )
     journal.open_phase(
         authorization_provider=provider, expected_sequence=len(journal.inspect(ref)[1])

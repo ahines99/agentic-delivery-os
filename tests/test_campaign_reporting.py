@@ -325,7 +325,9 @@ async def test_concrete_completed_failure_reports_cost_without_execution(
 
 
 @pytest.mark.parametrize("campaign_scoring", ["v2"], indirect=True)
-@pytest.mark.parametrize("dispatched_case", ["criterion-inventory"], indirect=True)
+@pytest.mark.parametrize(
+    "dispatched_case", ["criterion-inventory", "criterion-evidence"], indirect=True
+)
 @pytest.mark.parametrize("mode", ["PASS", "FAIL", "adjudicated:PASS", "late-dispatch"])
 async def test_concrete_semantic_success_and_adjudication_retain_original_outcome(
     dispatched_case, monkeypatch, mode
@@ -430,7 +432,33 @@ async def test_concrete_semantic_success_and_adjudication_retain_original_outcom
         assert arm.candidate_criterion_test_coverage.numerator == judgments.required
         assert arm.candidate_criterion_test_coverage.denominator == arm.required_criteria
         assert arm.candidate_criterion_test_coverage.wilson_interval_95 is None
-        assert phase.criterion_coverage_gate == "UNAVAILABLE"
+        criterion_evidence = row.completed.criterion_acceptance
+        assert arm.criterion_acceptance.passed == criterion_evidence.counts.passed
+        assert arm.criterion_acceptance.failed == criterion_evidence.counts.failed
+        assert arm.criterion_acceptance.unavailable == arm.required_criteria - judgments.required
+        assert criterion_evidence.counts.passed == (
+            judgments.required if expected_verdict == "PASS" else 0
+        )
+        assert arm.criterion_acceptance_coverage.denominator == arm.required_criteria
+        assert arm.criterion_disposition_coverage.numerator == judgments.required
+        from agentic_delivery.evaluation.campaign_reporting_policy import validate_reporting_policy
+
+        pinned, _ = validate_reporting_policy(
+            c.journal,
+            campaign_artifact=c.ref,
+            campaign_artifacts=c.f.case.frozen_store,
+            policy_artifacts=c.f.case.output,
+            current_guard=lambda: None,
+        )
+        if pinned.criterion_evidence_profile is None:
+            assert (
+                phase.criterion_coverage_gate == phase.evidence_completeness_gate == "UNAVAILABLE"
+            )
+        else:
+            assert phase.evidence_completeness_gate == "INCOMPLETE"
+            assert phase.criterion_coverage_gate == (
+                "FAIL" if expected_verdict == "FAIL" else "INCOMPLETE"
+            )
         assert arm.functional_acceptance.numerator == 1
         assert arm.regression.denominator == 1 and arm.regression.numerator == 0
         assert arm.strict_success.numerator == int(expected_verdict == "PASS")

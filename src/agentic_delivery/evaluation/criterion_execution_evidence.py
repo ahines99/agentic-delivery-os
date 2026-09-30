@@ -3,7 +3,7 @@
 import json
 from typing import Annotated, Literal
 
-from pydantic import Field, model_validator
+from pydantic import Field, PrivateAttr, model_validator
 
 from agentic_delivery.agents.candidate_engine import CandidateResult
 from agentic_delivery.agents.evidence import VerificationSummary
@@ -26,6 +26,8 @@ class ExecutionEvidenceCounts(Contract):
 
 
 class CriterionExecutionEvidence(Contract):
+    # In-process concrete-consumer facts; never accepted from or emitted to JSON.
+    _criterion_facts: tuple[tuple[str, VerificationType, str], ...] = PrivateAttr(default=())
     schema_version: Literal[1] = 1
     basis: Literal["validated-final-candidate-tests"] = "validated-final-candidate-tests"
     criterion_identity_digest: Digest
@@ -76,6 +78,7 @@ def count_candidate_criterion_evidence(
     raw = {
         kind: dict.fromkeys(ExecutionEvidenceCounts.model_fields, 0) for kind in VerificationType
     }
+    facts = []
     for criterion in criteria:
         if criterion.id not in receipts:
             field = "not_executed"
@@ -92,7 +95,8 @@ def count_candidate_criterion_evidence(
                 raise ValueError("Criterion receipt does not describe the final candidate")
             field = "passed" if summary.passed else "failed"
         raw[criterion.verification_type][field] += 1
-    return CriterionExecutionEvidence(
+        facts.append((criterion.id, criterion.verification_type, field))
+    result = CriterionExecutionEvidence(
         criterion_identity_digest=digest_json(
             [
                 {"id": c.id, "verification_type": c.verification_type.value}
@@ -108,3 +112,5 @@ def count_candidate_criterion_evidence(
         ),
         by_verification_type={kind: ExecutionEvidenceCounts(**row) for kind, row in raw.items()},
     )
+    result._criterion_facts = tuple(sorted(facts))
+    return result

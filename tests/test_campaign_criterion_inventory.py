@@ -41,7 +41,7 @@ def capture(case, **changes):
     return capture_criterion_inventory(case.journal, **arguments)
 
 
-def freeze(case, reference=None):
+def freeze(case, reference=None, profile=None):
     return freeze_reporting_policy(
         case.journal,
         campaign_artifact=case.ref,
@@ -49,6 +49,7 @@ def freeze(case, reference=None):
         policy_artifacts=case.output,
         current_guard=lambda: None,
         criterion_inventory_artifact=reference,
+        criterion_evidence_profile=profile,
     )
 
 
@@ -64,6 +65,28 @@ def test_capture_is_complete_canonical_and_exports_no_requirement_text(case):
     assert not inventory.descriptions_exported and not inventory.criteria_scored
     assert not inventory.execution_authorized
     assert case.journal.inspect(case.ref)[1] == ()
+
+
+def test_evidence_profile_requires_prospective_inventory_and_cannot_be_backfilled(case):
+    profile = "current-final-criterion-evidence-v1"
+    with pytest.raises(ReportingPolicyFailure):
+        freeze(case, profile=profile)
+    assert case.journal.inspect(case.ref)[1] == ()
+    _, reference = capture(case)
+    original = freeze(case, reference)
+    assert original[0].criterion_evidence_profile is None
+    with pytest.raises(ReportingPolicyFailure):
+        freeze(case, reference, profile)
+    assert freeze(case, reference) == original
+
+
+def test_new_evidence_profile_is_pinned_with_original_inventory(case):
+    _, reference = capture(case)
+    profile = "current-final-criterion-evidence-v1"
+    original = freeze(case, reference, profile)
+    assert original[0].criterion_evidence_profile == profile
+    assert freeze(case, reference, profile) == original
+    assert freeze(case) == original
 
 
 @pytest.mark.parametrize("fault", ["missing", "duplicate", "changed-manifest", "wrong-authority"])

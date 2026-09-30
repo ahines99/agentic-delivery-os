@@ -5,7 +5,7 @@ from collections.abc import Callable
 from datetime import datetime
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from sqlalchemy import select
 
 from agentic_delivery.domain.models import CommitSHA, Contract
@@ -13,6 +13,7 @@ from agentic_delivery.evaluation.campaign import ExecutionCampaign, _read
 from agentic_delivery.evaluation.campaign_allocation import canonical_account_id
 from agentic_delivery.evaluation.campaign_criterion_inventory import validate_criterion_inventory
 from agentic_delivery.evaluation.campaign_journal import CampaignJournal, JournalEvent
+from agentic_delivery.evaluation.criterion_acceptance import CriterionEvidenceProfile
 from agentic_delivery.evaluation.execution_store import accounts
 from agentic_delivery.evaluation.qualification import Digest
 from agentic_delivery.storage.artifacts import ArtifactStore
@@ -57,6 +58,15 @@ class CampaignReportingPolicy(Contract):
     zero_ready_denominator: Literal["not-applicable"] = "not-applicable"
     statistics: CampaignStatisticsPolicy | None = None
     criterion_inventory_artifact: Digest | None = None
+    criterion_evidence_profile: CriterionEvidenceProfile | None = None
+
+    @model_validator(mode="after")
+    def evidence_requires_inventory(self) -> "CampaignReportingPolicy":
+        _require(
+            self.criterion_evidence_profile is None
+            or (self.criterion_inventory_artifact is not None and self.statistics is not None)
+        )
+        return self
 
     def declared_ready(self, *, arm: str, candidate_status: str) -> bool:
         if candidate_status == "FAILED" and arm in {"A", "B"}:
@@ -89,6 +99,7 @@ def freeze_reporting_policy(
     policy_artifacts: ArtifactStore,
     current_guard: Callable[[], None],
     criterion_inventory_artifact: str | None = None,
+    criterion_evidence_profile: CriterionEvidenceProfile | None = None,
 ) -> tuple[CampaignReportingPolicy, JournalEvent]:
     """Freeze once before phase opening; existing freezes are inspected without rewriting."""
     try:
@@ -106,6 +117,10 @@ def freeze_reporting_policy(
             _require(
                 criterion_inventory_artifact is None
                 or original[0].criterion_inventory_artifact == criterion_inventory_artifact
+            )
+            _require(
+                criterion_evidence_profile is None
+                or original[0].criterion_evidence_profile == criterion_evidence_profile
             )
             return original
         _require(not events and type(policy_artifacts) is ArtifactStore)
@@ -141,6 +156,7 @@ def freeze_reporting_policy(
             scoring_code_commit=campaign.specification.scoring_code_commit,
             statistics=CampaignStatisticsPolicy(seed=campaign.specification.seed),
             criterion_inventory_artifact=criterion_inventory_artifact,
+            criterion_evidence_profile=criterion_evidence_profile,
         )
         reference = policy_artifacts.put(
             json.dumps(policy.model_dump(mode="json"), sort_keys=True).encode()

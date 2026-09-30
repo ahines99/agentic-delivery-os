@@ -3,7 +3,7 @@
 from collections.abc import Mapping
 from typing import Annotated, Literal
 
-from pydantic import Field, model_validator
+from pydantic import Field, PrivateAttr, model_validator
 
 from agentic_delivery.domain.models import AcceptanceCriterion, Contract, VerificationType
 from agentic_delivery.evaluation.qualification import Digest
@@ -25,6 +25,7 @@ class JudgmentCounts(Contract):
 
 
 class CriterionJudgments(Contract):
+    _criterion_facts: tuple[tuple[str, VerificationType, str], ...] = PrivateAttr(default=())
     schema_version: Literal[1] = 1
     criterion_identity_digest: Digest
     required: int = Field(strict=True, ge=1, le=100)
@@ -69,12 +70,14 @@ def count_criterion_judgments(
     if any(value not in {"PASS", "FAIL", "UNRESOLVED"} for p in peers for value in p.values()):
         raise ValueError("Invalid semantic criterion status")
     raw = {kind: dict.fromkeys(JudgmentCounts.model_fields, 0) for kind in VerificationType}
+    facts = []
     for criterion in criteria:
         statuses = {peer[criterion.id] for peer in peers}
         status = next(iter(statuses)) if len(statuses) == 1 else "UNRESOLVED"
         field = {"PASS": "passed", "FAIL": "failed", "UNRESOLVED": "unresolved"}[status]
         raw[criterion.verification_type][field] += 1
-    return CriterionJudgments(
+        facts.append((criterion.id, criterion.verification_type, field))
+    result = CriterionJudgments(
         criterion_identity_digest=digest_json(
             [
                 {"id": c.id, "verification_type": c.verification_type.value}
@@ -91,3 +94,5 @@ def count_criterion_judgments(
         by_verification_type={kind: JudgmentCounts(**row) for kind, row in raw.items()},
         blocking_new_concerns=blocking_new_concerns,
     )
+    result._criterion_facts = tuple(sorted(facts))
+    return result

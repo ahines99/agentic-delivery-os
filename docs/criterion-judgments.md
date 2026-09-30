@@ -7,6 +7,10 @@ whole-attempt reader carries those counts in its version-3 consumption output. O
 execution outcomes, grants, prompts, model schemas and stored adjudications are unchanged.
 These are freshly reconstructed reporting outputs, not a rewrite of prior evidence.
 
+The subsequent [joint criterion profile](criterion-acceptance-evidence.md) joins these findings
+with final-candidate execution in whole-attempt schema 5. The protected consumers retain private
+in-process join facts, excluded from JSON. Standalone serialized counts supply no join authority.
+
 The counts include a hash of sorted criterion identities and verification types, the
 required count, and PASS/FAIL/UNRESOLVED totals by verification type. They export no raw
 criterion identities, descriptions, model reasons, citations, source, or reference answers.

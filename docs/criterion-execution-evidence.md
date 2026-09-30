@@ -37,8 +37,11 @@ for manual-type requirements.
 This metric does not establish complete required evidence or authorize promotion. In particular,
 unexecuted criteria do not become passing coverage merely because the early failure itself is
 well evidenced. The existing required-evidence, operational, infrastructure, full program-cost
-and pilot gates remain open. The coverage gate stays UNAVAILABLE until the complete required
-evidence contract is implemented and verified.
+and pilot gates remain separate. A prospectively selected
+[joint criterion profile](criterion-acceptance-evidence.md) joins current execution and semantic
+facts and evaluates distinct disposition-completeness and declared-ready evidence checks.
+This standalone execution metric supplies neither check by itself; older policies without
+the joint profile retain UNAVAILABLE gate results.
 
 ## Verification
 

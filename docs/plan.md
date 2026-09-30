@@ -169,6 +169,13 @@ cancellation; it does not silently merge, delete branches, or roll back producti
 
 ## Evaluation and promotion
 
+[ADR-024](adr/ADR-024-prospective-criterion-evidence-gates.md) defines explicitly selected
+criterion evidence checks: complete validated dispositions for all assigned requirements and
+passing criterion evidence for every declared-ready candidate. Joint passing coverage retains
+all requirements in its denominator; documented failure is not passing acceptance. Existing
+policies cannot acquire these checks retrospectively. Infrastructure, cost, operational and
+human pilot gates remain separate.
+
 [ADR-018](adr/ADR-018-prospective-readiness-reporting.md) defines prospective A/B readiness
 from each arm's sealed candidate status before final scoring. Its journal policy must be
 pinned before phase opening or allocation; it supplies neither promotion nor execution

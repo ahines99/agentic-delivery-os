@@ -1479,3 +1479,28 @@ reporting. It does not cover subsequent legacy archival or schema-2 historical-l
 The separate Windows full suite remains running at the unchanged `4d71ce3` checkout; no terminal
 result is inferred. Later changes are published from an isolated worktree after this hosted run
 finished, preserving the root test source and avoiding cancellation of its preceding hosted CI.
+
+E163: [Joint criterion acceptance evidence](criterion-acceptance-evidence.md), under
+[ADR-024](adr/ADR-024-prospective-criterion-evidence-gates.md), joins concrete final-candidate
+test and independent semantic facts by criterion inside the validated whole-attempt consumer.
+Private join facts are not serialized or accepted from JSON summaries. Whole-attempt schema 5
+exports content-free counts matched to the original frozen requirement inventory. Matching
+marginal counts, earlier snapshots, missing deterministic checks or automated manual-type
+judgments cannot supply passing joint evidence.
+
+The explicit prospective profile requires complete validated dispositions for all assigned
+requirements and current passing criteria for every declared-ready candidate. A documented
+failure remains unsuccessful and does not inflate passing coverage. Missing stability proof
+blocks phase completeness without changing primary rates. Existing policies cannot acquire
+the profile retrospectively; full promotion and execution authority remain separate.
+
+The execution/judgment/statistics/policy scope passed 61 tests in 34.88 seconds. The new
+inventory/profile/initial joint scope passed 40 in 78.13 seconds. The final expanded joint
+scope passed 20 in 0.69 seconds, adding frozen manifest/identity/count/type aggregation checks
+and private-fact repr redaction. All 44 concrete whole-attempt/reporting cases passed in
+490.79 seconds, covering original and new profiles, semantic failures, exact adjudication,
+early exits and current-permission denial. Production source was unchanged during these
+runs; only additional focused test cases and documentation followed. Counts overlap and are
+not summed. Ruff/format (386 files), mypy (121 sources), and source/wheel builds passed.
+Exact-head full CI and independent review remain required. Owned fixtures retain explicit
+qualification/calibration/runtime boundaries; no historical payload or paid request was used.

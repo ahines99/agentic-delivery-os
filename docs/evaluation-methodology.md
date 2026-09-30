@@ -136,6 +136,14 @@ Historical success alone cannot validate control-plane safety. Maintain a separa
 
 Targets below are release decisions chosen for this project, **not achieved results or industry standards**:
 
+For the explicitly selected prospective [criterion evidence profile](adr/ADR-024-prospective-criterion-evidence-gates.md),
+100% evidence completeness requires a validated disposition for every assigned requirement and
+current passing criterion evidence for every candidate declared ready. A verified early failure
+can explain non-execution; it cannot count as passing criterion coverage. Unstarted/unknown work
+has missing evidence. Manual criteria remain pending without human decisions. Original policy,
+all assigned requirements and separate primary/stability reporting remain binding. Older policies
+cannot acquire this profile retrospectively; other promotion thresholds remain unchanged.
+
 - Before connected execution: all applicable security and lifecycle acceptance scenarios pass, baseline qualification is repeatable, and no known critical control bypass remains.
 - Before a supervised pilot: all mandatory control fixtures pass; validation strict success is at least 60%; false-ready count is zero; evidence completeness is 100%; infrastructure incidents are at most 5%; all runs respect configured ceilings or explicitly fail closed. A zero observed false-ready count does not establish zero underlying risk.
 - Before the portfolio release: at least 30 qualified historical tickets have primary results for every advertised arm; sealed-test strict success is at least 60%, zero observed false-ready candidates, and the same operational gates pass. Publish failures, intervals, costs, censored timings, and limitations even when targets are missed. Missing targets means experimental status continues; it does not justify changing the frozen denominator.
