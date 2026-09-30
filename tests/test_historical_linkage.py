@@ -11,6 +11,7 @@ from test_historical_derivation import bundle
 from test_historical_requirements import BODY, issue
 
 from agentic_delivery.evaluation.historical_derivation import (
+    PackageReferenceDerivationRequest,
     derive_historical_reference,
     validate_reference_derivation_content,
 )
@@ -26,8 +27,12 @@ from agentic_delivery.evaluation.historical_requirements import (
 )
 
 
-async def build_linkage_bundle(tmp_path, *, source=None, target=None):
+async def build_linkage_bundle(tmp_path, *, source=None, target=None, package=False):
     request, store, scopes = await bundle(tmp_path, source=source, target=target)
+    if package:
+        request = PackageReferenceDerivationRequest(
+            **request.model_dump(exclude={"schema_version"}), test_roots=("tests",)
+        )
     derivation_ref = derive_historical_reference(
         request, protected_artifacts=store, worker_roots=scopes
     )
@@ -123,9 +128,9 @@ async def build_linkage_bundle(tmp_path, *, source=None, target=None):
     return response, options, derivation
 
 
-async def linked_bundle(tmp_path, *, source=None, target=None):
+async def linked_bundle(tmp_path, *, source=None, target=None, package=False):
     response, options, derivation = await build_linkage_bundle(
-        tmp_path, source=source, target=target
+        tmp_path, source=source, target=target, package=package
     )
     artifact = freeze_historical_linkage(response, copy.deepcopy(response), **options)
     linkage = validate_historical_linkage(

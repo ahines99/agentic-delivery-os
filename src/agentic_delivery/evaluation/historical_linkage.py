@@ -14,7 +14,7 @@ from agentic_delivery.evaluation.qualification import Digest
 from agentic_delivery.storage.artifacts import ArtifactStore
 
 if TYPE_CHECKING:
-    from agentic_delivery.evaluation.historical_derivation import ReferenceDerivation
+    from agentic_delivery.evaluation.historical_derivation import ReferenceDerivationRecord
 
 LINKAGE_QUERY = """query HistoricalFixLinkage(
   $owner:String!,$name:String!,$accepted:GitObjectID!,$pr:Int!,$issue:Int!
@@ -243,7 +243,7 @@ def _requirements(artifact: str, store: ArtifactStore, now: datetime) -> Any:
 def _reconstruct[LinkageT: HistoricalLinkageRecord](
     evidence: LinkageT,
     store: ArtifactStore,
-    derivation: "ReferenceDerivation",
+    derivation: "ReferenceDerivationRecord",
     now: datetime,
 ) -> LinkageT:
     from agentic_delivery.evaluation.historical_acquisition import BaselineAcquisition
@@ -406,7 +406,7 @@ def validate_historical_linkage(
     artifact: str,
     *,
     protected_artifacts: ArtifactStore,
-    derivation: "ReferenceDerivation",
+    derivation: "ReferenceDerivationRecord",
     now: datetime | None = None,
 ) -> HistoricalLinkageEvidence:
     """Recheck provider assertions and chronology; this grants no authority or authenticity."""
@@ -493,7 +493,7 @@ def validate_historical_merge_linkage(
     artifact: str,
     *,
     protected_artifacts: ArtifactStore,
-    derivation: "ReferenceDerivation",
+    derivation: "ReferenceDerivationRecord",
     now: datetime | None = None,
 ) -> HistoricalMergeLinkageEvidenceV2:
     """Validate only the explicit two-parent profile, never reinterpret a v1 record."""
@@ -515,7 +515,7 @@ def validate_historical_linkage_record(
     artifact: str,
     *,
     protected_artifacts: ArtifactStore,
-    derivation: "ReferenceDerivation",
+    derivation: "ReferenceDerivationRecord",
     now: datetime | None = None,
 ) -> HistoricalLinkageRecord:
     """Exact version/kind dispatch for current consumers; unknown records never fall back."""

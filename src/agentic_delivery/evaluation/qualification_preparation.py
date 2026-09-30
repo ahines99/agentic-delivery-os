@@ -28,7 +28,7 @@ from agentic_delivery.storage.artifacts import ArtifactStore
 from agentic_delivery.storage.store import digest_json
 
 if TYPE_CHECKING:
-    from agentic_delivery.evaluation.historical_derivation import ReferenceDerivation
+    from agentic_delivery.evaluation.historical_derivation import ReferenceDerivationRecord
     from agentic_delivery.evaluation.historical_linkage import HistoricalLinkageRecord
 
 MAX_PATCH_BYTES = 1024 * 1024
@@ -146,13 +146,15 @@ def validate_derived_reference_provenance(
     worker_roots: tuple[Path, ...] | None = None,
     protected_paths: tuple[str, ...] | None = None,
     now: datetime | None = None,
-) -> tuple["ReferenceDerivation", "HistoricalLinkageRecord"]:
+) -> tuple["ReferenceDerivationRecord", "HistoricalLinkageRecord"]:
     """Reconstruct identity/content; scope/current policy require trusted caller inputs.
 
     Protected semantic readers have no worker scope or live policy and use content-only
     validation. Preparation and current authority must supply/revalidate both separately.
     """
     from agentic_delivery.evaluation.historical_derivation import (
+        ORACLE_NAMESPACE,
+        PackageReferenceDerivation,
         validate_reference_derivation,
         validate_reference_derivation_content,
     )
@@ -194,6 +196,14 @@ def validate_derived_reference_provenance(
             all(not protected(change.path, protected_paths) for change in derivation.changes),
             "Derived reference changes currently protected paths",
         )
+        if isinstance(derivation, PackageReferenceDerivation):
+            _require(
+                all(
+                    not protected(path.removeprefix(ORACLE_NAMESPACE + "/"), protected_paths)
+                    for path in _files(protected_artifacts, derivation.oracle_artifact)
+                ),
+                "Derived test package includes currently protected support paths",
+            )
     return derivation, linkage
 
 

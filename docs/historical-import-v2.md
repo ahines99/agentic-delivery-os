@@ -1,5 +1,11 @@
 # Protected accepted-fix linkage and v2 historical import
 
+For package-relative test imports, [ADR-029](adr/ADR-029-package-preserving-test-derivation.md)
+adds the explicit schema-2 `PackageReferenceDerivationRequest`. It preserves complete
+eligible Python test directories under the oracle namespace. Existing schema-1
+whole-file derivations are unchanged. Both profiles enter the same reconstructed
+linkage, rights, import and qualification path described below.
+
 `historical_linkage` validates metadata captured by a trusted controller from the fixed
 GitHub GraphQL endpoint. Its exported `LINKAGE_QUERY` contains no issue body/title,
 commit message, author, login or email. The caller must use that exact query, explicitly

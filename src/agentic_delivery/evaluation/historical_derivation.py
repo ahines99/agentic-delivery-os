@@ -8,7 +8,7 @@ import re
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import Field
+from pydantic import Field, TypeAdapter
 
 from agentic_delivery.domain.models import CommitSHA, Contract
 from agentic_delivery.evaluation.historical_acquisition import BaselineAcquisition, _verified_donor
@@ -36,6 +36,17 @@ class ReferenceDerivationRequest(Contract):
     accepted_acquisition_artifact: Digest
     # Trusted operator scope, additional to mandatory built-in controls/test classification.
     protected_paths: tuple[str, ...] = Field(default=(), max_length=50)
+
+
+class PackageReferenceDerivationRequest(Contract):
+    schema_version: Literal[2] = 2
+    baseline_acquisition_artifact: Digest
+    accepted_acquisition_artifact: Digest
+    protected_paths: tuple[str, ...] = Field(default=(), max_length=50)
+    test_roots: tuple[str, ...] = Field(min_length=1, max_length=50)
+
+
+DerivationRequest = ReferenceDerivationRequest | PackageReferenceDerivationRequest
 
 
 class ChangedPath(Contract):
@@ -76,6 +87,33 @@ class ReferenceDerivation(Contract):
     changes: tuple[ChangedPath, ...] = Field(min_length=2, max_length=50)
     relocations: tuple[OracleRelocation, ...] = Field(min_length=1, max_length=50)
     acceptance_selectors: tuple[str, ...] = Field(min_length=1, max_length=1000)
+
+
+class PackageReferenceDerivation(Contract):
+    schema_version: Literal[2] = 2
+    kind: Literal["historical-reference-derivation-v2"] = "historical-reference-derivation-v2"
+    profile: Literal["existing-python-test-package-v2"] = "existing-python-test-package-v2"
+    status: Literal["DERIVED_NOT_IMPORTED"] = "DERIVED_NOT_IMPORTED"
+    authorization_status: Literal["NOT_AUTHORIZED"] = "NOT_AUTHORIZED"
+    admitted: Literal[False] = False
+    execution_authorized: Literal[False] = False
+    request: PackageReferenceDerivationRequest
+    repository: str = Field(strict=True, min_length=1)
+    repository_id: int = Field(strict=True, gt=0)
+    base_sha: CommitSHA
+    accepted_commit: CommitSHA
+    source_snapshot_artifact: Digest
+    accepted_snapshot_artifact: Digest
+    production_patch_artifact: Digest
+    oracle_artifact: Digest
+    executable_baseline_artifact: Digest
+    executable_reference_artifact: Digest
+    changes: tuple[ChangedPath, ...] = Field(min_length=2, max_length=50)
+    relocations: tuple[OracleRelocation, ...] = Field(min_length=1, max_length=50)
+    acceptance_selectors: tuple[str, ...] = Field(min_length=1, max_length=1000)
+
+
+ReferenceDerivationRecord = ReferenceDerivation | PackageReferenceDerivation
 
 
 def _require(condition: bool) -> None:
@@ -198,9 +236,11 @@ def _scopes(store: ArtifactStore, worker_roots: tuple[Path, ...]) -> None:
 
 
 def _produce(
-    request: ReferenceDerivationRequest, store: ArtifactStore
-) -> tuple[ReferenceDerivation, dict[str, bytes]]:
-    request = ReferenceDerivationRequest.model_validate(request.model_dump(mode="json"))
+    request: DerivationRequest, store: ArtifactStore
+) -> tuple[ReferenceDerivationRecord, dict[str, bytes]]:
+    request = TypeAdapter[DerivationRequest](DerivationRequest).validate_python(
+        request.model_dump(mode="json")
+    )
     _require(all(safe_path(path) == path for path in request.protected_paths))
     baseline = BaselineAcquisition.model_validate(
         _read(store, request.baseline_acquisition_artifact)
@@ -243,7 +283,24 @@ def _produce(
     production = dict(source)
     changes = []
     relocations = []
-    oracle = {}
+    oracle: dict[str, str] = {}
+    if isinstance(request, PackageReferenceDerivationRequest):
+        # Full declared test directories, never a helper subset selected after execution.
+        _require(len(set(request.test_roots)) == len(request.test_roots))
+        for root in request.test_roots:
+            _require(safe_path(root) == root and root in {"tests", "test"})
+            members = {path: text for path, text in source.items() if path.startswith(root + "/")}
+            _require(bool(members))
+            _require(
+                all(
+                    path.endswith(".py") and not protected(path, request.protected_paths)
+                    for path in members
+                )
+            )
+            # Parse without executing. Complete baseline support files preserve relative imports.
+            for path, content in members.items():
+                ast.parse(content)
+                oracle[f"{ORACLE_NAMESPACE}/{path}"] = content
     patch_parts: list[str] = []
     for path in changed:
         _require(re.fullmatch(r"[A-Za-z0-9_./-]{1,240}", path) is not None)
@@ -273,7 +330,13 @@ def _produce(
             _require(set(old_nodes) <= set(new_nodes))
             selected = sorted(name for name in new_nodes if old_nodes.get(name) != new_nodes[name])
             _require(bool(selected))
-            relocated = f"{ORACLE_NAMESPACE}/test_{hashlib.sha256(path.encode()).hexdigest()}.py"
+            if isinstance(request, PackageReferenceDerivationRequest):
+                _require(any(path.startswith(root + "/") for root in request.test_roots))
+                relocated = f"{ORACLE_NAMESPACE}/{path}"
+            else:
+                relocated = (
+                    f"{ORACLE_NAMESPACE}/test_{hashlib.sha256(path.encode()).hexdigest()}.py"
+                )
             selectors = tuple(f"{relocated}::{name}" for name in selected)
             oracle[relocated] = target[path]
             relocations.append(
@@ -309,8 +372,8 @@ def _produce(
     executable_baseline, executable_reference = {**source, **oracle}, {**production, **oracle}
     _validate_snapshot(executable_baseline)
     _validate_snapshot(executable_reference)
-    result = ReferenceDerivation(
-        request=request,
+    fields = dict(
+        request=request.model_dump(mode="json"),
         repository=baseline.repository,
         repository_id=baseline.repository_id,
         base_sha=baseline.base_sha,
@@ -325,12 +388,17 @@ def _produce(
         relocations=tuple(relocations),
         acceptance_selectors=tuple(selector for item in relocations for selector in item.selectors),
     )
+    result: ReferenceDerivationRecord
+    if isinstance(request, PackageReferenceDerivationRequest):
+        result = PackageReferenceDerivation.model_validate(fields)
+    else:
+        result = ReferenceDerivation.model_validate(fields)
     stage(_encoded(result.model_dump(mode="json")))
     return result, staged
 
 
 def derive_historical_reference(
-    request: ReferenceDerivationRequest,
+    request: DerivationRequest,
     *,
     protected_artifacts: ArtifactStore,
     worker_roots: tuple[Path, ...],
@@ -351,7 +419,7 @@ def validate_reference_derivation(
     *,
     protected_artifacts: ArtifactStore,
     worker_roots: tuple[Path, ...],
-) -> ReferenceDerivation:
+) -> ReferenceDerivationRecord:
     """Reconstruct every binding without writes; result is protected evaluator metadata."""
     try:
         _scopes(protected_artifacts, worker_roots)
@@ -364,10 +432,12 @@ def validate_reference_derivation(
 
 def validate_reference_derivation_content(
     artifact: str, *, protected_artifacts: ArtifactStore
-) -> ReferenceDerivation:
+) -> ReferenceDerivationRecord:
     """Recompute protected content only; this makes no worker-scope or authority claim."""
     try:
-        stored = ReferenceDerivation.model_validate(_read(protected_artifacts, artifact))
+        stored = TypeAdapter[ReferenceDerivationRecord](ReferenceDerivationRecord).validate_python(
+            _read(protected_artifacts, artifact)
+        )
         actual, staged = _produce(stored.request, protected_artifacts)
         _require(actual == stored)
         _require(hashlib.sha256(_encoded(actual.model_dump(mode="json"))).hexdigest() == artifact)

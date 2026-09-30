@@ -53,7 +53,9 @@ def put(store, document):
     return store.put(json.dumps(document, sort_keys=True).encode())
 
 
-async def derived_case(tmp_path, *, item_changes=None, rights_lifetime=timedelta(hours=1)):
+async def derived_case(
+    tmp_path, *, item_changes=None, rights_lifetime=timedelta(hours=1), package=False
+):
     """Reusable complete owned proofs, with independently reconstructable metadata."""
     source = {
         "src/subject.py": "def answer():\n    return 1\n",
@@ -70,8 +72,16 @@ async def derived_case(tmp_path, *, item_changes=None, rights_lifetime=timedelta
         + "class Behavior(unittest.TestCase):\n"
         + "    def test_answer(self):\n        self.assertEqual(answer(), 2)\n",
     }
+    if package:
+        source.update(
+            {"tests/__init__.py": "# Owned test package\n", "tests/helper.py": "EXPECTED = 2\n"}
+        )
+        target.update({path: source[path] for path in ("tests/__init__.py", "tests/helper.py")})
+        target["tests/test_subject.py"] = "from .helper import EXPECTED\n" + target[
+            "tests/test_subject.py"
+        ].replace("self.assertEqual(answer(), 2)", "self.assertEqual(answer(), EXPECTED)")
     derived_ref, derived, linkage_ref, linkage, store, scopes = await linked_bundle(
-        tmp_path, source=source, target=target
+        tmp_path, source=source, target=target, package=package
     )
     now = datetime.now(UTC)
     commands = (

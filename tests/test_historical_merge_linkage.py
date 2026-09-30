@@ -62,7 +62,8 @@ def test_legacy_class_query_and_default_function_goldens():
         ),
         (
             linkage.validate_historical_linkage,
-            "8ef5536f8b9efc5510f76cbce63043956f5121e27725b7e2cf6da736ba8cda1e",
+            # ADR-029 widens only the protected derivation type annotation.
+            "704aebe150dd5f16e8614c4b7a4cd8f991aeb9ba55fed5f5f23cda75ddf5af01",
         ),
         (
             linkage.freeze_historical_linkage,

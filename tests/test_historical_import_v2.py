@@ -33,7 +33,9 @@ def put(store, document):
     return store.put(json.dumps(document, sort_keys=True).encode())
 
 
-async def import_bundle(tmp_path, *, title="Historical issue #12", description=None):
+async def import_bundle(
+    tmp_path, *, title="Historical issue #12", description=None, package=False, image=IMAGE
+):
     description = BODY.strip() if description is None else description
     source = {
         "subject.py": "VALUE = 1\n",
@@ -46,8 +48,19 @@ async def import_bundle(tmp_path, *, title="Historical issue #12", description=N
         "tests/test_subject.py": source["tests/test_subject.py"]
         + "\ndef test_added():\n    from subject import VALUE\n    assert VALUE == 2\n",
     }
+    if package:
+        source.update(
+            {
+                "tests/__init__.py": "from .helper import expected\n",
+                "tests/helper.py": "def expected():\n    return 2\n",
+            }
+        )
+        target.update({path: source[path] for path in ("tests/__init__.py", "tests/helper.py")})
+        target["tests/test_subject.py"] = "from .helper import expected\n" + target[
+            "tests/test_subject.py"
+        ].replace("VALUE == 2", "VALUE == expected()")
     derivation_ref, derivation, linkage_ref, linkage, store, _ = await linked_bundle(
-        tmp_path, source=source, target=target
+        tmp_path, source=source, target=target, package=package
     )
     now = datetime.now(UTC)
     commands = (
@@ -82,7 +95,7 @@ async def import_bundle(tmp_path, *, title="Historical issue #12", description=N
         oracle_artifact=derivation.oracle_artifact,
         reference_snapshot_artifact=derivation.executable_reference_artifact,
         reference_patch_artifact=derivation.production_patch_artifact,
-        image=IMAGE,
+        image=image,
         acceptance_commands=(commands[0],),
         regression_commands=(commands[1],),
         reviewers=("owned-a", "owned-b"),
@@ -212,7 +225,7 @@ async def import_bundle(tmp_path, *, title="Historical issue #12", description=N
         github_name="synthetic",
         commands=commands,
         model_data_authorized=True,
-        sandbox_image=IMAGE,
+        sandbox_image=image,
         protected_paths=(),
     )
     output, worker = tmp_path / "output", tmp_path / "worker"
@@ -234,9 +247,10 @@ async def import_bundle(tmp_path, *, title="Historical issue #12", description=N
     return request, options, task, acquired
 
 
+@pytest.mark.parametrize("package", [False, True])
 @pytest.mark.asyncio
-async def test_explicit_v2_import_preserves_all_source_and_stays_unqualified(tmp_path):
-    request, options, task, _ = await import_bundle(tmp_path)
+async def test_explicit_v2_import_preserves_all_source_and_stays_unqualified(tmp_path, package):
+    request, options, task, _ = await import_bundle(tmp_path, package=package)
     store = options["protected_artifacts"]
     before = {p: p.read_bytes() for p in store.root.rglob("*") if p.is_file()}
     result = import_historical_task_v2(request, **options)

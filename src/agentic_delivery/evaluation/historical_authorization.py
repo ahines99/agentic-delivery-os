@@ -10,7 +10,7 @@ from agentic_delivery.evaluation.qualification import Digest
 from agentic_delivery.storage.artifacts import ArtifactStore
 
 if TYPE_CHECKING:
-    from agentic_delivery.evaluation.historical_derivation import ReferenceDerivation
+    from agentic_delivery.evaluation.historical_derivation import ReferenceDerivationRecord
     from agentic_delivery.evaluation.qualification_preparation import PreparationPolicy
 
 
@@ -39,7 +39,7 @@ def validate_derived_authorization(
     artifact: str,
     *,
     protected_artifacts: ArtifactStore,
-    derivation: "ReferenceDerivation",
+    derivation: "ReferenceDerivationRecord",
     parent_authorization_artifact: str,
     task_manifest_digest: str,
     linkage_artifact: str,

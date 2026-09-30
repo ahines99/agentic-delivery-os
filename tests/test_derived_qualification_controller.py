@@ -20,10 +20,12 @@ from agentic_delivery.evaluation.qualification_runtime import DeterministicReque
 from agentic_delivery.storage.store import digest_json
 
 
-@pytest.fixture
-async def derived_bundle(integrated, tmp_path, monkeypatch):  # noqa: F811
+@pytest.fixture(params=[False, True], ids=["file-relocation", "package-relocation"])
+async def derived_bundle(integrated, tmp_path, monkeypatch, request):  # noqa: F811
     bundle = await integrated()
-    owned = await derived_case(tmp_path / "owned-derived", rights_lifetime=timedelta(seconds=60))
+    owned = await derived_case(
+        tmp_path / "owned-derived", rights_lifetime=timedelta(seconds=60), package=request.param
+    )
     artifacts = bundle["options"]["protected_artifacts"]
     for path in owned["store"].root.glob("*/*"):
         if path.is_file():
