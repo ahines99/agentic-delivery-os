@@ -7,13 +7,13 @@ from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
+from program_fixtures import program_ledger
 from test_historical_linkage import linked_bundle
 from test_qualification_preparation import IMAGE, LICENSE
 
 from agentic_delivery.config import CommandProfile, RepositoryConfig, Settings
 from agentic_delivery.domain.models import WorkItem
 from agentic_delivery.evaluation import qualification_runtime as runtime
-from agentic_delivery.evaluation.execution_store import EvaluationExecutionStore
 from agentic_delivery.evaluation.harness import HistoricalTask
 from agentic_delivery.evaluation.historical_authorization import DerivedReferenceAuthorization
 from agentic_delivery.evaluation.qualification import (
@@ -601,9 +601,7 @@ def derived_runtime(derived, monkeypatch, tmp_path):
         issued_at=now,
         expires_at=now + timedelta(minutes=30),
     )
-    ledger = EvaluationExecutionStore(
-        f"sqlite+pysqlite:///{tmp_path / 'delivery_eval_derived_runtime.db'}"
-    )
+    ledger = program_ledger(f"sqlite+pysqlite:///{tmp_path / 'delivery_eval_derived_runtime.db'}")
     state = {"now": None}
     OwnedDerivedRunner.calls = 0
     OwnedDerivedRunner.hook = None

@@ -1400,3 +1400,9 @@ its missing-ACTIVE-account and retained-liability rules are unchanged. All seven
 coordinator/dispatch/report cases passed in 168.29 seconds (56 deselected). The initial
 composed scope retained eight passes and
 four setup errors in 45.44 seconds; those errors do not establish a passing integration.
+
+
+A final review of evaluation-store fixture construction found the separately derived-input
+runtime fixture still using a legacy ledger. It now explicitly enrolls its owned ledger;
+all 19 derived-input/import/runtime checks passed in 19.95 seconds. This changes test setup,
+not the production admission rule. Historical data, grants and ledger schemas were unchanged.
