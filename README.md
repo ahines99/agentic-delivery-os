@@ -9,7 +9,11 @@ local directory name `agentic-delivery-engineer`; the product/package name is Ag
 
 **Verified automatic delivery:** [PER-13](https://linear.app/personal-portfolio-project/issue/PER-13/add-ordered-customer-id-helper)
 produced [PR #6](https://github.com/ahines99/agentic-delivery-os/pull/6), passed all required
-GitHub checks, and moved to Linear In Review with its PR attached. See the
+GitHub checks, and moved to Linear In Review with its PR attached. A second ticket,
+[PER-14](https://linear.app/personal-portfolio-project/issue/PER-14/add-customer-sorting-with-an-explicit-direction),
+paused for clarification, resumed after a ticket edit, and completed the same handoff
+with [PR #7](https://github.com/ahines99/agentic-delivery-os/pull/7). The runtime source
+at `8413dc4` passed [full CI](https://github.com/ahines99/agentic-delivery-os/actions/runs/36668888799). See the
 [live evidence and recovery record](docs/live-automatic-delivery.md). The [webhook gateway](docs/linear-ingress.md)
 supports both providers, and the outbound monitor provides automatic intake without a tunnel.
 Use [App onboarding](docs/provider-onboarding.md) to configure another installation.

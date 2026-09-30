@@ -38,7 +38,7 @@ without a public webhook. It does not mark Linear Done or restore stale readines
 | Clear ticket PER-13 | Automatically created PR #6, passed all four required checks, reached HUMAN_REVIEW, and confirmed Linear In Review with one PR attachment. Three model calls cost $0.215420. |
 | Service restart during PER-13 CI wait | Supervisor restarted the service; workflow, publication and spending remained unchanged. |
 | Repeated PER-13 publication | Actual App retry reconciled PR #6 with identical base/head/manifest, without a duplicate PR or new model spending. |
-| Ambiguous PER-14 | Paused for a missing sorting decision. Editing the ticket caused one applied clarification command, replanning and PR #7 in the same workflow/budget. Final CI/handoff is still pending. |
+| Ambiguous PER-14 | Paused for a missing sorting decision. Editing the ticket caused one applied clarification command, replanning and PR #7 in the same workflow/budget. All four CI checks passed; HUMAN_REVIEW and Linear In Review with one PR attachment were confirmed. Total model cost: $0.259145. |
 | High-risk PER-15 | Actual risk-tier-3 assessment and deterministic policy rejection. One planning call cost $0.032940; no approval, builder, reviewer, container or PR. |
 | External closure observation | App REST reads recorded retained PRs #2-#5 as CLOSED. PR #6 stayed DRAFT_HANDOFF. This is an owned external-close exercise, not an actual human merge. |
 
@@ -67,10 +67,10 @@ credentials stay in private environment files and never enter candidate containe
 
 ## Verification and remaining demonstrations
 
-The source at `c03a945` passed [full hosted CI](https://github.com/ahines99/agentic-delivery-os/actions/runs/36664407290),
-including both Python versions and real service integrations. Later observer and
-clarification changes have focused passing checks and their own current-head CI.
-Do not treat that earlier run as proof for later source revisions.
+The runtime source at `8413dc4` passed [full hosted CI](https://github.com/ahines99/agentic-delivery-os/actions/runs/36668888799),
+including the observer and clarification changes: Python 3.12 and 3.13 each passed
+3,141 tests with 114 integration skips; all 114 service integration tests and secret
+scanning passed. PR #7 passed its separate required checks at its own exact head.
 
 Actual Docker, PostgreSQL and Temporal tests cover named baseline failures, correction,
 cancellation, process loss, provenance and provider-fault cases. See

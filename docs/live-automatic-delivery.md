@@ -79,7 +79,7 @@ See [automatic delivery](automatic-delivery.md) for operation and supported scop
 ## Outbound publication observation follow-up
 
 The concrete GitHub App read-only observer subsequently reconciled all five retained
-product PRs into the live database: #2?#5 are CLOSED and #6 remains DRAFT_HANDOFF.
+product PRs into the live database: #2-#5 are CLOSED and #6 remains DRAFT_HANDOFF.
 The observer uses only Pull requests read permission, persists metadata with
 `github-rest` provenance and leaves workflow states/spending unchanged. No public
 webhook, PR mutation or model call was involved. The live record proves closure
@@ -95,8 +95,33 @@ The owned test ticket was then edited to specify ascending order. The monitor
 recorded one APPLIED `clarify` command under `linear-monitor`; the same workflow
 resumed ANALYZING at 04:25:39 UTC, changing its specification digest while retaining
 its original budget and spending. No operator API clarification or new attempt was
-used. Completion of the revised delivery is tracked separately from this pause/resume
-proof. [ADR-028](adr/ADR-028-linear-clarification-edits.md) defines the narrow behavior.
+used. [ADR-028](adr/ADR-028-linear-clarification-edits.md) defines the narrow behavior.
+
+The revised delivery reached **HUMAN_REVIEW at 2026-09-30 04:53:20 UTC**.
+Actual provider readback confirmed Linear **In Review**, exactly one attachment to
+[PR #7](https://github.com/ahines99/agentic-delivery-os/pull/7), and handoff status
+`CONFIRMED`. All four [required CI checks](https://github.com/ahines99/agentic-delivery-os/actions/runs/36668903614)
+passed: Python 3.12 and 3.13 each passed 3,100 tests with 111 integration skips;
+the service job passed 111 tests, and secret scanning passed. The PR remains draft
+for human review. Total model spending for this workflow was 259,145 microdollars,
+with zero reserved at handoff, including its initial clarification planning.
+
+| Binding | Value |
+| --- | --- |
+| Runtime source | `8413dc44af5b8918a4272bf212d1bcd48696e392` |
+| Base | `cbba076268c4b70976e27d22585383547656a02d` |
+| PR head | `3bb4139714daabdd2e831fba6a529b76b719df25` |
+| Manifest | `1bd739b4cba8daa15f5e92e2028eef0a6413927e255dd9184bbce7763f1d6bc4` |
+
+This closes the owned clarification-to-review demonstration. It does not measure
+general clarification quality or historical task success.
+
+The runtime implementation at `8413dc4` also passed its separate
+[complete hosted CI run](https://github.com/ahines99/agentic-delivery-os/actions/runs/36668888799):
+Python 3.12 and 3.13 each passed 3,141 tests with 114 integration skips;
+the service job passed all 114 integration tests, and secret scanning passed.
+This includes the outbound GitHub observer and Linear clarification changes.
+The local `/readyz` endpoint and running Windows task were checked after completion.
 
 ## Sensitive-work admission follow-up
 
