@@ -9,10 +9,74 @@ from agentic_delivery.storage.artifacts import ArtifactStore
 from scripts.backup_local import (
     BackupError,
     LocalPostgres,
+    backup,
     command,
     copy_artifacts,
     validate_restore_name,
+    validate_source_name,
 )
+
+
+@pytest.mark.parametrize(
+    "name", ["postgres", "template0", "delivery;DROP", "delivery_restore_" + "a" * 32, "x" * 64]
+)
+def test_source_database_rejects_system_untrusted_and_disposable_names(name):
+    with pytest.raises(BackupError, match="source database"):
+        validate_source_name(name)
+
+
+async def test_selected_source_is_used_for_dump_fingerprints_and_manifest(tmp_path, monkeypatch):
+    source = tmp_path / ".local/live-artifacts"
+    digest = ArtifactStore(source).put(b"owned live delivery evidence")
+    fingerprints = []
+    expected = {"table_counts": {"workflow_runs": 2}, "alembic_revisions": ["0001"]}
+
+    class SelectedPostgres(FakePostgres):
+        async def exec(self, *args, **kwargs):
+            if args[0] == "pg_dump":
+                kwargs["output_path"].write_bytes(b"owned controlled dump")
+            return await super().exec(*args, **kwargs)
+
+        async def fingerprint(self, database):
+            assert database == "delivery_live" or validate_restore_name(database)
+            fingerprints.append(database)
+            return expected
+
+    postgres = SelectedPostgres()
+    postgres.source_database = "delivery_live"
+
+    async def locate(database):
+        assert database == "delivery_live"
+        return postgres
+
+    monkeypatch.setattr(LocalPostgres, "locate", locate)
+    result = await backup(
+        tmp_path, source_database="delivery_live", artifact_root=Path(".local/live-artifacts")
+    )
+    assert result["status"] == "VERIFIED_LOCAL_DRILL"
+    assert result["source_database"] == "delivery_live"
+    assert result["source_artifacts"] == str(Path(".local/live-artifacts"))
+    assert fingerprints[:2] == ["delivery_live", "delivery_live"]
+    assert len(fingerprints) == 3
+    assert "--dbname=delivery_live" in postgres.calls[0]
+    assert all("--dbname=delivery" not in call for call in postgres.calls)
+    copied = tmp_path / result["backup_directory"] / "artifacts"
+    assert ArtifactStore(copied).get(digest) == b"owned live delivery evidence"
+    assert result["disposable_database_removed"] and not postgres.created
+
+
+@pytest.mark.parametrize("source", ["outside", ".local", ".local/backups", ".local/backups/old"])
+async def test_backup_refuses_unsupported_artifact_source_before_docker(
+    tmp_path, source, monkeypatch
+):
+    (tmp_path / source).mkdir(parents=True, exist_ok=True)
+
+    async def unexpected(*args):
+        pytest.fail("Docker called before artifact source validation")
+
+    monkeypatch.setattr(LocalPostgres, "locate", unexpected)
+    with pytest.raises(BackupError, match="outside backups"):
+        await backup(tmp_path, artifact_root=Path(source))
 
 
 @pytest.mark.parametrize(

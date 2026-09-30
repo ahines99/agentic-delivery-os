@@ -355,6 +355,8 @@ allowlisted `invalid_request_error` and billing/credit indicator. It retains its
 20,200-microdollar reservation in the same program. This indicates an account-level
 availability problem; it does not establish exact billing, a zero charge for either
 failed call, or the original historical response's message. No additional paid calls
-were issued. The owner was asked to restore provider billing. Both candidates remain
+were issued before the owner restored billing. A new owned diagnostic then passed
+with HTTP 200, 1,565 settled microdollars and zero reservation; its account closed.
+That success does not settle or authorize retry of the earlier failed calls. Both candidates remain
 in the same development repository family; no new corpus split or sealed-phase access
 is implied.

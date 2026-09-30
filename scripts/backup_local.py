@@ -26,6 +26,14 @@ class BackupError(RuntimeError):
     pass
 
 
+def validate_source_name(name: str) -> str:
+    if not re.fullmatch(r"delivery(?:_[a-z0-9_]{1,54})?", name) or name.startswith(
+        "delivery_restore_"
+    ):
+        raise BackupError("Expected a named local delivery source database")
+    return name
+
+
 def validate_restore_name(name: str) -> str:
     if not re.fullmatch(r"delivery_restore_[a-f0-9]{32}", name):
         raise BackupError("Invalid disposable restore database name")
@@ -120,13 +128,17 @@ async def command(
 
 
 class LocalPostgres:
-    def __init__(self, executable: str, container: str) -> None:
+    def __init__(
+        self, executable: str, container: str, source_database: str = SOURCE_DATABASE
+    ) -> None:
         if not re.fullmatch(r"[a-f0-9]{64}", container):
             raise BackupError("A full resolved container ID is required")
         self.executable, self.container = executable, container
+        self.source_database = validate_source_name(source_database)
 
     @classmethod
-    async def locate(cls) -> "LocalPostgres":
+    async def locate(cls, source_database: str = SOURCE_DATABASE) -> "LocalPostgres":
+        validate_source_name(source_database)
         binary = docker_executable()
         ids = (
             (
@@ -158,7 +170,7 @@ class LocalPostgres:
             or info["State"]["Running"] is not True
         ):
             raise BackupError("PostgreSQL container ownership verification failed")
-        return cls(binary, ids[0])
+        return cls(binary, ids[0], source_database)
 
     async def exec(
         self,
@@ -176,7 +188,7 @@ class LocalPostgres:
         )
 
     async def query(self, database: str, sql: str) -> str:
-        if database != SOURCE_DATABASE:
+        if database != self.source_database:
             validate_restore_name(database)
         return (
             (
@@ -204,7 +216,7 @@ class LocalPostgres:
         validate_restore_name(database)
         return (
             await self.query(
-                SOURCE_DATABASE,
+                self.source_database,
                 f"SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname='{database}')",
             )
             == "t"
@@ -310,7 +322,13 @@ def file_digest(path: Path) -> str:
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
-async def backup(workspace: Path) -> dict[str, Any]:
+async def backup(
+    workspace: Path,
+    *,
+    source_database: str = SOURCE_DATABASE,
+    artifact_root: Path = Path(".local/artifacts"),
+) -> dict[str, Any]:
+    validate_source_name(source_database)
     workspace = workspace.resolve(strict=True)
     local = workspace / ".local"
     if local.is_symlink() or local.is_junction():
@@ -318,8 +336,18 @@ async def backup(workspace: Path) -> dict[str, Any]:
     root = local / "backups"
     if root.is_symlink() or root.is_junction():
         raise BackupError("Backup directory must not be a link")
+    source = workspace / artifact_root
+    if source.is_symlink() or source.is_junction():
+        raise BackupError("Artifact source must not be a link")
+    source = source.resolve(strict=True)
+    if (
+        not source.is_relative_to(local.resolve())
+        or source == local.resolve()
+        or source.is_relative_to(root.resolve())
+    ):
+        raise BackupError("Artifact source must be a local state directory outside backups")
     root.mkdir(parents=True, exist_ok=True)
-    postgres = await LocalPostgres.locate()
+    postgres = await LocalPostgres.locate(source_database)
     created_at = datetime.now(UTC)
     directory = root / (created_at.strftime("%Y%m%dT%H%M%SZ-") + uuid4().hex)
     directory.mkdir()
@@ -330,17 +358,18 @@ async def backup(workspace: Path) -> dict[str, Any]:
         "project": PROJECT,
         "service": "postgres",
         "container_id": postgres.container,
-        "source_database": SOURCE_DATABASE,
+        "source_database": source_database,
+        "source_artifacts": str(source.relative_to(workspace)),
         "quiescence": "Operator confirmed; not automatically established",
     }
     try:
-        before = await postgres.fingerprint(SOURCE_DATABASE)
+        before = await postgres.fingerprint(source_database)
         dump = directory / "delivery.pgdump"
         await postgres.exec(
             "pg_dump",
             "-U",
             ROLE,
-            "--dbname=" + SOURCE_DATABASE,
+            "--dbname=" + source_database,
             "--format=custom",
             "--no-owner",
             "--no-privileges",
@@ -354,13 +383,13 @@ async def backup(workspace: Path) -> dict[str, Any]:
             "bytes": dump.stat().st_size,
             "sha256": file_digest(dump),
         }
-        records = copy_artifacts(local / "artifacts", directory / "artifacts")
+        records = copy_artifacts(source, directory / "artifacts")
         manifest["artifacts"] = {
             "count": len(records),
             "bytes": sum(item["bytes"] for item in records),
             "files": records,
         }
-        after = await postgres.fingerprint(SOURCE_DATABASE)
+        after = await postgres.fingerprint(source_database)
         if before != after:
             raise BackupError("Source counts/revision changed; quiescence was not maintained")
         manifest["database"] = before
@@ -379,6 +408,8 @@ async def backup(workspace: Path) -> dict[str, Any]:
         )
     return {
         "status": manifest["status"],
+        "source_database": source_database,
+        "source_artifacts": manifest["source_artifacts"],
         "backup_directory": str(directory.relative_to(workspace)),
         "dump_sha256": manifest["database_dump"]["sha256"],
         "dump_bytes": manifest["database_dump"]["bytes"],
@@ -398,9 +429,22 @@ def main() -> int:
         required=True,
         help="Confirm API, workers, dispatcher and other writers are stopped",
     )
-    parser.parse_args()
+    parser.add_argument("--database", default=SOURCE_DATABASE, help="Local delivery database")
+    parser.add_argument("--artifact-root", type=Path, default=Path(".local/artifacts"))
+    args = parser.parse_args()
     try:
-        print(json.dumps(asyncio.run(backup(Path(__file__).resolve().parents[1])), indent=2))
+        print(
+            json.dumps(
+                asyncio.run(
+                    backup(
+                        Path(__file__).resolve().parents[1],
+                        source_database=args.database,
+                        artifact_root=args.artifact_root,
+                    )
+                ),
+                indent=2,
+            )
+        )
     except Exception as exc:
         print(
             json.dumps(

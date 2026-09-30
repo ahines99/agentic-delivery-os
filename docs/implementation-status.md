@@ -19,6 +19,15 @@ supervised restart; readiness returned and Linear polling advanced while both ex
 review handoffs remained persisted. [Full CI](https://github.com/ahines99/agentic-delivery-os/actions/runs/36724207546)
 for this change is in progress.
 
+Live backup follow-up (2026-09-30): the backup script now accepts an explicit local
+source database and artifact directory, so it can capture the installed `delivery_live`
+service instead of always selecting the development database. The 25 focused tests
+passed. An actual idle, quiescent drill captured a 103,687-byte dump and 347 artifacts
+(1,280,975 bytes), restored matching counts for all 12 tables and schema revision 0006
+in a disposable database, then verified its removal. The supervised service restarted;
+readiness returned and Linear polling advanced. See the [recorded drill](local-backup.md#installed-live-database-exercise).
+This does not establish Temporal or provider-state recovery.
+
 Planning cancellation follow-up (2026-09-30): the planning activity previously lacked
 the heartbeat/timeout pair required for Temporal cancellation delivery. An owned
 regression with actual Temporal/PostgreSQL and a held controlled model transport
@@ -57,8 +66,10 @@ The later planning-cancellation change is tracked separately above.
 Provider availability at 2026-09-30 13:59 UTC: the next historical review and one
 owned diagnostic returned HTTP 400. The diagnostic recorded a billing/credit indicator;
 no raw provider message or historical contents were exposed. Both reservations remain
-unresolved and no retry was issued. Linear/GitHub polling remains available, but new
-model-backed delivery needs the configured Anthropic account's billing restored.
+unresolved and no historical retry was issued. After the owner restored billing, a
+new owned diagnostic passed with HTTP 200, 1,565 settled microdollars and no reservation.
+Model access and polling are available again; the earlier failed operations retain
+their unresolved accounting rather than being erased.
 
 Five historical development tasks have now completed qualification. The three qualified
 markdownify tasks passed a freshly ordered runtime matrix, two independent reviews

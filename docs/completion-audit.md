@@ -44,8 +44,9 @@ current development total to five. The next candidate completed its deterministi
 matrix but stopped at its first semantic request with HTTP 400 and no reported usage.
 An owned diagnostic returned the same status with a billing/credit indicator. Both
 reservations remain unresolved; no retry or admission was inferred. Provider billing
-restoration is now an external prerequisite for new model-backed delivery/evaluation.
-Polling and existing completed handoffs remain available. See the
+was subsequently restored by the owner; a new owned diagnostic passed with HTTP 200,
+1,565 settled microdollars and zero reservation. Earlier failed-call reservations remain
+unresolved. Polling and existing completed handoffs remain available. See the
 [attempt record](historical-development-attempts.md#further-preselected-development-qualifications-2026-09-30).
 
 ## Meaning of status

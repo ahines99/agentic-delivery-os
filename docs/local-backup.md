@@ -14,6 +14,20 @@ the operator's confirmation; the script cannot establish quiescence automaticall
 .venv/Scripts/python.exe scripts/backup_local.py --quiescent
 ```
 
+For the installed live service, select its database explicitly:
+
+```powershell
+.venv/Scripts/python.exe scripts/backup_local.py --quiescent --database delivery_live --artifact-root .local/artifacts
+```
+
+Use the database name and artifact directory from the intended local configuration.
+The database must be `delivery` or a `delivery_`-prefixed name; system databases and
+disposable restore names are rejected. The artifact source must resolve beneath this
+workspace's `.local`, outside `.local/backups`. The manifest records both selected
+sources. These arguments select data in the verified local Compose container; they
+do not connect to a remote database. Stop the login supervisor as well as its child
+service processes during the drill, then restart the scheduled task afterward.
+
 The script resolves exactly one running container labelled Compose project `agentic-delivery`
 and service `postgres`, inspects those labels and its running state, and uses the resulting
 full container ID for every operation. It uses `docker exec` and the existing local PostgreSQL
@@ -21,7 +35,7 @@ role `delivery`; no password, connection URL, or container environment is printe
 
 It creates a unique directory under ignored `.local/backups/` containing:
 
-- `delivery.pgdump`, a PostgreSQL custom-format dump of database `delivery`.
+- `delivery.pgdump`, a PostgreSQL custom-format dump of the selected database (`delivery` by default).
 - `artifacts/`, with source and copied bytes checked against their content-addressed digests.
 - `manifest.json`, recording SHA-256 values, byte counts, artifact inventory, public-table
   row counts, Alembic revisions, container identity, and the drill result.
@@ -69,3 +83,19 @@ The local evidence directory is
 `.local/backups/20260928T034856Z-c229c0cc832c4234b7114ce5d1b688fa/`.
 Dump SHA-256: `7adfae557696c2f4845ca9eceb017878a508a520c1d2f5c8748511d0848eccab`.
 These counts describe that capture; subsequent development runs change the source database.
+
+## Installed live database exercise
+
+On 2026-09-30 at 14:05 UTC, the updated script backed up `delivery_live` and
+`.local/artifacts`. All nine workflows were terminal before the supervised service
+was stopped; a database check found no other sessions before the drill. The dump
+contained 103,687 bytes, and 347 artifacts totaled 1,280,975 bytes. Disposable restore
+matched all 12 public-table counts and schema revision `0006`; the created database
+was removed and its absence verified. The source database was not restored or changed.
+Afterward the login task restarted, API/database readiness returned, and the configured
+Linear cursor advanced. The focused backup suite passed 25 tests, including custom
+source selection, invalid source rejection and exact disposable cleanup.
+
+Private evidence: `.local/backups/20260930T140517Z-6b39346a1b3e459f964521d7bfe75a13/`.
+Dump SHA-256: `db8ef1d3d30b3b2ebc39a8a4752d3d3c9d2e1a913ea7f326b9c5541d223ac88b`.
+This remains a database/artifact drill; Temporal and provider recovery are separate.
