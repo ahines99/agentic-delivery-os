@@ -215,6 +215,31 @@ their configured local infrastructure estimates total 14 microdollars (1 + 9 + 4
 This is not an infrastructure invoice or complete acquisition/project cost. No numerical
 benchmark claim, historical admission, worker export or campaign score resulted.
 
+### Package-layout correction and completed deterministic matrix
+
+[ADR-029](adr/ADR-029-package-preserving-test-derivation.md) adds an explicit package
+profile, tested first with owned fixtures and an actual twelve-run Docker matrix.
+The historical package derivation then preserved the complete eligible test directory
+as 11 oracle files. Protected comparison proved the same source/accepted snapshots,
+production patch, accepted changed-test bytes and acceptance node selection as the
+retained failed attempt. Fresh linkage and data authorization bind the new layout.
+
+The first package run collected the acceptance test and reproduced its baseline failure
+three times. All 83 original regressions passed, but receipt validation correctly stopped
+because the private command generator also explicitly requested three support modules
+with no tests. The corrected controller names the exact same frozen 83 regression nodes;
+it changes no acceptance selection, oracle assertion, source file or regression identity.
+The intermediate failure and its ten settled infrastructure microdollars remain retained.
+
+Task `markdownify-pr264-issue244-development-v85` subsequently completed isolation preflight
+and all twelve checks: three baseline acceptance call failures, three reference acceptance
+successes, and all 83 original regressions passing in all three repetitions on both variants.
+The completed evidence was independently reread by the existing validator. Its digest is
+`e6c6b82d2320988b82468a7a4d3b225344f5312a9f4c40673370508e2869a0c4`.
+Thirteen infrastructure operations settled for 26 configured microdollars, with no
+reservation or model call. This is **DETERMINISTIC_CHECKS_PASSED_NOT_QUALIFIED**:
+current calibrated independent semantic reviews and admission are still required.
+
 A separate protected size inventory measured 120,147 bytes for the executable baseline,
 120,185 for the executable reference and 20,851 for the oracle under compact JSON encoding
 (261,183 combined). It emitted only counts and digests. This is a partial evidence-size
