@@ -4,6 +4,14 @@ Updated 2026-09-30 UTC during continued controlled implementation. This is the c
 the original milestone documents remain the release targets. Source code alone is not a passed
 integration or production release gate.
 
+[Operational diagnostics](operations-export.md#recorded-provider-and-cleanup-observations)
+now export counts of recorded model-provider errors/cancellation and the latest
+candidate-cleanup observation from the existing read-only database snapshot. Missing
+observations and UNKNOWN outcomes remain explicit; raw payloads are not selected.
+The diagnostic/lifecycle/export selection passed 55 tests with one Windows symlink
+skip, including actual PostgreSQL model-adapter fault outcomes. Ruff, format and
+mypy passed. This newest extension is not installed or fully regression-qualified.
+
 [Runtime qualification](runtime-budget-network-probes.md) now includes actual
 candidate wall-time expiry with persisted cleanup and no cancellation command,
 plus explicit DNS/IPv6/raw-socket denial. The four cancellation/runtime cases passed
@@ -25,9 +33,11 @@ and settled/unknown model costs from the existing read-only snapshot. The manual
 command allowlist defect is fixed without exporting decision payloads. The focused
 selection passed 34 tests with one Windows symlink skip, including actual PostgreSQL
 read-only/repeatable-read verification. Read-only measurements also succeeded for the
-existing PER-13/14 handoffs. Ruff, formatting and mypy passed. This change is not yet
-installed or fully regression-qualified; human benefit and other unmeasured outcomes
-remain explicit in the report.
+existing PER-13/14 handoffs. Ruff, formatting and mypy passed. Lifecycle/export source
+`d482c5b` subsequently passed complete hosted CI: 3,381 tests and 153 skips per Python
+version, all 156 service integration cases, builds and secret scanning. Its Windows
+run remains active and installation is pending. Human benefit and other unmeasured
+outcomes remain explicit in the report.
 
 [Correlated operation events](operation-events.md) now cover activity queue/active
 timing and model reservation, settlement, cache recovery and uncertainty using

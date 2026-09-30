@@ -102,6 +102,35 @@ historical evaluation results.
 Manual-review command dispositions are supported in both report versions. Their
 private decisions, comments and evidence payloads remain excluded.
 
+### Recorded provider and cleanup observations
+
+Version 2 also derives `model_provider_observations` and
+`candidate_cleanup_observation` inside the same read-only transaction. The queries
+select fixed JSON scalars, without retrieving model output, provider response IDs,
+returned model names, exception text or cleanup payloads. Version 1 is unchanged.
+
+Model counts distinguish recorded HTTP responses other than the adapter's accepted
+HTTP 200, transport errors, and local cancellation. `recorded_errors` sums the first
+two categories; cancellation stays separate. Each observation must match its stored
+workflow/operation identity and supported schema. `missing_observations` and
+`coverage_complete` describe coverage of the recorded model operations. Zero recorded
+errors with incomplete coverage does not establish an error-free run. These are
+model-adapter observations, not counts of GitHub/Linear errors or remote generations.
+They never settle usage, release reservations or authorize a retry.
+
+Cleanup reports the observation currently retained in the workflow projection:
+`CLEANED` requires `verified_absent: true`; `UNKNOWN` requires false. No observation
+becomes `NOT_RECORDED` with a null verification field. UNKNOWN does not establish an
+actual cleanup failure, and NOT_RECORDED does not establish successful cleanup.
+This is not a total count of all cleanup attempts and performs no cleanup itself.
+The broader unmeasured provider/cleanup outcomes remain explicit.
+
+SQLite exposes JSON booleans as integer scalars. The diagnostic query retains the
+JSON type so `true` cannot be accepted as schema version `1`, and an integer `1`
+cannot become a verified cleanup flag. PostgreSQL retains its native JSON types.
+Malformed or contradictory observations fail the version 2 export before output
+creation; arbitrary stored strings cannot enter error messages or the report.
+
 ## Consistency and limits
 
 SQLite is opened in read-only mode inside an explicit read transaction. PostgreSQL uses a
@@ -149,3 +178,13 @@ Both histories end at `HUMAN_REVIEW`, with complete role classification. These a
 two individual demonstrations, not benchmark averages or human acceptance evidence.
 The exporter was run separately against installed history; the metrics changes
 still require full-source CI and are not installed in the running service.
+
+The lifecycle/export source at `d482c5b` subsequently passed
+[complete hosted CI](https://github.com/ahines99/agentic-delivery-os/actions/runs/36760353617):
+3,381 tests and 153 skips on each Python version, all 156 service integration tests,
+builds and secret scanning. The later diagnostic observation extension passed
+**55 tests with one Windows symlink skip in 8.78 seconds**, including real
+PostgreSQL adapter success, HTTP failure, transport loss and cancellation. Those
+tests verify unchanged ledger state, retained unknown reservations, one HTTP
+operation and private-canary exclusion. Ruff, format and mypy passed. Its full-source
+verification and installation remain pending.

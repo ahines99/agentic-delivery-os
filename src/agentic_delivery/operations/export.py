@@ -200,7 +200,11 @@ def snapshot(connection: Connection, settings: Settings, identity: str) -> dict[
     }
 
 
-def export_metadata(settings: Settings, identity: str) -> dict[str, Any]:
+def export_metadata(
+    settings: Settings, identity: str, *, include_metrics: bool = False
+) -> dict[str, Any]:
+    if type(include_metrics) is not bool:
+        raise ValueError("Operational metrics selection must be explicit")
     if str(UUID(identity)) != identity:
         raise ValueError("Workflow identity must be a canonical UUID")
     url = make_url(settings.database_url)
@@ -218,6 +222,15 @@ def export_metadata(settings: Settings, identity: str) -> dict[str, Any]:
             else:
                 connection.exec_driver_sql("BEGIN")
             result = snapshot(connection, settings, identity)
+            if include_metrics:
+                from agentic_delivery.operations.diagnostics import diagnostic_metrics
+                from agentic_delivery.operations.metrics import workflow_metrics
+
+                result["metrics"] = {
+                    **workflow_metrics(result),
+                    **diagnostic_metrics(connection, identity, max_rows=MAX_ROWS),
+                }
+                result["schema_version"] = 2
             connection.rollback()
             return result
     finally:
@@ -286,12 +299,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         settings = load_settings(args.config)
         destination = safe_destination(args.output, args.config, settings)
-        result = export_metadata(settings, args.workflow_id)
-        if args.include_metrics:
-            from agentic_delivery.operations.metrics import workflow_metrics
-
-            result["metrics"] = workflow_metrics(result)
-            result["schema_version"] = 2
+        result = export_metadata(settings, args.workflow_id, include_metrics=args.include_metrics)
         raw = (json.dumps(result, indent=2, sort_keys=True, allow_nan=False) + "\n").encode()
         descriptor = os.open(
             destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600
