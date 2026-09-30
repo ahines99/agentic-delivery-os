@@ -7,6 +7,7 @@ from uuid import uuid4
 
 import httpx
 import pytest
+from program_fixtures import program_ledger
 from test_qualification import records
 
 from agentic_delivery.config import Budget, ModelConfig
@@ -18,7 +19,6 @@ from agentic_delivery.evaluation.calibration import (
     run_calibration,
     validate_calibration,
 )
-from agentic_delivery.evaluation.execution_store import EvaluationExecutionStore
 from agentic_delivery.evaluation.qualification_v2 import (
     ReviewOutputV2,
     assemble_review_context,
@@ -42,9 +42,7 @@ def frozen(tmp_path, monkeypatch):
     rubric = artifacts.put(
         b"Synthetic development calibration rubric; no actual semantic qualification."
     )
-    ledger = EvaluationExecutionStore(
-        f"sqlite+pysqlite:///{tmp_path / 'delivery_eval_calibration.db'}"
-    )
+    ledger = program_ledger(f"sqlite+pysqlite:///{tmp_path / 'delivery_eval_calibration.db'}")
 
     def make(
         provider="openai",
@@ -639,3 +637,46 @@ async def test_whitespace_normalization_never_bypasses_exact_artifact_or_prompt_
 def test_rubric_prompt_normalization_preserves_raw_size_and_nonempty_checks(raw):
     with pytest.raises(ValueError):
         qualifier_prompt(raw)
+
+
+@pytest.mark.parametrize("fault", ["missing-registry", "legacy-ledger", "revoked", "capacity"])
+async def test_program_admission_precedes_calibration_account_and_provider(frozen, tmp_path, fault):
+    from sqlalchemy import select
+
+    from agentic_delivery.evaluation.execution_store import EvaluationExecutionStore, accounts
+
+    case, calls = frozen(), []
+    ledger = case["ledger"]
+    temporary = None
+    if fault == "missing-registry":
+        ledger.program_budget = None
+    elif fault == "legacy-ledger":
+        temporary = EvaluationExecutionStore(
+            f"sqlite+pysqlite:///{tmp_path / 'delivery_eval_unenrolled.db'}"
+        )
+        case["ledger"] = temporary
+        ledger = temporary
+    elif fault == "revoked":
+
+        def denied():
+            raise ValueError("Owned program authorization revoked")
+
+        ledger.program_budget.current_guard = denied
+    else:
+        # Another preparation account already holds the entire program's finite capacity.
+        ledger.create_account("owned-other-preparation", Budget(model_microdollars=1_000_000_000))
+    try:
+        async with adapter(case, calls) as client:
+            with pytest.raises(CalibrationFailure):
+                await run(case, client)
+        assert calls == []
+        with ledger.engine.connect() as connection:
+            assert (
+                connection.scalar(
+                    select(accounts.c.id).where(accounts.c.id == case["authorization"].account_id)
+                )
+                is None
+            )
+    finally:
+        if temporary is not None:
+            temporary.engine.dispose()

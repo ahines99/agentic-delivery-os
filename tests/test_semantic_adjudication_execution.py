@@ -552,3 +552,12 @@ def test_legacy_prompt_is_rejected_even_with_exact_matching_calibration_spec(thi
     with pytest.raises(adjudication.HistoricalAdjudicationFailure):
         c.execution._prompt(grant)
     assert not c.requests
+
+
+async def test_program_registry_required_before_existing_account_adjudication_call(third):
+    before = third.execution.ledger.account(third.state["grant"].account_id)
+    third.execution.ledger.program_budget = None
+    with pytest.raises(adjudication.HistoricalAdjudicationFailure):
+        await run(third)
+    assert third.requests == []
+    assert third.execution.ledger.account(third.state["grant"].account_id) == before

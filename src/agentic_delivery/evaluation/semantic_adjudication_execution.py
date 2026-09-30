@@ -661,6 +661,7 @@ async def run_semantic_adjudication(
             and isinstance(model, StructuredModel)
         )
         _require(model.store is execution.ledger and model.config == execution.config)
+        execution.ledger.require_program_enrollment()
         grant = HistoricalAdjudicationAuthorization.model_validate(
             execution.authorization_provider().model_dump(mode="json")
         )

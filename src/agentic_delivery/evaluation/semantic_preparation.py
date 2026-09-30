@@ -431,6 +431,7 @@ class OwnedSemanticRuntime:
         """Run exactly preflight/acceptance/regression or consume exact completed evidence."""
         try:
             grant, subject, files, binding_ref = self._inputs(request, active=True)
+            self.ledger.require_program_enrollment()
             self.ledger.create_account(
                 grant.account_id,
                 _budget(grant),

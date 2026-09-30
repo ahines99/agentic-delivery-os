@@ -10,6 +10,7 @@ from threading import Barrier
 from types import SimpleNamespace
 
 import pytest
+from program_fixtures import program_ledger
 from sqlalchemy import URL, func, select
 from test_campaign_scoring import campaign_scoring, campaign_seed, controlled_scoring  # noqa: F401
 
@@ -382,13 +383,13 @@ def test_policy_revoked_after_write_cannot_return_allocation(allocation_case, mo
 
 
 @pytest.mark.integration
-def test_concurrent_postgres_controllers_use_one_exact_owned_account(allocation_case):
+def test_concurrent_postgres_controllers_use_one_exact_owned_account(allocation_case, tmp_path):
     # Caller provisions an isolated owned ledger DB. Never create/drop databases here.
     url = os.environ.get("TEST_CAMPAIGN_ALLOCATION_POSTGRES_URL")
     if not url:
         pytest.skip("Dedicated owned PostgreSQL allocation database not configured")
     c = allocation_case
-    ledger = EvaluationExecutionStore(url)
+    ledger = program_ledger(url, registry_path=tmp_path / "delivery_eval_program_allocation.sqlite")
     try:
         c.state["policy"] = c.state["policy"].model_copy(
             update={"ledger_identity": ledger_target_identity(ledger)}

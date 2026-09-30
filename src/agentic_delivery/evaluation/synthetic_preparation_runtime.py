@@ -270,6 +270,7 @@ async def run_synthetic_preparation(
         for case in plan.cases:
             guard()
             grant = case.runtime_authorization
+            ledger.require_program_enrollment()
             ledger.create_account(
                 grant.account_id,
                 grant.budget,

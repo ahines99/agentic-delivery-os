@@ -177,6 +177,7 @@ class CampaignCandidateExecution:
         task = HistoricalTask.model_validate(task.model_dump(mode="json"))
         allocator, model = self.allocator, self.model
         ledger, artifacts = allocator.ledger, allocator.output_artifacts
+        ledger.require_program_enrollment()
         allocation = allocator.validate(task)
         grant = CandidateAuthorization.model_validate(
             self.authorization_provider().model_dump(mode="json")

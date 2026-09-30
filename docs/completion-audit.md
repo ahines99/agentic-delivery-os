@@ -1336,3 +1336,48 @@ mode, preserve partial states, forbid result/checkpoint reads and mutation, and 
 database cleanup. Overlapping counts are not summed. Ruff/format (368 files), mypy (116
 sources), and package builds passed. Exact-head hosted CI and independent review remain open.
 No live historical ledger enrollment, paid call, grant renewal or release gate pass is claimed.
+
+
+E156: [Hosted CI at `7d98508`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36646987961)
+passed all four jobs. Python 3.12 passed 2,923 tests with 91 explicit skips in 1,452.29 seconds;
+Python 3.13 passed the same counts in 1,332.52 seconds. Actual PostgreSQL/Temporal/Docker
+integration passed 91 tests in 216.21 seconds; secret scanning passed. This verifies the
+prospective program registry. The original Windows suite at the unchanged same revision lost
+its process handle and had no surviving pytest process; its retained log stopped at 78% with
+no terminal summary. That invocation is incomplete, not passed. The root checkout was then
+fast-forwarded to reconciliation commit `07e0212`, which was pushed only after hosted CI
+finished. Its exact-head CI is separate.
+
+
+E157: [Required evaluation program enrollment](adr/ADR-021-required-evaluation-program-enrollment.md)
+adds actual registry/binding/target checks at all nine account-creation paths and the four
+existing-account execution paths. Both semantic calibration runners check before choosing
+new or resumed plans; checking only account creation would leave an unenrolled resume path.
+Existing per-call ACTIVE/OPEN checks, grants, deadlines and data permissions remain required.
+Generic legacy ledger behavior and completed-evidence readers remain available. No legacy
+migration, live execution authority, historical cost incorporation or promotion is supplied.
+
+Eight focused checks passed in 11.55 seconds (131 deselected), covering actual admission,
+legacy and missing-registry refusal, revoked permission, shared capacity exhaustion before
+calibration account/provider creation, and existing semantic/adjudication accounts. Four more
+checks passed in 46.26 seconds (177 deselected): candidate and deterministic scoring execution
+refusal before effects, and both completed calibration readers remaining available without
+registry access while execution resume is denied. The real PostgreSQL registry/allocation
+scope passed all 63 tests in 16.56 seconds, including concurrent controllers and both campaign
+protocols. Owned temporary databases were removed and absence verified. The 13-module execution
+regression scope then passed 453 tests with 12 explicit service-dependent skips in 1,482.44
+seconds. Its PostgreSQL allocation skip is covered by the separate 63-test run; the eleven
+Docker cases still require exact-head service-enabled verification. Production source was
+unchanged during that run. Four subsequently added candidate/scoring/inspection tests are the
+separate four-pass scope above. Ruff/format (370 files), mypy (116 sources), package builds
+and documentation-link checks passed. These overlapping scopes do not prove the full release.
+
+Retained verification failures: the first broad fixture run had 156 failures, four passes,
+eight skips and 291 setup errors in 28.44 seconds because the new owned registry helper used
+a filename outside the registry's required prefix. Correcting that fixture did not relax the
+production rule. A later partial run lost its process handle without a terminal result. The
+first PostgreSQL harness imported the root checkout rather than the isolated changed source,
+producing 61 passes and two missing-method failures in 16.64 seconds. The corrected invocation
+pins PYTHONPATH and asserts the loaded module path before running; its 63-pass result above
+covers the changed source. Neither earlier invocation is substituted for a passing new-source
+result. No paid request or historical payload was involved.

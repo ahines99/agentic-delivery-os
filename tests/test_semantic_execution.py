@@ -619,3 +619,13 @@ async def test_concrete_calibration_wrapper_reads_actual_owned_broker_chain(cali
     with pytest.raises(ValueError):
         authority.validate(case.model.config)
     assert len(case.requests) == 5
+
+
+async def test_program_registry_required_before_existing_account_semantic_call(executed):
+    e = executed
+    before = e.case.ledger.account(e.case.attempt.account_id)
+    e.case.ledger.program_budget = None
+    with pytest.raises(semantic.SemanticExecutionFailure):
+        await run(e)
+    assert e.requests == []
+    assert e.case.ledger.account(e.case.attempt.account_id) == before

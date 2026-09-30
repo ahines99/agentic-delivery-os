@@ -157,6 +157,7 @@ async def _run(
     deadline = min(
         runtime.expires_at, runtime.issued_at + timedelta(seconds=runtime.budget.wall_seconds)
     )
+    ledger.require_program_enrollment()
     ledger.create_account(
         runtime.account_id,
         runtime.budget,

@@ -4,12 +4,12 @@ import asyncio
 from datetime import UTC, datetime, timedelta
 
 import pytest
+from program_fixtures import program_ledger
 from pydantic import ValidationError
 from test_synthetic_examples import RIGHTS_SAMPLE
 
 from agentic_delivery.config import Budget, RepositoryConfig, Settings
 from agentic_delivery.evaluation import qualification_runtime
-from agentic_delivery.evaluation.execution_store import EvaluationExecutionStore
 from agentic_delivery.evaluation.qualification import EvidenceSummary
 from agentic_delivery.evaluation.qualification_inputs import ELIGIBILITY
 from agentic_delivery.evaluation.qualification_preparation import PreparationPolicy
@@ -42,7 +42,7 @@ def batch(tmp_path, monkeypatch):
     protected, output = ArtifactStore(tmp_path / "protected"), ArtifactStore(tmp_path / "output")
     worker = tmp_path / "worker"
     worker.mkdir()
-    ledger = EvaluationExecutionStore(f"sqlite+pysqlite:///{tmp_path / 'delivery_eval_five.db'}")
+    ledger = program_ledger(f"sqlite+pysqlite:///{tmp_path / 'delivery_eval_five.db'}")
     examples = build_synthetic_examples(
         repository="project/authored-toys", rights_text=RIGHTS_SAMPLE
     )

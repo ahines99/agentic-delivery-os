@@ -7,6 +7,7 @@ from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
 import pytest
+from program_fixtures import program_ledger
 from pydantic import ValidationError
 from sqlalchemy import update
 from test_evaluation_campaign import corpus_seed as original_corpus_seed
@@ -121,9 +122,7 @@ def campaign_scoring(campaign_seed, tmp_path, monkeypatch, request):
     monkeypatch.setattr(qualification_runtime, "POLL_SECONDS", 0.01)
     frozen_store = ArtifactStore(tmp_path / "campaign")
     output = ArtifactStore(tmp_path / "output")
-    ledger = EvaluationExecutionStore(
-        f"sqlite+pysqlite:///{tmp_path / 'delivery_eval_campaign.db'}"
-    )
+    ledger = program_ledger(f"sqlite+pysqlite:///{tmp_path / 'delivery_eval_campaign.db'}")
     authority = object.__new__(QualificationAuthority)
     frozen, frozen_ref = freeze_execution_campaign(
         tasks, specification, protected, frozen_store, authority=authority
@@ -794,3 +793,21 @@ async def test_rehashed_receipts_must_keep_nonce_and_chronology(controlled_scori
             execution=case.create(),
             output_artifacts=case.output,
         )
+
+
+async def test_existing_attempt_needs_program_registry_before_scoring_runner(controlled_scoring):
+    case = controlled_scoring
+    execution = initialize(case)
+    before = case.ledger.account(case.attempt.account_id)
+    case.ledger.program_budget = None
+    called = False
+
+    async def forbidden(operation):
+        nonlocal called
+        called = True
+        raise AssertionError("Unenrolled execution reached runner")
+
+    with pytest.raises(ScoringFailure):
+        await execution.run_operation("preflight", forbidden)
+    assert not called and case.calls == []
+    assert case.ledger.account(case.attempt.account_id) == before

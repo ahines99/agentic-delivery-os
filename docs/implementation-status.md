@@ -1,11 +1,11 @@
 # Implementation and verification status
 
-Updated 2026-09-29 UTC during continued controlled implementation. This is the current capability record;
+Updated 2026-09-30 UTC during continued controlled implementation. This is the current capability record;
 the original milestone documents remain the release targets. Source code alone is not a passed
 integration or production release gate.
 
-Latest complete hosted verification: [CI at `503ed5e`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36644080109)
-passed both Python versions (2,900 tests and 90 explicit skips each), 90 actual service
+Latest complete hosted verification: [CI at `7d98508`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36646987961)
+passed both Python versions (2,923 tests and 91 explicit skips each), 91 actual service
 integration tests and secret scanning. This includes the [campaign journal](campaign-journal.md),
 [completed semantic reader](semantic-consumption.md) and [whole-attempt reader](completed-attempt-reporting.md).
 They reconstruct original outcomes, early failures and optional exact adjudication under
@@ -40,7 +40,12 @@ require an active envelope; irreversible local closure and concrete settled-cost
 capacity release. Partial creation/closure and unknown usage retain their liability. Legacy
 ledgers remain unchanged. All 131 registry/accounting/allocation checks passed with real
 PostgreSQL, including campaign allocator admission under both protocols. Historical liability
-incorporation, mandatory campaign enrollment and complete program-cost promotion remain open.
+incorporation and complete program-cost promotion remain open. Supported execution entry points
+now require enrollment under [ADR-021](adr/ADR-021-required-evaluation-program-enrollment.md),
+including existing-account stages and resumed calibration. Legacy evidence inspection stays
+separate. Focused denial/resume checks and 63 registry/allocation tests with real PostgreSQL
+passed. The 13-module execution regression scope passed 453 tests with 12 explicit service
+skips; exact-head hosted verification and remaining Docker checks are still required.
 
 A [program accounting reader](program-accounting.md) now reconciles registry envelopes
 with complete concrete ledger snapshots and local lifecycle markers, under separate full-scope
@@ -64,8 +69,8 @@ successful/failed scoring and exact adjudication. Three existing execution/consu
 also passed. It does not attest complete program-ledger coverage or supply numerical,
 statistical, operational or pilot promotion. The hosted result above includes this report.
 This hosted result includes the whole-ledger census, prospective phase statistics and
-requirement inventory and criterion judgments. Later program-budget and reconciliation
-changes require their own exact-head hosted verification.
+requirement inventory, criterion judgments and prospective program budgets. Later reconciliation
+and required execution-entry enrollment changes need their own exact-head hosted verification.
 
 Prospective [phase statistics](adr/ADR-019-prospective-phase-statistics.md) now pin the bootstrap
 method and campaign seed before execution. The version-2 completed-attempt reader exposes

@@ -54,6 +54,14 @@ imported or dropped; incorporating their retained liabilities is unfinished rele
 
 ## Verification
 
+[ADR-021](adr/ADR-021-required-evaluation-program-enrollment.md) now requires concrete current
+enrollment at supported evaluation execution entry points, including resume paths and stages
+that reuse an account. Configure the intended registry when constructing every preparation,
+calibration and campaign ledger. Legacy ledgers and handles without a registry remain usable
+by completed-evidence readers; they cannot enter these execution paths. The check does not
+create a registry or grant. Account creation still competes for full program capacity, and
+new reservations still require ACTIVE/OPEN state. Historical liabilities remain separate work.
+
 Owned tests exercise actual SQLite ledgers/registries and a disposable real PostgreSQL
 ledger. They cover concurrent cross-ledger admission, full retained uncertainty, local
 insert/activation/closure failures, exact recovery, forged or open closure requests,

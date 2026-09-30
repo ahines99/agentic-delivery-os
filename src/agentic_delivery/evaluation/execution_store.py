@@ -450,6 +450,18 @@ class EvaluationExecutionStore:
             raise EvaluationConflict("Program account is closed to new reservations")
         registry.require_active(target, nonce, account["id"], account["budget"])
 
+    def require_program_enrollment(self) -> None:
+        """Require concrete current enrollment before an evaluation execution entry point.
+
+        This grants no execution permission and does not enroll or migrate a legacy ledger.
+        Existing snapshot/receipt readers remain independent of this admission check.
+        """
+        with self._transaction() as connection:
+            registry, target, nonce = self._program(connection)
+            snapshot = registry.snapshot()
+            if snapshot.target_nonces.get(target) != nonce:
+                raise EvaluationConflict("Current program target enrollment is unavailable")
+
     def close_program_account(self, account_id: str) -> None:
         """Close new reservations locally before releasing any unused global envelope."""
         _identity(account_id)

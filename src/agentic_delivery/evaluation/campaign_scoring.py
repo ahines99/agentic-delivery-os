@@ -605,6 +605,7 @@ class CampaignScoringExecution:
         self, stage: Stage, work: Callable[[str], Awaitable[dict[str, Any]]]
     ) -> dict[str, Any]:
         try:
+            self.ledger.require_program_enrollment()
             _require(stage in STAGES and self._context is not None)
             assert self._context is not None
             context = self._context

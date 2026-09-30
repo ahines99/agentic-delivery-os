@@ -600,6 +600,7 @@ async def _run(
         _ledger_scope(live, ledger, worker_root)
 
     guard()
+    ledger.require_program_enrollment()
     ledger.create_account(
         grant.account_id,
         grant.budget,

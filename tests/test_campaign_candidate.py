@@ -695,3 +695,13 @@ async def test_cached_model_receipt_rates_must_match_frozen_configuration(candid
         is None
     )
     await c.client.aclose()
+
+
+async def test_existing_attempt_needs_program_registry_before_builder_or_runner(candidate_case):
+    c = candidate_case
+    before = c.case.ledger.account(c.allocation.account_id)
+    c.case.ledger.program_budget = None
+    with pytest.raises(candidate.CandidateFailure):
+        await c.create().run(c.case.task)
+    assert c.state["calls"] == [] and c.state["docker"] == []
+    assert c.case.ledger.account(c.allocation.account_id) == before

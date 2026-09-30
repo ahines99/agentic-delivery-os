@@ -7,6 +7,7 @@ import shutil
 from datetime import UTC, datetime, timedelta
 
 import pytest
+from program_fixtures import program_ledger
 from test_qualification_preparation import IMAGE, NOW, synthetic  # noqa: F401
 
 from agentic_delivery.evaluation import qualification_runtime as runtime
@@ -119,9 +120,7 @@ def setup(synthetic, tmp_path):  # noqa: F811
             "authorization": authorization,
             "now": issued_at,
         }
-        ledger = EvaluationExecutionStore(
-            f"sqlite+pysqlite:///{tmp_path / 'delivery_eval_runtime.db'}"
-        )
+        ledger = program_ledger(f"sqlite+pysqlite:///{tmp_path / 'delivery_eval_runtime.db'}")
         stores.append(ledger)
         return (
             request,

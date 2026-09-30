@@ -727,6 +727,7 @@ async def run_adjudication_calibration(
 ) -> str:
     """At most five immutable provider operations; uncertain operations never get new aliases."""
     try:
+        ledger.require_program_enrollment()
         _require(isinstance(model, StructuredModel) and model.store is ledger)
         config = ModelConfig.model_validate(model.config.model_dump(mode="json"))
         grant = AdjudicationCalibrationAuthorization.model_validate(

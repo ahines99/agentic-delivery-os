@@ -507,6 +507,7 @@ async def run_calibration(
         now = clock()
         _authorization(authorization, policy, spec_artifact, model.config, now)
         spec, prompt, templates = _load_spec(artifacts, spec_artifact, model.config, policy)
+        ledger.require_program_enrollment()
         ledger.create_account(authorization.account_id, authorization.budget)
         authorization_artifact = _put(artifacts, authorization)
         checkpoint = ledger.checkpoint_receipt(authorization.account_id, "calibration-plan")

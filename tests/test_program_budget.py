@@ -455,3 +455,37 @@ def test_actual_postgres_program_ledger_and_shared_sqlite_registry(tmp_path):
                     text("SELECT 1 FROM pg_database WHERE datname=:name"), {"name": name}
                 )
         admin.dispose()
+
+
+def test_execution_enrollment_is_read_only_and_requires_current_matching_registry(case):
+    store = case.stores[0]
+    before = case.registry.snapshot()
+    store.require_program_enrollment()
+    assert case.registry.snapshot() == before
+    with store.engine.connect() as connection:
+        assert connection.execute(accounts.select()).all() == []
+    reader = EvaluationExecutionStore(case.urls[0])
+    try:
+        with pytest.raises(EvaluationConflict):
+            reader.require_program_enrollment()
+    finally:
+        reader.engine.dispose()
+    case.state["allowed"] = False
+    with pytest.raises(ValueError):
+        store.require_program_enrollment()
+
+
+def test_legacy_ledger_cannot_admit_program_execution_but_metadata_is_preserved(tmp_path):
+    path = tmp_path / "delivery_eval_legacy_admission.sqlite"
+    store = EvaluationExecutionStore(f"sqlite+pysqlite:///{path}")
+    try:
+        store.create_account("legacy", budget())
+        settle(store, account="legacy")
+        before = path.read_bytes()
+        with pytest.raises(EvaluationConflict):
+            store.require_program_enrollment()
+        assert path.read_bytes() == before
+        assert store.account("legacy")["spent_microdollars"] == 30
+        assert store.operation_receipt("legacy", "op")["actual_microdollars"] == 30
+    finally:
+        store.engine.dispose()

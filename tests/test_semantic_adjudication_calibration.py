@@ -10,6 +10,7 @@ from uuid import uuid4
 
 import httpx
 import pytest
+from program_fixtures import program_ledger
 from sqlalchemy import delete, select, update
 from test_semantic_owned_adjudication import output_for
 from test_semantic_owned_context import context_authority
@@ -18,7 +19,6 @@ from test_semantic_preparation import setup  # noqa: F401
 from agentic_delivery.config import Budget, ModelConfig
 from agentic_delivery.evaluation import semantic_adjudication_calibration as calibration
 from agentic_delivery.evaluation.execution_store import (
-    EvaluationExecutionStore,
     accounts,
     checkpoints,
     operations,
@@ -54,7 +54,7 @@ async def build(setup, tmp_path, monkeypatch):
         root = tmp_path / uuid4().hex
         artifacts = ArtifactStore(root / "artifacts")
         expectations = ArtifactStore(root / "expectations")
-        ledger = EvaluationExecutionStore(f"sqlite+pysqlite:///{root / 'delivery_eval_scoring.db'}")
+        ledger = program_ledger(f"sqlite+pysqlite:///{root / 'delivery_eval_scoring.db'}")
         authorities, fixtures, cases = {}, [], []
         examples = author_adjudication_examples()
         for index, example in enumerate(examples):
@@ -753,3 +753,17 @@ async def test_allowlist_revocation_during_final_context_read_denies_consumption
         else:
             await run(case)
     assert len(case.requests) == (5 if phase == "completed_read" else 0)
+
+
+async def test_completed_inspection_remains_available_without_execution_registry(build):
+    case = await build()
+    ref = await run(case)
+    original = validate(case, ref)
+    before = case.ledger.account(case.state["grant"].account_id)
+    requests = len(case.requests)
+    case.ledger.program_budget = None
+    assert validate(case, ref) == original
+    with pytest.raises(calibration.AdjudicationCalibrationFailure):
+        await run(case)
+    assert len(case.requests) == requests
+    assert case.ledger.account(case.state["grant"].account_id) == before

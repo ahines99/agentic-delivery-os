@@ -8,12 +8,12 @@ from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
+from program_fixtures import program_ledger
 from sqlalchemy import select, update
 
 from agentic_delivery.evaluation import qualification_runtime
 from agentic_delivery.evaluation import semantic_preparation as runtime
 from agentic_delivery.evaluation.execution_store import (
-    EvaluationExecutionStore,
     accounts,
     checkpoints,
     operations,
@@ -113,7 +113,7 @@ def setup(tmp_path, monkeypatch):
             expires_at=now + timedelta(hours=2),
         )
         state = {"grant": grant, "policy": policy, "now": None}
-        ledger = EvaluationExecutionStore(f"sqlite+pysqlite:///{root / 'delivery_eval_owned.db'}")
+        ledger = program_ledger(f"sqlite+pysqlite:///{root / 'delivery_eval_owned.db'}")
         ledgers.append(ledger)
         driver = runtime.OwnedSemanticRuntime(
             subject_artifacts=subjects,

@@ -142,6 +142,12 @@ call. Defaults and evaluation-specific ceilings live in the
 infrastructure usage and rate-table version separately. Missing pricing cannot become zero
 cost. Human waiting is reported separately from active execution time.
 
+[ADR-021](adr/ADR-021-required-evaluation-program-enrollment.md) requires a concrete enrolled
+ledger and current matching program registry at evaluation preparation, calibration and
+campaign execution entry points, including resumed work. Historical receipt inspection remains
+separate; this does not migrate old ledgers or renew their execution authority. Incorporating
+historical liabilities is still required before claiming a complete program spending limit.
+
 Use trace/workflow/attempt/operation IDs across structured logs and metrics. Redact secrets
 before export. Track queue/active/human-wait latency, cost per attempted and accepted task,
 false-ready results, correction count, clarification, cancellations, cleanup failures,

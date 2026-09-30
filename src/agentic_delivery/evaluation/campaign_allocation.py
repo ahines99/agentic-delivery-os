@@ -376,6 +376,7 @@ class CampaignAllocator:
             task = HistoricalTask.model_validate(task.model_dump(mode="json"))
             inputs = self._inputs(task)
             arm, grant = inputs.arm, inputs.grant
+            self.ledger.require_program_enrollment()
             self.ledger.create_account(
                 canonical_account_id(grant.campaign_artifact, grant.ordinal),
                 Budget(**{key: getattr(arm.limits, key) for key in Budget.model_fields}),

@@ -9,6 +9,7 @@ from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
 import pytest
+from program_fixtures import program_ledger
 from test_evaluation_campaign import corpus as campaign_corpus
 from test_evaluation_campaign import corpus_seed as campaign_corpus_seed
 
@@ -24,7 +25,6 @@ from agentic_delivery.evaluation.campaign_journal import (
     PreparationAccountIdentity,
     ProviderCaseIdentity,
 )
-from agentic_delivery.evaluation.execution_store import EvaluationExecutionStore
 from agentic_delivery.storage.store import digest_json
 
 
@@ -39,9 +39,7 @@ def case(corpus_seed, tmp_path, monkeypatch):
     campaign, reference = freeze_execution_campaign(
         tasks, spec, protected, output, authority=protected._test_campaign_authority
     )
-    ledger = EvaluationExecutionStore(
-        "sqlite:///" + (tmp_path / "delivery_eval_usage.sqlite").as_posix()
-    )
+    ledger = program_ledger("sqlite:///" + (tmp_path / "delivery_eval_usage.sqlite").as_posix())
     clock = [datetime(2026, 9, 29, 12, tzinfo=UTC)]
     journal = CampaignJournal(
         tmp_path / "journal.sqlite", execution_ledger=ledger, clock=lambda: clock[0]

@@ -5,10 +5,10 @@ from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
 import pytest
+from program_fixtures import program_ledger
 from test_qualification_preparation import synthetic  # noqa: F401
 
 from agentic_delivery.evaluation import qualification_runtime
-from agentic_delivery.evaluation.execution_store import EvaluationExecutionStore
 from agentic_delivery.evaluation.harness import HistoricalTask
 from agentic_delivery.evaluation.qualification import qualification_task_digest
 from agentic_delivery.evaluation.qualification_admission import QualificationAuthority
@@ -32,7 +32,7 @@ def scoring(synthetic, tmp_path, monkeypatch):  # noqa: F811
     )
     task = HistoricalTask.model_validate(document)
     candidate = {"app.py": "VALUE = 3\n"}
-    ledger = EvaluationExecutionStore(f"sqlite+pysqlite:///{tmp_path / 'delivery_eval_score.db'}")
+    ledger = program_ledger(f"sqlite+pysqlite:///{tmp_path / 'delivery_eval_score.db'}")
     now = datetime.now(UTC)
     state = {
         "now": now,

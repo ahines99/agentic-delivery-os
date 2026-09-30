@@ -149,6 +149,7 @@ class ScoringExecution:
                 self._context is None or self._context.binding_digest == context.binding_digest
             )
             self._guard(context)
+            self.ledger.require_program_enrollment()
             self.ledger.create_account(
                 grant.account_id,
                 grant.budget,
