@@ -7,6 +7,8 @@ name = "agentic-delivery-os"
 version = "0.1.0"
 description = "Governed agent-assisted delivery with independent verification and evidence"
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.12,<3.15"
 dependencies = [
   "fastapi>=0.115,<1",
@@ -41,7 +43,7 @@ packages = ["src/agentic_delivery"]
 [tool.hatch.build.targets.sdist]
 only-include = [
     "src", "tests", "docs", "demos", "evals", "infra", "scripts",
-    "README.md", "SECURITY.md", "AGENTS.md", "config.example.json",
+    "README.md", "LICENSE", "SECURITY.md", "AGENTS.md", "config.example.json",
     "compose.yaml", "uv.lock", ".env.example",
 ]
 
