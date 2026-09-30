@@ -4,6 +4,14 @@ Updated 2026-09-30 UTC during continued controlled implementation. This is the c
 the original milestone documents remain the release targets. Source code alone is not a passed
 integration or production release gate.
 
+[Correlated operation events](operation-events.md) now cover activity queue/active
+timing and model reservation, settlement, cache recovery and uncertainty using
+allowlisted identifiers/numbers. Real Temporal/PostgreSQL and model-fault selections
+passed, as did the broader 141-test model/service selection; Ruff, format and mypy
+passed. This newer logging change is not yet installed or fully regression-qualified.
+Durable records remain authoritative, and the complete lifecycle/quality metrics
+requirement remains open.
+
 The local service is now running `6b74944`, including attachment-response and terminal
 command redelivery recovery, manual acceptance and the
 worker-independent container lifetime. The [idle upgrade record](local-runtime-upgrade.md)

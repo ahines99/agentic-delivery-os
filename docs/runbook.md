@@ -278,6 +278,16 @@ refetches history and checks for concurrent changes. See [projection recovery](p
 for preconditions, refusal cases and the actual 11-test PostgreSQL/Temporal drill. This operation
 preserves financial/provider records and cannot resume a candidate or reconstruct a missing database.
 
+## Inspect correlated operation events
+
+The worker and combined runtime emit [allowlisted JSON operation events](operation-events.md)
+for activity timing and model reservation/settlement/recovery. Correlate by workflow
+UUID and operation ID. Activity completion is not ticket readiness; an UNKNOWN model
+event is not zero spend. Check the durable workflow and ledger before retrying.
+The stream is best-effort and only its named event schema is allowlisted; protect
+the surrounding private service log and use the bounded exporter below for sharing.
+Installation of this newer capability is tracked in [implementation status](implementation-status.md).
+
 ## Export bounded operational metadata
 
 Follow [operational export](operations-export.md) to select a new file in a private operator-owned

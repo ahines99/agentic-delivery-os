@@ -3,6 +3,7 @@
 import asyncio
 import hashlib
 import json
+import time
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, Literal, TypeVar
@@ -17,6 +18,7 @@ from agentic_delivery.integrations.model_receipts import (
     ProviderObservation,
     validate_operation_receipt,
 )
+from agentic_delivery.operations.events import event
 from agentic_delivery.storage.store import digest_json
 
 T = TypeVar("T", bound=BaseModel)
@@ -331,9 +333,20 @@ class StructuredModel:
                     raise ValueError("Settled operation changed while recovering output")
                 if any(getattr(recorded, name) != value for name, value in binding.items()):
                     raise ValueError("Request differs from its settled operation")
-                return output_type.model_validate(cached["output"])
+                recovered = output_type.model_validate(cached["output"])
+                event(workflow_id, operation_id, kind="model", status="RECOVERED")
+                return recovered
             except (ValueError, KeyError, TypeError):
                 raise ModelFailure("Cached operation provenance is absent or changed") from None
+        event(
+            workflow_id,
+            operation_id,
+            kind="model",
+            status="RESERVED",
+            reserved_microdollars=forecast.reservation_microdollars,
+        )
+        operation_started = time.monotonic()
+        settled = False
         client = self.client or httpx.AsyncClient(
             timeout=self.config.timeout_seconds, follow_redirects=False, trust_env=False
         )
@@ -410,6 +423,15 @@ class StructuredModel:
                     "operation_receipt": receipt.model_dump(mode="json"),
                 },
             )
+            settled = True
+            event(
+                workflow_id,
+                operation_id,
+                kind="model",
+                status="SETTLED",
+                cost_microdollars=self.cost(incoming, outgoing),
+                elapsed_ms=max(0, int((time.monotonic() - operation_started) * 1000)),
+            )
             return result
         except asyncio.CancelledError:
             self.store.record_observation(
@@ -428,6 +450,14 @@ class StructuredModel:
                 "Provider operation failed; reserved budget retained for reconciliation"
             ) from None
         finally:
+            if not settled:
+                event(
+                    workflow_id,
+                    operation_id,
+                    kind="model",
+                    status="UNKNOWN",
+                    elapsed_ms=max(0, int((time.monotonic() - operation_started) * 1000)),
+                )
             if self.client is None:
                 await client.aclose()
 

@@ -12,6 +12,7 @@ from temporalio.client import Client
 from temporalio.worker import Worker
 
 from agentic_delivery.config import load_settings
+from agentic_delivery.operations.events import OperationEvents, configure_events
 from agentic_delivery.orchestration.activities import Activities
 from agentic_delivery.orchestration.dispatcher import dispatch_once
 from agentic_delivery.orchestration.recovery import recover_projection
@@ -41,6 +42,7 @@ async def serve(config: Path, mode: str, once: bool = False) -> None:
             client,
             task_queue=settings.task_queue,
             workflows=[DeliveryWorkflow],
+            interceptors=[OperationEvents()],
             activities=[
                 activities.project,
                 activities.command_status,
@@ -146,6 +148,8 @@ def main() -> int:
     if args.command == "run" and args.once:
         parser.error("--once applies to dispatch, not run")
     settings = load_settings(args.config)
+    if args.command in {"worker", "run"}:
+        configure_events()
     if args.command == "run":
         asyncio.run(run_local(args.config, port=args.port))
     elif args.command == "recover-projection":

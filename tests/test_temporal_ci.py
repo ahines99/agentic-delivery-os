@@ -97,7 +97,9 @@ async def wait_state(store: Store, identity: str, state: str) -> dict[str, Any]:
 
 
 @asynccontextmanager
-async def running(mode: str) -> AsyncIterator[tuple[Store, Any, SyntheticCI, Client]]:
+async def running(
+    mode: str, *, interceptors=()
+) -> AsyncIterator[tuple[Store, Any, SyntheticCI, Client]]:
     address, url = os.environ.get("TEST_TEMPORAL_ADDRESS"), os.environ.get("TEST_DATABASE_URL")
     if not address or not url:
         pytest.skip("TEST_TEMPORAL_ADDRESS and TEST_DATABASE_URL required")
@@ -137,6 +139,7 @@ async def running(mode: str) -> AsyncIterator[tuple[Store, Any, SyntheticCI, Cli
         client,
         task_queue=settings.task_queue,
         workflows=[DeliveryWorkflow],
+        interceptors=interceptors,
         activities=[
             services.project,
             services.command_status,
