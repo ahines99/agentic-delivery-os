@@ -1,7 +1,8 @@
 # ADR-032: bounded workflow recovery of an existing publication
 
-Status: accepted for implementation; installation and verification are tracked in
-[implementation status](../implementation-status.md).
+Status: Accepted; implemented and installed, 2026-09-30 (see the
+[upgrade record](../local-runtime-upgrade.md#automatic-publication-recovery-2026-09-30)).
+Verification details are tracked in [implementation status](../implementation-status.md).
 
 ## Problem
 

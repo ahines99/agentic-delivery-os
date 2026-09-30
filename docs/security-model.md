@@ -1,6 +1,6 @@
 # Security model
 
-Status: target contract for the staged implementation, not a claim that the foundation already enforces every control. External integrations and arbitrary code execution remain disabled until their milestone gates pass. Research basis: [security review](research/03-security-review.md), accessed 2026-09-27.
+Status: target contract for the staged implementation, not a claim that the foundation already enforces every control. Under owner direction ([ADR-025](adr/ADR-025-automatic-linear-delivery.md)), live Linear intake, execution of model-generated candidates in the pinned Docker sandbox and GitHub App draft publication are enabled for one onboarded sample repository and its protected branch; every merge remains human. Other repositories and broader execution stay disabled, and the full M2 (sandbox escape/egress/resource/cancel) and M4 (security and reliability) release gates remain open. Research basis: [security review](research/03-security-review.md), accessed 2026-09-27.
 
 ## Scope and invariant
 

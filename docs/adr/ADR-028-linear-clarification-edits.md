@@ -1,6 +1,8 @@
 # ADR-028: Resume paused clarification from Linear ticket edits
 
-Status: accepted, 2026-09-30. Extends the opted-in Linear workflow in ADR-025.
+Status: accepted, 2026-09-30; implemented and exercised live by PER-14 (see the
+[live record](../live-automatic-delivery.md#linear-clarification-follow-up)).
+Extends the opted-in Linear workflow in ADR-025.
 
 An ambiguous ticket already pauses at NEEDS_CLARIFICATION. Previously the outbound
 monitor held every content edit, so answering the question in Linear did not resume
