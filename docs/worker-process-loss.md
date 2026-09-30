@@ -103,8 +103,8 @@ two-hour keepalive exceeds the approved command deadline; a container-side lifet
 tied to the authorized deadline and durable resource/lease reconciliation remain
 separate work in the recorded revision. [ADR-031](adr/ADR-031-container-lifetime.md)
 replaces the fixed keepalive with the command budget plus a 60-second lifecycle
-allowance on the sandbox-lifetime development branch, with release verification
-pending. This does not retroactively change the recorded drill or supply durable
+allowance, subsequently covered by full hosted CI and installed at `f3bcbc6`;
+see the [upgrade record](local-runtime-upgrade.md). This does not retroactively change the recorded drill or supply durable
 resource fencing.
 
 To repeat against isolated test services, configure `TEST_DATABASE_URL`,

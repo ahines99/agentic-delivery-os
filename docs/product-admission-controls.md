@@ -37,8 +37,10 @@ before optional exact-ID test cleanup; a broad cleanup cannot satisfy the assert
 On 2026-09-30 all six cases passed in **21.92 seconds** on Windows with Docker Desktop,
 using image `sha256:5edf3f631f069f4ce7e1e4eb0fb13ea2562cccb240aea91627889e574e2de224`.
 Ruff, formatting and mypy passed. The application source is unchanged from `430bc19`;
-this adds qualification coverage and documentation. Full regression inclusion on
-the final implementation branch remains pending.
+this adds qualification coverage and documentation. The combined implementation
+[CI at `f3bcbc6`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36740262123)
+subsequently passed all jobs, including these six cases in its 136 passing service
+integration tests.
 
 This covers named P-03/P-09 admission controls using actual Docker, the production
 candidate pipeline and SQLite persistence. It is not a live model injection test,

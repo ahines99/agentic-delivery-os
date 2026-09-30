@@ -461,16 +461,31 @@ async def test_active_guard_retains_unknown_and_awaits_transport_cleanup(build, 
 
     case.state["hook"] = wait
     task = asyncio.create_task(run(case))
-    await asyncio.wait_for(entered.wait(), 5)
-    if fault == "cancellation":
-        task.cancel()
-        with pytest.raises(asyncio.CancelledError):
-            await task
-    else:
-        with pytest.raises(calibration.AdjudicationCalibrationFailure):
-            await task
-    assert cleaned == [True] and len(case.requests) == 1
-    assert case.ledger.account(case.state["grant"].account_id)["reserved_microdollars"] > 0
+    entered_task = asyncio.create_task(entered.wait())
+    try:
+        # Context/authority reconstruction precedes the mocked request. Its startup
+        # cost on Windows is separate from the in-flight cancellation being tested.
+        done, _ = await asyncio.wait(
+            (task, entered_task), timeout=30, return_when=asyncio.FIRST_COMPLETED
+        )
+        if not entered.is_set():
+            if task in done:
+                await task  # Surface a preparation failure instead of a startup timeout.
+            pytest.fail("Owned model transport did not start within thirty seconds")
+        if fault == "cancellation":
+            task.cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await task
+        else:
+            with pytest.raises(calibration.AdjudicationCalibrationFailure):
+                await task
+        assert cleaned == [True] and len(case.requests) == 1
+        assert case.ledger.account(case.state["grant"].account_id)["reserved_microdollars"] > 0
+    finally:
+        for pending in (task, entered_task):
+            if not pending.done():
+                pending.cancel()
+        await asyncio.gather(task, entered_task, return_exceptions=True)
 
 
 async def test_reused_provider_response_identity_cannot_calibrate(build):

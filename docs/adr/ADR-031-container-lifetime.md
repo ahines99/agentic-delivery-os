@@ -1,6 +1,6 @@
 # ADR-031: Container lifetime independent of its worker
 
-Status: implemented; release verification pending.
+Status: implemented and installed in the controlled local runtime; complete release qualification remains open.
 
 ## Problem
 
@@ -46,5 +46,7 @@ using image `sha256:5edf3f631f069f4ce7e1e4eb0fb13ea2562cccb240aea91627889e574e2d
 The container exited with status 0 and no OOM/restart after the owned worker tree
 was killed. No parent removal occurred before that observation. The independent
 execution/cleanup/timeout unit selection passed **44 tests**. Ruff, formatting and
-mypy passed. Full regression and hosted CI remain pending; this code is not yet
-installed in the local service.
+mypy passed. [Hosted CI](https://github.com/ahines99/agentic-delivery-os/actions/runs/36737373590)
+subsequently passed all jobs at `430bc19`: 3,304 tests per Python version and 130
+service integration tests. Application-identical source was [installed at `f3bcbc6`](../local-runtime-upgrade.md).
+The long Windows feature run and complete MVP qualification remain separate.

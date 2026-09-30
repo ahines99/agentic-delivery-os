@@ -14,11 +14,14 @@ GitHub checks, and moved to Linear In Review with its PR attached. A second tick
 paused for clarification, resumed after a ticket edit, and completed the same handoff
 with [PR #7](https://github.com/ahines99/agentic-delivery-os/pull/7). The delivery-proof source
 at `8413dc4` passed [full CI](https://github.com/ahines99/agentic-delivery-os/actions/runs/36668888799).
-The installed service subsequently received cancellation, response-recovery and intake fixes through `0bcd0ee`;
+The installed service subsequently received cancellation, response-recovery, intake,
+manual-acceptance and bounded-container-lifetime changes through `f3bcbc6`;
 the [verification status](docs/implementation-status.md) distinguishes later changes and checks. See the
 [live evidence and recovery record](docs/live-automatic-delivery.md). The [webhook gateway](docs/linear-ingress.md)
 supports both providers, and the outbound monitor provides automatic intake without a tunnel.
 Use [App onboarding](docs/provider-onboarding.md) to configure another installation.
+The [latest local upgrade record](docs/local-runtime-upgrade.md) separates installed
+features, completed checks and pending release qualification.
 
 The [automatic delivery mode](docs/automatic-delivery.md) adds outbound Linear detection
 and owner-configured low-risk plan approval. Start the API, worker, dispatcher and enabled

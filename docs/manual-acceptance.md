@@ -6,9 +6,11 @@ for it. Passing automated checks can produce a draft PR with the manual criteria
 marked PENDING. The workflow waits in ACCEPTANCE_CHECK; it cannot update Linear to
 In Review until the required human decision and exact-head CI are both current.
 
-This implementation is under qualification on the manual-criterion development
-branch. It is not yet installed in the local service. The existing automatic path
-continues to serve the configured repository.
+This implementation is installed in the local service at `f3bcbc6`. The
+[upgrade record](local-runtime-upgrade.md) records passing application-source CI and
+post-restart API/worker checks. Controlled PostgreSQL/Temporal tests exercised human
+decision fixtures; no actual human manual acceptance or pilot signoff is claimed.
+The automatic path continues to serve the configured repository.
 
 ## Submit a decision
 

@@ -275,9 +275,10 @@ architecture. Licensing is intentionally not granted by this scaffold; the owner
 an open-source license before public distribution. A remote owner/name and secrets are not
 guessed. These facts do not block the local plan or repository setup.
 
-Next release work: finish verification and installation of manual acceptance and the
-independent container lifetime, complete remaining acceptance evidence, qualify and
-execute the historical evaluation, and obtain the required human pilot signoff.
+Next release work: complete final verification and remaining acceptance evidence,
+qualify and execute the historical evaluation, and obtain the required human pilot
+signoff. Manual acceptance and the independent container lifetime are installed;
+the [upgrade record](local-runtime-upgrade.md) identifies their verification scope.
 GitHub App onboarding, automatic Linear intake and the live tested-PR handoff are
 already proved for the configured sample target. Follow
 [implementation status](implementation-status.md) when interpreting the original

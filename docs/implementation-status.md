@@ -4,6 +4,16 @@ Updated 2026-09-30 UTC during continued controlled implementation. This is the c
 the original milestone documents remain the release targets. Source code alone is not a passed
 integration or production release gate.
 
+The local service is now running `f3bcbc6`, including manual acceptance and the
+worker-independent container lifetime. The [idle upgrade record](local-runtime-upgrade.md)
+confirms readiness, fresh Temporal pollers, advancing Linear detection, authenticated
+manual-review routing and preserved exact PR #6/#7 handoff bindings. Application
+source is identical to the fully passing `430bc19` CI below. The installed head's
+[combined CI](https://github.com/ahines99/agentic-delivery-os/actions/runs/36740262123)
+subsequently passed Python 3.12/3.13 (3,304 tests and 136 explicit skips each), all
+136 service integration tests, package builds and secret scanning. The full Windows
+feature runs and later test-fixture correction remain separately tracked.
+
 Linear intake now rechecks eligibility after assignment. A concurrent completion,
 cancellation or start cannot be admitted from the earlier discovery record once
 observed on read-back. An unavailable assignment response triggers one confirming
@@ -28,16 +38,27 @@ passed, including restart, stale/revoked decisions, cancellation and unknown Git
 update outcome. [Hosted CI](https://github.com/ahines99/agentic-delivery-os/actions/runs/36735702473)
 passed Python 3.12 and 3.13 (3,294 tests and 129 explicit skips each), all 129 service
 integration tests, package builds and secret scanning. Its full local run is still
-pending. These are owned scripted operator identities, not a human pilot
+pending and has reported four failures. These are owned scripted operator identities, not a human pilot
 signoff. [Operator instructions](manual-acceptance.md) describe the API.
 
 The follow-on sandbox fix at `430bc19` replaces the two-hour keepalive with the approved
 command timeout plus a fixed 60-second lifecycle allowance. Ten profile cases and a
 real Docker worker-tree kill case passed together (11 tests in 75.17 seconds); the
-container exited without replacement-worker cleanup. Full local and
+container exited without replacement-worker cleanup. Full local verification is
+still running. Complete
 [hosted verification](https://github.com/ahines99/agentic-delivery-os/actions/runs/36737373590)
-are running. See [ADR-031](adr/ADR-031-container-lifetime.md) for limits.
-Neither development feature is installed in the live service yet.
+passed Python 3.12/3.13 (3,304 tests and 130 explicit skips each), all 130 service
+integration tests, package builds and secret scanning. See
+[ADR-031](adr/ADR-031-container-lifetime.md) for limits. Both features are installed.
+
+A focused Windows rerun reproduced three failures among four adjudication-calibration
+guard cases. A single-case traceback confirmed a timeout at the five-second wait for
+the mocked request to start, before the in-flight behavior under test. The fixture
+now allows thirty seconds for startup, surfaces an earlier preparation failure, and
+always cancels/awaits its helper tasks. All four cases then passed in 31.83 seconds;
+Ruff, format and mypy passed. Production deadlines, cancellation assertions and
+retained-unknown-cost requirements are unchanged. The original full runs remain
+running on their original revisions; this targeted result does not erase their failures.
 
 The [compromised-builder admission matrix](product-admission-controls.md) subsequently
 passed six actual Docker cases in 21.92 seconds on unchanged application source
@@ -46,7 +67,8 @@ sensitive code, protected CI/tests, dynamic execution and credential-shaped outp
 are then refused before candidate execution or review. The owned broker canary stays
 out of the model context and baseline container; real baseline receipts and fixture
 usage remain persisted. This is named-control evidence, not general injection resistance
-or live model behavior. Final-branch full regression inclusion remains pending.
+or live model behavior. The combined `f3bcbc6` CI above includes all six cases in its
+passing service integration job.
 
 Distribution staging at `430bc19` passed in a fresh non-editable Python 3.12.10
 environment with 31 hash-locked runtime dependencies. All three CLI help entry points
