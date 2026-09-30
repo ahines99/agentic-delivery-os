@@ -395,11 +395,12 @@ already paused workflow from verified ticket text, preserving its original budge
 PER-14 exercised actual ambiguity, one source edit, one applied clarification command
 and replanning in the same workflow. Sixty-nine focused monitor/authorization/control-
 plane tests passed; a separate 55-case scope including actual Temporal restart/replay
-also passed. Counts overlap. The revised ticket's final delivery remains in progress.
+also passed. Counts overlap. The revised ticket's delivery subsequently completed:
+PER-14 reached `HUMAN_REVIEW` with [PR #7](live-automatic-delivery.md#linear-clarification-follow-up).
 
 [Outbound publication observation](adr/ADR-027-outbound-publication-observation.md)
 now lets the local service notice closed, merged or changed PRs without a webhook.
-The real App read-only path reconciled the five retained product PRs: #2?#5 CLOSED,
+The real App read-only path reconciled the five retained product PRs: #2–#5 CLOSED,
 #6 DRAFT_HANDOFF. No external mutation or model call occurred. Polling is enabled in
 the supervised local service. The delivery regression scope passed 114 tests; the
 CI/storage/monitor scope passed 85 tests (overlapping counts). Ruff, format, mypy
@@ -637,7 +638,7 @@ verification below remains recorded separately. See [E55–E56](completion-audit
   controller and current admission authority now connect the executed stages; export, scoring and
   campaign preparation require this authority. Legacy qualification/campaign records allow only
   explicit inspection. The offline CLI has no trusted authority loader and refuses current admission.
-  `human_minutes` is nullable; reported human-time savings remain null. Two separately acquired
+  `human_minutes` is nullable; reported human-time savings remain null. Five separately acquired
   historical development tasks are qualified; the original 36 remain unqualified. No historical
   scoring or campaign has run, and human effort/benefit remains unmeasured.
 - Pinned Compose development PostgreSQL/Temporal services, local CLI/API/worker entry points,
@@ -661,8 +662,9 @@ Its offline CLI exports only PREPARED_NOT_QUALIFIED metadata. The [separate eval
 and [bound model-operation receipts](model-operation-receipts.md) provide durable per-call
 accounting/provenance and retain immutable failure observations without manufacturing delivery
 workflows. A real bounded synthetic provider probe did not settle: 14465 microdollars remain
-reserved, actual cost/cause unknown, no retry. These support the integrated qualifier; the campaign
-execution controller remains missing. None of the 36 historical candidates has been admitted.
+reserved, actual cost/cause unknown, no retry. These support the integrated qualifier. The campaign
+execution code (serial dispatcher and bounded phase driver) was implemented later, as recorded
+above; no campaign has been executed. None of the 36 historical candidates has been admitted.
 
 [ADR-010](adr/ADR-010-executable-qualification-stages.md) adds independently exercised stages:
 [deterministic qualification runtime](qualification-runtime.md) runs actual preflight and twelve
@@ -670,7 +672,7 @@ clean checks with measured infrastructure accounting; [protected v2 review](qual
 provides inspectable source/oracle evidence and sealed-output adjudication; [development calibration](evaluation-calibration.md)
 binds frozen cases to actual model-broker executions and recomputed metrics. Controlled transports
 exercise model stages; paid owned-case calibration and two historical development admissions
-are recorded below. Infrastructure
+(five as of 2026-09-30) are recorded below. Infrastructure
 operations use zero model tokens and share an account ceiling with model calls. Individual stage
 results remain non-admitting; current consumption requires the complete integrated chain.
 
@@ -868,7 +870,8 @@ attempt cost 1,165,501 microdollars including estimated infrastructure, with zer
 reservation; all earlier failures remain retained. No historical task has been scored
 or used in a campaign. A third development lead, PR 337 / issue 331, subsequently
 passed all thirteen deterministic operations and two agreeing independent reviews,
-with current authority validation: two development tasks are now qualified. Its
+with current authority validation: two development tasks are now qualified (superseded: five
+as of 2026-09-30). Its
 successful attempt cost 1,004,951 microdollars including estimated infrastructure,
 with zero reservation; earlier acquisition and import setup refusals remain recorded.
 
@@ -978,7 +981,9 @@ did not pass; the later prospective run after the wire correction is recorded be
 Linear's owner-supplied personal key now passes actual read-only workspace/team/member/state
 discovery through the product adapter. Local configuration pins the matching team, active
 assignee and In Review state. Those discovery reads alone establish no delivery or handoff;
-subsequent signed delivery is recorded below. GitHub App onboarding remains open.
+subsequent signed delivery is recorded below. GitHub App onboarding was open at that point;
+the App has since been installed and published PRs #6 and #7 (see the
+[live record](live-automatic-delivery.md)).
 
 After the narrow homogeneous fixed-tuple projection, a separately frozen live owned
 adjudicator calibration passed all five exact dispute maps and verdicts, with no false-ready,

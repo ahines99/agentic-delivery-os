@@ -16,8 +16,11 @@ python -m uvicorn agentic_delivery.api.linear_ingress:create_delivery_gateway --
 Point the HTTPS reverse proxy at port 18091 and configure the two provider callbacks
 with their respective paths. Start the gateway without service credentials. Run the
 worker and dispatcher as described in the [runbook](runbook.md). This provides the
-local application routes; persistent HTTPS hosting and GitHub App setup remain
-environment prerequisites. The older Linear-only entry point below stays available.
+local application routes; persistent HTTPS hosting remains an environment prerequisite
+for public callbacks. The GitHub App itself is installed and published PRs #6 and #7
+through outbound polling (see the [live record](live-automatic-delivery.md)); signed
+live callbacks through this gateway remain unconfigured. The older Linear-only entry
+point below stays available.
 
 ## Linear-only entry point
 

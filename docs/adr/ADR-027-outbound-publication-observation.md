@@ -1,6 +1,8 @@
 # ADR-027: Outbound publication outcome observation
 
-Status: accepted, 2026-09-30. Extends the local outbound operation in ADR-025.
+Status: accepted, 2026-09-30; implemented and enabled in the local service (see the
+[live record](../live-automatic-delivery.md#outbound-publication-observation-follow-up)).
+Extends the local outbound operation in ADR-025.
 
 The local delivery service can detect tickets and finish CI without a public webhook.
 After handoff, however, signed GitHub callbacks were its only way to observe changed,

@@ -9,8 +9,11 @@ completed automatic Linear detection, App publication, required CI and the corre
 review-state handoff. Outbound observation of PR closure/merge is also installed
 under [ADR-027](adr/ADR-027-outbound-publication-observation.md), without a public
 tunnel. Planning cancellation, provider response recovery and an actual live
-backup/restore drill have subsequent verification records. Remaining qualification,
-manual-criterion handoff and portfolio release targets below stay open.
+backup/restore drill have subsequent verification records. The manual-criterion
+handoff is implemented and installed under [ADR-030](adr/ADR-030-pending-manual-acceptance.md);
+only scripted operator decisions have exercised it, so a real human manual-acceptance
+decision remains unexercised. Remaining qualification and portfolio release targets
+below stay open.
 
 Refer to [implementation status](implementation-status.md) for recorded evidence and remaining gates. Code presence, mock-provider tests and one synthetic live run do not close an entire backlog item.
 

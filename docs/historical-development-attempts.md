@@ -7,6 +7,11 @@ PR 337 / issue 331 passed full qualification with two agreeing independent model
 reviews each. PR 463 / issue 175 remains unqualified.
 All earlier failed attempts are retained. No worker export, scoring or campaign run occurred.
 
+Current status (2026-09-30): five development tasks have passed qualification: the two
+`dbader/schedule` tasks above plus three `matthewwithanm/python-markdownify` tasks
+(PRs 264, 230 and 214) recorded later in this document. None has been scored or used
+in a campaign, and they do not constitute the required 30+ task corpus.
+
 ## Frozen inputs and processing scope
 
 The [derived import](historical-import-v2.md) binds the complete baseline and accepted
@@ -145,7 +150,8 @@ These references identify private evidence; they do not grant access or current 
 
 The original 36 metadata candidates remain unqualified. Development candidates are
 not counted again for environment or model-configuration versions. PR 463 remains
-rejected by the deterministic gate; PR 404 and PR 337 are two qualified development tasks. The
+rejected by the deterministic gate; PR 404 and PR 337 are two qualified development tasks
+(superseded: five as of 2026-09-30; see below). The
 30+ task corpus, paired campaign execution and complete release gates remain open.
 
 ## Additional development metadata screen and acquisition refusal

@@ -79,6 +79,6 @@ for each boundary. A controlled failure fixture is not evidence of every real ou
 
 The portfolio release still requires a qualified historical corpus, frozen paired
 execution, independent agent scoring, complete accounting and a reproducible report.
-Two separately acquired development tasks are qualified; the original 36 catalog
+Five separately acquired development tasks are qualified; the original 36 catalog
 candidates remain unqualified. No historical campaign or human-benefit measurement is
 claimed. Every product merge and pilot signoff remains human.
