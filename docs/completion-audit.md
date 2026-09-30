@@ -30,7 +30,10 @@ passed 43 tests with one explicit Docker skip; Ruff, format, mypy and wheel/sdis
 also passed. The preceding package-profile revision passed the full local suite
 (3,143 passed, 125 explicit skips) and [hosted CI at `13902c3`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36673824570)
 (3,153 passed, 115 explicit skips on each Python version, service integration and secret
-scanning). Full CI for the subsequent chronology fix remains separately tracked. See the
+scanning). [Full CI at `81fd892`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36718387365)
+then passed the chronology fix: 3,155 tests and 115 explicit skips per Python version,
+actual service integration and secret scanning. The later planning cancellation fix
+has its own new-source verification in progress. See the
 [attempt record](historical-development-attempts.md) for exact costs and artifact digests.
 The next preselected markdownify task subsequently passed the same complete qualification
 path at `81fd892`, bringing the recorded total to four completed development qualifications.

@@ -24,12 +24,13 @@ observations. Full new-source verification remains pending.
 The SDK requirement is documented in Temporal's
 [heartbeating and cancellation guide](https://github.com/temporalio/sdk-python#heartbeating-and-cancellation).
 
-Latest complete hosted verification: [CI at `13902c3`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36673824570)
-passed Python 3.12/3.13 (3,153 tests and 115 explicit skips each), actual service
+Latest complete hosted verification: [CI at `81fd892`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36718387365)
+passed Python 3.12/3.13 (3,155 tests and 115 explicit skips each), actual service
 integration and secret scanning. The corresponding local package-profile suite passed
 3,143 tests with 125 explicit Windows/service skips. The subsequent chronology fix at
 `ec72597` passed 43 focused controller/admission tests with one explicit Docker skip,
-Ruff, formatting, mypy and package builds; full CI for that fix remains pending.
+Ruff, formatting, mypy and package builds; the hosted run above now covers that fix.
+The later planning-cancellation change is tracked separately above.
 
 Four historical development tasks have now completed qualification. Both new
 markdownify attempts passed a freshly ordered runtime matrix, two independent reviews
