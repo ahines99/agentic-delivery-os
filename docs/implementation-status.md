@@ -112,6 +112,16 @@ crash recovery or live-provider reconciliation.
 
 ## Implemented and exercised
 
+[Outbound publication observation](adr/ADR-027-outbound-publication-observation.md)
+now lets the local service notice closed, merged or changed PRs without a webhook.
+The real App read-only path reconciled the five retained product PRs: #2?#5 CLOSED,
+#6 DRAFT_HANDOFF. No external mutation or model call occurred. Polling is enabled in
+the supervised local service. The delivery regression scope passed 114 tests; the
+CI/storage/monitor scope passed 85 tests (overlapping counts). Ruff, format, mypy
+and staged secret scanning passed. Full hosted verification for this follow-up is
+separate from the earlier c03a945 result. Actual human merge and signed callbacks
+remain distinct unexercised provider scenarios.
+
 Live automatic intake has created, assigned, planned, automatically approved, built and
 independently reviewed owned Linear tickets, publishing real App-authored PRs. The first
 PRs were closed after CI exposed a startup-test scheduling race and missing local quality

@@ -118,6 +118,8 @@ class Settings(Contract):
     linear_poll_start: AwareDatetime | None = None
     linear_poll_seconds: int = Field(default=30, ge=10, le=300, strict=True)
     linear_monitor_state: Path = Path(".local/linear-monitor.json")
+    github_poll_enabled: bool = False
+    github_poll_seconds: int = Field(default=60, ge=30, le=300, strict=True)
 
     @model_validator(mode="after")
     def unique_identities(self) -> Self:

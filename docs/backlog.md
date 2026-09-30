@@ -4,19 +4,21 @@ This is the issue-ready execution sequence for [the accepted plan](plan.md). IDs
 
 ## Current status annotations
 
-**Next implementation target:** one real Linear ticket reaches a tested GitHub draft PR
-and the correct Linear review state. Complete webhook ingress and App onboarding first,
-then fix concrete delivery failures. Defer additional benchmark machinery and optional
-operational abstractions until that flow works; preserve the later release criteria below.
+**Current implementation progress:** the [PER-13 live path](live-automatic-delivery.md)
+completed automatic Linear detection, App publication, required CI and the correct
+review-state handoff. The next concrete provider gap is outbound observation of PR
+closure/merge in the installed local mode; [ADR-027](adr/ADR-027-outbound-publication-observation.md)
+adds it without a public tunnel. Remaining qualification and portfolio release targets
+below stay open.
 
 Refer to [implementation status](implementation-status.md) for recorded evidence and remaining gates. Code presence, mock-provider tests and one synthetic live run do not close an entire backlog item.
 
 | Milestone | Implemented/exercised progress | Acceptance still outstanding |
 | --- | --- | --- |
 | M0 | Package, contracts, fixtures, documentation; hosted quality/integration/secret-scan CI passed | Ongoing regression checks |
-| M1 | Authenticated local intake/commands, real PostgreSQL and Temporal, model-assisted plans, plan approval, usage ledger; Linear signed-fixture tests | Actual Linear workspace onboarding and delivery/replay/status checks; complete identity, approval expiry/revocation and operational hardening |
+| M1 | Authenticated local intake/commands, real PostgreSQL and Temporal, model-assisted plans, plan approval, usage ledger; Linear signed-fixture tests | Broader provider fault qualification and complete identity, approval expiry/revocation and operational hardening; actual onboarding/intake/status are verified |
 | M2 | Real synthetic build, fixed Docker runner, baseline/candidate/criterion tests and immutable artifacts | Broader dependency/resource/escape probes and granular execution recovery |
-| M3 | Fresh independent model review and `LOCAL_REVIEW_READY`; controlled rejection/repair/exhaustion checks; shared A/B candidate engine; GitHub App publishing/observation contracts and Linear adapter | Live App credentials, actual draft PR/head-change reconciliation, independent check-run ingestion and historical A/B execution; publication remains disabled |
+| M3 | Fresh independent model review and `LOCAL_REVIEW_READY`; controlled rejection/repair/exhaustion checks; shared A/B candidate engine; GitHub App publishing/observation contracts and Linear adapter | Live App draft publication, exact-head CI and Linear handoff passed; broader provider reconciliation faults, signed callbacks and historical A/B execution remain |
 | M4 | Restart/replay and named failure paths; actual killed-worker cleanup or explicit UNKNOWN; local restore/projection drills and bounded private PG metadata export | Complete P-01–P-12, distributed fencing, daemon/host-loss, adversarial/retention/backup gates and validation qualification before pilot |
 | M5 | Evaluation schema/scoring/leakage controls, 36 UNQUALIFIED metadata candidates, two separately acquired qualified development tasks and conservative Python impact analysis; schema-3 frozen execution budgets | Independently qualified 30+ historical tasks, campaign executor, calibrated independent semantic scoring and frozen paired campaign under ADR-007; no historical scoring or campaign exists |
 | M6 | Retained future options | Evidence-led scope decision before implementation |
@@ -30,7 +32,7 @@ rights/risk/evidence fails closed. This supersedes human benchmark reviewer-name
 all original 36 candidates remain UNQUALIFIED. Two separately acquired development tasks
 passed qualification; no historical scoring or campaign has run. Actual human effort/benefit
 is unmeasured, not fabricated.
-Human plan approval, pilot signoff and product merges retain their existing controls.
+Plan approval follows ADR-025; pilot signoff and product merges remain human controls.
 
 Each implementation issue must identify its owner, dependencies, criterion IDs, test evidence, risk, and recovery behavior using the repository issue template. Estimates should follow the first vertical slice; the plan does not commit to speculative delivery dates.
 

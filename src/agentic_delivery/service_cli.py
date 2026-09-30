@@ -22,6 +22,11 @@ from agentic_delivery.storage.store import Store
 
 
 async def serve(config: Path, mode: str, once: bool = False) -> None:
+    if mode == "github-monitor":
+        from agentic_delivery.operations.github_monitor import monitor
+
+        await monitor(config)
+        return
     if mode == "monitor":
         from agentic_delivery.operations.linear_monitor import monitor
 
@@ -78,9 +83,11 @@ async def run_local(config: Path, *, port: int = 18090) -> None:
         )
     )
     api = asyncio.create_task(server.serve(), name="delivery-api")
-    modes = (
+    modes: tuple[str, ...] = (
         ("worker", "dispatch", "monitor") if settings.linear_poll_start else ("worker", "dispatch")
     )
+    if settings.github_poll_enabled:
+        modes += ("github-monitor",)
     services: list[asyncio.Task[None]] = []
     try:
         while not server.started:
@@ -110,7 +117,16 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "command",
-        choices=["migrate", "worker", "dispatch", "monitor", "run", "doctor", "recover-projection"],
+        choices=[
+            "migrate",
+            "worker",
+            "dispatch",
+            "monitor",
+            "github-monitor",
+            "run",
+            "doctor",
+            "recover-projection",
+        ],
     )
     parser.add_argument("--config", type=Path, default=Path("config.local.json"))
     parser.add_argument("--once", action="store_true")

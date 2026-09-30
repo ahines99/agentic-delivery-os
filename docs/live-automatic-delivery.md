@@ -75,3 +75,13 @@ verification guidance, and [local quality checks](adr/ADR-026-local-quality-chec
 inside the existing bounded repair loop. No failing check was bypassed.
 
 See [automatic delivery](automatic-delivery.md) for operation and supported scope.
+
+## Outbound publication observation follow-up
+
+The concrete GitHub App read-only observer subsequently reconciled all five retained
+product PRs into the live database: #2?#5 are CLOSED and #6 remains DRAFT_HANDOFF.
+The observer uses only Pull requests read permission, persists metadata with
+`github-rest` provenance and leaves workflow states/spending unchanged. No public
+webhook, PR mutation or model call was involved. The live record proves closure
+readback; merged and changed-head cases are exercised with controlled HTTP responses,
+not an actual human merge. See [ADR-027](adr/ADR-027-outbound-publication-observation.md).

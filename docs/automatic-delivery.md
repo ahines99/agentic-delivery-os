@@ -37,6 +37,13 @@ The API stays on loopback port 18090. Detection and CI reconciliation use outbou
 provider APIs, so this mode does not require a public tunnel. The existing webhook
 gateway can still be used for signed events. The machine must be awake and online.
 
+Set `github_poll_enabled: true` to also observe managed PRs after handoff without a
+webhook. The combined runtime starts `github-monitor`, which checks a bounded page
+every `github_poll_seconds` (60 by default). Authenticated
+`/workflows/{id}/publication` reports closed, merged or changed-revision outcomes.
+This read-only service does not merge PRs, spend model tokens, mark Linear Done or
+restore readiness after a PR changes. See [ADR-027](adr/ADR-027-outbound-publication-observation.md).
+
 On Windows, `scripts/run_local_service.ps1` starts the existing Docker Compose services
 and supervises this command in a hidden process, restarting it after failure. Register
 it as the current user's login task for unattended local operation. It uses a mutex
@@ -69,6 +76,7 @@ workflow execution. See the [verified live result](live-automatic-delivery.md).
 
 ## Installed local target
 
+The installed service enables both Linear intake and read-only GitHub outcome polling.
 The current owner installation maps the Personal Project Portfolio team to
 `ahines99/agentic-delivery-os`, using the protected `delivery-workbench-v2` branch and
 the bounded `demos/sample_repo` Python source. New tickets can use

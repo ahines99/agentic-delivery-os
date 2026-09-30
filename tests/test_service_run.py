@@ -58,17 +58,24 @@ async def started(servers, task):
     return servers[0]
 
 
+@pytest.mark.parametrize("github_poll", [False, True])
 async def test_one_runtime_serves_selected_configuration_and_stops_both_services(
-    runtime, monkeypatch
+    runtime, monkeypatch, github_poll
 ):
     config, token, servers = runtime
+    settings = Settings.model_validate_json(config.read_text(encoding="utf-8"))
+    config.write_text(
+        settings.model_copy(update={"github_poll_enabled": github_poll}).model_dump_json(),
+        encoding="utf-8",
+    )
+    expected = {"worker", "dispatch", "github-monitor"} if github_poll else {"worker", "dispatch"}
     active, stopped = set(), set()
     services_started = asyncio.Event()
 
     async def service(path, mode, once=False):
         assert path == config and not once
         active.add(mode)
-        if active == {"worker", "dispatch"}:
+        if active == expected:
             services_started.set()
         try:
             await asyncio.Event().wait()
@@ -88,7 +95,7 @@ async def test_one_runtime_serves_selected_configuration_and_stops_both_services
             assert (await client.get("/work-items")).status_code == 403
             response = await client.get("/work-items", headers={"Authorization": "Bearer " + token})
             assert response.status_code == 200 and response.json() == []
-        assert active == {"worker", "dispatch"}
+        assert active == expected
         assert server.config.host == "127.0.0.1"
         assert not server.config.access_log and not server.config.proxy_headers
     finally:

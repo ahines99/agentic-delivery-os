@@ -435,6 +435,31 @@ class Store:
                 raise Conflict("Ambiguous persisted pull request identity")
             return matches[0] if matches else None
 
+    def publication_page(
+        self, repositories: tuple[str, ...], *, after: str = "", limit: int = 50
+    ) -> list[dict[str, Any]]:
+        """Bounded keyset scan; never read private candidate or model artifacts."""
+        if not 1 <= limit <= 100:
+            raise ValueError("Invalid publication page size")
+        with Session(self.engine) as session:
+            rows = session.scalars(
+                select(PublicationRecord)
+                .where(
+                    PublicationRecord.repository.in_(repositories),
+                    PublicationRecord.workflow_id > after,
+                )
+                .order_by(PublicationRecord.workflow_id)
+                .limit(limit)
+            )
+            return [
+                {
+                    "workflow_id": row.workflow_id,
+                    "repository": row.repository,
+                    "number": row.number,
+                }
+                for row in rows
+            ]
+
     def observe_publication(
         self, workflow_id: str, payload: dict[str, Any], inbox: dict[str, Any]
     ) -> dict[str, Any]:

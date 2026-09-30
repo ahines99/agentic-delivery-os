@@ -90,8 +90,9 @@ use the [runbook](runbook.md) for their configuration and operation.
 GitHub App publication and Linear integration code are contract/fixture tested. Authorized
 Linear credentials now pass live read-only discovery, and local workspace/team/assignee/review-state
 mapping is configured. Controlled real tickets passed signed intake, exact replay and persisted
-clarification/plan-review paths through a temporary HTTPS gateway. Live status handoff and durable ingress remain open, as does
-GitHub App/private-key onboarding. OpenAI's
+clarification/plan-review paths through a temporary HTTPS gateway. The later PER-13 run
+verified supervised outbound intake, App publication, exact-head CI and Linear status
+handoff. Provider fault qualification and broader hosting remain open. OpenAI's
 wire adapter is contract tested; the recorded live model runs used Anthropic. Tests of named
 Docker controls do not establish general hostile-code isolation. Complete recovery, identity,
 security and product acceptance gates remain open, as does agent-led qualification and scoring
