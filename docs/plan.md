@@ -148,6 +148,11 @@ campaign execution entry points, including resumed work. Historical receipt insp
 separate; this does not migrate old ledgers or renew their execution authority. Incorporating
 historical liabilities is still required before claiming a complete program spending limit.
 
+[ADR-022](adr/ADR-022-legacy-ledger-archival.md) defines explicit legacy archival before
+historical liability incorporation. It preserves original accounting and unknown reservations,
+requires stopped older writers, and grants no new execution authority. The archive transition
+and concrete metadata reader are implemented; registry incorporation remains unfinished.
+
 Use trace/workflow/attempt/operation IDs across structured logs and metrics. Redact secrets
 before export. Track queue/active/human-wait latency, cost per attempted and accepted task,
 false-ready results, correction count, clarification, cancellations, cleanup failures,

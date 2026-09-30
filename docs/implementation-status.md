@@ -107,6 +107,14 @@ crash recovery or live-provider reconciliation.
 
 ## Implemented and exercised
 
+[Legacy accounting archival](legacy-accounting.md) now provides an explicit irreversible
+transition and concrete metadata-only liability reader. It preserves original records and
+unknown reservations, fences current writers including handles opened before archival, and
+retains the archive when permission is lost after commit. The final store/registry/accounting
+scope passed 149 tests with actual PostgreSQL and no skips. This was owned test data only;
+live archival, older-writer quiescence, registry incorporation and full cost promotion remain
+unfinished. [ADR-022](adr/ADR-022-legacy-ledger-archival.md) records the authority and limits.
+
 The [final-candidate criterion test reader](criterion-execution-evidence.md) now exports
 execution counts only after concrete receipt replay reproduces the sealed candidate. It
 matches those counts to the frozen requirement inventory, retains missing assignments and

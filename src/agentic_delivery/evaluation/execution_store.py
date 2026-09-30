@@ -91,6 +91,19 @@ program_account_states = Table(
     Column("closed_microdollars", BigInteger),
 )
 
+archive_metadata = MetaData()
+for _table in metadata.tables.values():
+    _table.to_metadata(archive_metadata)
+legacy_archive = Table(
+    "evaluation_legacy_archive",
+    archive_metadata,
+    Column("id", String(20), primary_key=True),
+    Column("authorization_digest", String(64), nullable=False),
+    Column("ledger_identity", String(64), nullable=False),
+    Column("nonce", String(32), nullable=False),
+    Column("created_at", String(40), nullable=False),
+)
+
 INFRA_TERMS = "evaluation_infrastructure_terms"
 INFRA_RESERVATION = "infrastructure_reservation"
 INFRA_RECEIPT = "infrastructure_receipt"
@@ -356,18 +369,32 @@ class EvaluationExecutionStore:
                             )
                         ):
                             raise ValueError("Evaluation database contains foreign schema objects")
-                if found and found not in (set(metadata.tables), set(program_metadata.tables)):
+                if found and found not in (
+                    set(metadata.tables),
+                    set(program_metadata.tables),
+                    set(archive_metadata.tables),
+                ):
                     raise ValueError("Refusing non-evaluation or incomplete database schema")
                 self.program_bound = (
                     found == set(program_metadata.tables)
                     or not found
                     and program_budget is not None
                 )
-                if program_budget is not None and found == set(metadata.tables):
+                archived = found == set(archive_metadata.tables)
+                if program_budget is not None and found in (
+                    set(metadata.tables),
+                    set(archive_metadata.tables),
+                ):
                     raise ValueError(
                         "Existing legacy ledgers cannot acquire prospective program authority"
                     )
-                expected = program_metadata if self.program_bound else metadata
+                expected = (
+                    program_metadata
+                    if self.program_bound
+                    else archive_metadata
+                    if archived
+                    else metadata
+                )
                 if not found:
                     nonce = None
                     if program_budget is not None:
@@ -393,7 +420,7 @@ class EvaluationExecutionStore:
                 else:
                     _validate_schema(connection, expected)
                     if connection.execute(select(ledger)).all() != [
-                        ("evaluation-only", "2" if self.program_bound else "1")
+                        ("evaluation-only", "2" if self.program_bound else "3" if archived else "1")
                     ]:
                         raise ValueError("Unsupported evaluation ledger schema marker")
                 if self.program_bound:
@@ -412,13 +439,23 @@ class EvaluationExecutionStore:
             raise
 
     @contextmanager
-    def _transaction(self) -> Iterator[Connection]:
+    def _transaction(self, *, permit_archived: bool = False) -> Iterator[Connection]:
         with self.engine.connect() as connection:
             if self.sqlite:
                 connection.exec_driver_sql("BEGIN IMMEDIATE")
             else:
                 connection.begin()
             try:
+                # All current store writers take this lock before account/operation locks.
+                # Archival therefore fences handles opened before the transition as well.
+                marker = connection.execute(select(ledger).with_for_update()).all()
+                expected = [("evaluation-only", "2" if self.program_bound else "1")]
+                if marker != expected and not (
+                    permit_archived
+                    and not self.program_bound
+                    and marker == [("evaluation-only", "3")]
+                ):
+                    raise EvaluationConflict("Evaluation ledger is archived or its marker changed")
                 yield connection
                 connection.commit()
             except BaseException:
@@ -629,7 +666,7 @@ class EvaluationExecutionStore:
 
     def account(self, account_id: str) -> dict[str, Any]:
         _identity(account_id)
-        with self._transaction() as connection:
+        with self._transaction(permit_archived=True) as connection:
             row = (
                 connection.execute(
                     select(accounts).where(accounts.c.id == account_id).with_for_update()

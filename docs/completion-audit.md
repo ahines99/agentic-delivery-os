@@ -1425,3 +1425,22 @@ the corrected combined aggregate scope passed all four cases in 102.06 seconds. 
 constraints were unchanged. Ruff/format (373 files), mypy (117 sources), and package builds
 passed. These overlapping scopes are not summed. Exact-head full hosted CI and independent
 review remain required. No historical payload, paid request or live enrollment was used.
+
+E160: [Legacy ledger archival](legacy-accounting.md), under
+[ADR-022](adr/ADR-022-legacy-ledger-archival.md), retains original records while changing only
+the schema marker and adding an authorization/target/nonce/time binding. Current store writers
+lock and recheck the marker before mutation, including on handles opened before archival.
+The concrete read-only census carries settled cost plus every unresolved reservation as
+conservative liability, without selecting operation result payloads. This supplies a prerequisite
+for historical registry incorporation; no live ledger was archived and no cost gate is closed.
+
+The initial archive/store/registry/accounting run passed 100 tests with 16 service skips and one
+test-call failure in 8.69 seconds: the new observation fixture omitted its account ID. The
+corrected service-enabled scope passed 135 tests in 20.83 seconds. Added infrastructure
+settlement, concurrent settlement, late permission loss/recovery and corrupted archive cases
+then passed the expanded 149-test scope in 23.20 seconds, with real PostgreSQL and no skips.
+Owned temporary databases were dropped and absence verified. The tests retain original rows,
+assert rollback of schema changes before commit, preserve a committed archive after a lost
+acknowledgement, and verify stable metadata reconstruction. These overlapping scopes are not
+summed. Exact-head full CI, stopped older writer processes, registry incorporation, complete
+program inventory and invoice reconciliation remain required.

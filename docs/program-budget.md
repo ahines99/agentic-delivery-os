@@ -52,6 +52,10 @@ ledger against those envelopes, preserving partial boundaries and actual observe
 remain false. Existing [preparation inventories](campaign-accounting.md) are not silently
 imported or dropped; incorporating their retained liabilities is unfinished release work.
 
+[Legacy archival](legacy-accounting.md) now supplies an explicit irreversible fence and
+metadata-only liability reader for old ledgers. Registry incorporation remains a separate
+unfinished step; this does not silently reduce or migrate historical budgets.
+
 ## Verification
 
 [ADR-021](adr/ADR-021-required-evaluation-program-enrollment.md) now requires concrete current
