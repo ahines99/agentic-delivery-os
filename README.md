@@ -12,6 +12,10 @@ draft PR and Linear review-status handoff. The [webhook gateway](docs/linear-ing
 now supports both providers; finish [App onboarding](docs/provider-onboarding.md) and
 run the existing delivery pipeline before extending evaluation infrastructure.
 
+The [automatic delivery mode](docs/automatic-delivery.md) adds outbound Linear detection
+and owner-configured low-risk plan approval. Start the API, worker, dispatcher and enabled
+monitor with `delivery-service run`; merges remain human-controlled.
+
 ```text
 Linear -> Requirements -> Risk policy -> Plan -> Isolated build
        -> Independent verification -> Evidence -> Human-reviewed GitHub PR

@@ -9,7 +9,7 @@ from temporalio import activity
 from agentic_delivery.agents.contracts import ImplementationPlan
 from agentic_delivery.agents.pipeline import build_and_review
 from agentic_delivery.config import Settings
-from agentic_delivery.domain.models import WorkItem
+from agentic_delivery.domain.models import VerificationType, WorkItem
 from agentic_delivery.execution.docker import DockerRunner
 from agentic_delivery.integrations.github import GitHubPublisher
 from agentic_delivery.integrations.github_ci import GitHubCI, GitHubCIWaiting
@@ -89,10 +89,52 @@ class Activities:
             or instant >= created + timedelta(seconds=current.approval_validity_seconds)
         ):
             raise AccessDenied("Plan approval expired or is not yet valid")
+        if approval["actor"] == "delivery-automation":
+            self.validate_automatic_plan(identity, plan_digest)
+            return
         actor = next((op for op in current.operators if op.id == approval["actor"]), None)
         if actor is None:
             raise AccessDenied("Plan approver authorization was revoked")
         authorize(actor, run["repository"], "reviewer")
+
+    def validate_automatic_plan(self, identity: str, plan_digest: str) -> None:
+        """Owner-configured low-risk authority; never impersonate a human reviewer."""
+        self.validate_configuration(identity)
+        current = self.current_settings()
+        run = self.store.workflow(identity)
+        repository = current.repository(run["repository"])
+        if (
+            not current.admissions_enabled
+            or not repository.automatic_execution
+            or not repository.model_data_authorized
+        ):
+            raise AccessDenied("Automatic execution is not enabled for this repository")
+        item = WorkItem.model_validate(run["work_item"])
+        if item.source_system != "linear":
+            raise AccessDenied("Automatic execution requires an enrolled Linear ticket")
+        saved = json.loads(ArtifactStore(current.artifact_root).get(plan_digest))
+        plan = ImplementationPlan.model_validate(saved["plan"])
+        original = {criterion.id: criterion for criterion in item.acceptance_criteria}
+        proposed = {criterion.id: criterion for criterion in plan.criteria}
+        assessed = item.model_copy(
+            update={
+                "risk_tier": max(item.risk_tier or 0, plan.risk_tier),
+                "risk_tags": item.risk_tags + plan.risk_tags,
+                "acceptance_criteria": plan.criteria,
+                "ambiguities": item.ambiguities + plan.questions,
+            }
+        )
+        if (
+            plan.disposition != "READY"
+            or not evaluate_intake(assessed).allowed
+            or any(proposed.get(key) != value for key, value in original.items())
+            or any(
+                c.verification_type
+                not in {VerificationType.UNIT_TEST, VerificationType.INTEGRATION_TEST}
+                for c in plan.criteria
+            )
+        ):
+            raise AccessDenied("Plan requires clarification or manual review")
 
     @activity.defn(name="resolve_command")
     async def resolve_command(self, request: dict[str, Any]) -> dict[str, Any] | None:
@@ -108,6 +150,11 @@ class Activities:
             return None
         run = self.store.workflow(request["workflow_id"])
         try:
+            if command["actor"] == "delivery-automation":
+                if command["kind"] != "approve-plan":
+                    raise AccessDenied("Automation can only approve eligible plans")
+                self.validate_automatic_plan(run["id"], command["payload"]["plan_digest"])
+                return command
             operator = next(
                 (op for op in self.current_settings().operators if op.id == command["actor"]), None
             )

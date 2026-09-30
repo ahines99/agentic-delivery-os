@@ -11,7 +11,9 @@ accepted release targets; they are not a current feature inventory. Consult
 [implementation status](implementation-status.md) for exercised capabilities and open gates.
 [ADR-006](adr/ADR-006-verified-local-candidate.md) refines the original publication sequence:
 verify and independently review a local candidate first, then publish a draft that stays
-draft for human review. Every controlled execution requires authenticated plan approval.
+draft for human review. [ADR-025](adr/ADR-025-automatic-linear-delivery.md) now permits
+owner-configured automatic plan approval for eligible low-risk Linear tickets; other
+work retains authenticated human plan approval. Every merge remains human.
 This refinement supersedes the earlier automatic-ready sequence retained below.
 
 ## Product commitment
@@ -21,8 +23,8 @@ finish one usable Linear-to-GitHub delivery before extending benchmark infrastru
 The immediate sequence is persistent webhook ingress, GitHub App onboarding, a real
 approved ticket producing a tested draft PR, and the Linear review-status handoff.
 Fix defects exposed by that path and keep setup and operation straightforward.
-Retain credential isolation, finite budgets, current test/review evidence and human
-approval/merge controls. Additional evaluation frameworks, impact-analysis experiments
+Retain credential isolation, finite budgets, current test/review evidence, explicit
+plan-approval authority and human merge controls. Additional evaluation frameworks, impact-analysis experiments
 and broader operational tooling wait until this path works. Existing evaluation code
 and release targets remain; this changes implementation order, not reported results.
 

@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 from typing import Literal, Self
 
-from pydantic import Field, model_validator
+from pydantic import AwareDatetime, Field, model_validator
 
 from agentic_delivery.domain.models import Contract, NonEmpty
 from agentic_delivery.integrations.checks import RequiredCheck
@@ -56,6 +56,7 @@ class RepositoryConfig(Contract):
         ".env",
     )
     model_data_authorized: bool = False
+    automatic_execution: bool = False
     snapshot_prefix: str = ""
     sandbox_image: str | None = None
     local_repository: Path | None = None
@@ -114,6 +115,9 @@ class Settings(Contract):
     github_app_id: int | None = Field(default=None, gt=0)
     github_private_key_env: str = "GITHUB_APP_PRIVATE_KEY"
     publication_enabled: bool = False
+    linear_poll_start: AwareDatetime | None = None
+    linear_poll_seconds: int = Field(default=30, ge=10, le=300, strict=True)
+    linear_monitor_state: Path = Path(".local/linear-monitor.json")
 
     @model_validator(mode="after")
     def unique_identities(self) -> Self:
@@ -168,6 +172,11 @@ def load_settings(path: Path | None = None) -> Settings:
 
 def secret(name: str) -> str:
     value = os.environ.get(name)
+    if value is None and (filename := os.environ.get(name + "_FILE")):
+        try:
+            value = Path(filename).read_text(encoding="utf-8").rstrip("\r\n")
+        except (OSError, UnicodeError):
+            raise ValueError(f"Required secret file cannot be read: {name}_FILE") from None
     if not value or len(value) < 16:
         raise ValueError(f"Required secret environment variable is missing or too short: {name}")
     return value

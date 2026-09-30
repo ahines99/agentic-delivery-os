@@ -14,9 +14,13 @@ commands private. The original Linear-only gateway will reject GitHub callbacks.
    Choose a unique name if needed. The only requested repository write permissions are
    Contents and Pull requests; Checks read permission supports CI reconciliation. Metadata is implicit. No organization, administration,
    Actions, workflow-file, or user OAuth permissions are needed by this publisher.
-2. Register the App, generate its private key, and install it on **only** the approved target
-   repository. Keep the PEM in an owner-readable ignored file. Set the worker's
-   `GITHUB_APP_PRIVATE_KEY` environment variable to its contents, without printing it.
+2. Register the App, generate its private key, and install it on the owner-approved
+   repository scope. The owner has requested **All repositories** for the `ahines99`
+   account; select that option on the installation page. Product configuration still
+   allowlists each execution target, and installation tokens are restricted to that
+   target repository. Keep the PEM in an owner-readable file. Set
+   `GITHUB_APP_PRIVATE_KEY_FILE` to its path in the ignored environment file, or supply
+   `GITHUB_APP_PRIVATE_KEY` directly. Never print the key.
 3. Set `github_app_id`, `github_installation_id`, and the repository's numeric
    `github_repository_id` in private configuration. These are distinct identifiers.
 4. For observations, configure an HTTPS callback ending in `/webhooks/github`, subscribe to

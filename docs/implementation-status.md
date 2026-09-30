@@ -109,6 +109,18 @@ crash recovery or live-provider reconciliation.
 
 ## Implemented and exercised
 
+[Automatic Linear delivery](automatic-delivery.md) now adds a bounded outbound monitor,
+restart cursor, idempotent intake, explicit low-risk automatic approval and a combined
+local service command. This follows the owner's request in [ADR-025](adr/ADR-025-automatic-linear-delivery.md).
+Seventy-five monitor/runtime/credential/control-plane/authorization tests passed; the
+127-case pipeline/GitHub/CI/replay regression scope also passed. An initial cancellation
+test cancelled before the newly sequenced services started; the corrected test waits
+for active services and verifies their shutdown. The Windows startup script parses.
+Live automatic ticket-to-PR execution and new-head full CI remain to be verified.
+
+The earlier unchanged Windows full run at `4d71ce3` completed with 2,963 passed and
+101 explicit skips in 4,292.95 seconds. It does not cover subsequent changes.
+
 The [combined webhook gateway](linear-ingress.md) now routes both Linear intake and
 GitHub PR/CI callbacks to the existing private API. Its signed GitHub regression test
 passes through both gateway and actual API into SQLite, retains one observation on

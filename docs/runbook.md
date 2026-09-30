@@ -28,10 +28,32 @@ and restrict existing `config.local.json`, `.local/operator-token`, `.local/post
 permissions to the operator and required system administrators. The JSON configuration contains
 the database credential; an ignored filename does not protect it from other local users.
 
-Start each process in its own terminal with the project working directory:
+For local use, start the API, worker and dispatcher together from the project directory:
 
 ```sh
-uv run uvicorn agentic_delivery.api.app:app --host 127.0.0.1 --port 8000
+uv run --env-file .local/linear.env delivery-service run --config config.local.json
+```
+
+This runs the existing services in one foreground process. The API listens on
+`127.0.0.1:18090`, matching the [webhook gateway](linear-ingress.md). Ctrl+C stops
+the services; a worker/dispatcher failure also stops the API and exits with an error.
+Starting the dispatcher can process queued tickets and spend the configured model
+budget. Service shutdown is not a workflow cancellation; use the authenticated cancel
+command when cancelling a run. The command does not migrate databases, approve plans,
+enable publication or open a public tunnel. Keep the credential-free gateway in its
+separate process, and supply the model key through the environment or an additional
+`--env-file` passed to `uv run`.
+
+Credentials can use a file reference instead of an inline value. For example, put
+`GITHUB_APP_PRIVATE_KEY_FILE='C:/path/to/app.private-key.pem'` in the ignored environment
+file. The configured secret name with `_FILE` appended is read only when the direct
+environment variable is absent. An explicit empty/short direct value still fails.
+File content is never included in loading errors; keep the file owner-readable.
+
+For separately managed processes, use the existing commands:
+
+```sh
+uv run uvicorn agentic_delivery.api.app:app --host 127.0.0.1 --port 18090 --no-access-log --no-proxy-headers
 uv run delivery-service worker --config config.local.json
 uv run delivery-service dispatch --config config.local.json
 ```
