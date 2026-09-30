@@ -466,3 +466,110 @@ async def test_lost_dispatch_ack_redelivery_keeps_same_actual_temporal_execution
             }
         )
     )
+
+
+async def test_lost_cancel_signal_ack_after_completion_preserves_applied_command(
+    pg_store: Store,
+) -> None:
+    address = os.environ.get("TEST_TEMPORAL_ADDRESS")
+    if not address:
+        pytest.skip("Actual TEST_TEMPORAL_ADDRESS required")
+    item, actor = task(), "terminal-signal-" + uuid4().hex
+    settings = Settings(
+        temporal_address=address,
+        task_queue="terminal-signal-" + uuid4().hex,
+        repositories=(
+            RepositoryConfig(
+                id=item.repository,
+                github_owner="pg-fault",
+                github_name=item.repository.split("/")[1],
+            ),
+        ),
+        operators=(
+            Operator(
+                id=actor,
+                token_sha256="f" * 64,
+                repositories=(item.repository,),
+                roles=("operator", "reviewer"),
+            ),
+        ),
+    )
+    receipt = pg_store.submit(
+        item,
+        actor=actor,
+        key=uuid4().hex,
+        budget=settings.budget,
+        configuration_digest=settings.execution_digest(item.repository),
+    )
+    identity = receipt["workflow_id"]
+    client = await Client.connect(address)
+    assert await dispatch_once(settings, pg_store, client, workflow_id=identity) == 1
+    handle = client.get_workflow_handle(identity)
+    services = Activities(settings, pg_store)
+    signals = []
+
+    class LostAcknowledgement:
+        def get_workflow_handle(self, value: str) -> Any:
+            assert value == identity
+            return self
+
+        async def signal(self, *args: Any) -> None:
+            signals.append(args)
+            await handle.signal(*args)
+            assert (await asyncio.wait_for(handle.result(), timeout=15))["state"] == "CANCELLED"
+            raise OSError("Owned lost signal acknowledgement after completion")
+
+    async with Worker(
+        client,
+        task_queue=settings.task_queue,
+        workflows=[DeliveryWorkflow],
+        activities=[
+            services.project,
+            services.command_status,
+            services.resolve_command,
+            fault_matrix_planner,
+        ],
+    ):
+        async with asyncio.timeout(15):
+            while pg_store.workflow(identity)["state"] != "PLAN_REVIEW":
+                await asyncio.sleep(0.05)
+        run = pg_store.workflow(identity)
+        command = pg_store.enqueue_command(
+            identity,
+            kind="cancel",
+            actor=actor,
+            key=uuid4().hex,
+            payload={"expected_sequence": run["sequence"], "spec_digest": run["spec_digest"]},
+        )
+        assert (
+            await dispatch_once(settings, pg_store, LostAcknowledgement(), workflow_id=identity)
+            == 0
+        )
+        assert len(signals) == 1
+        applied = pg_store.command(command["command_id"])
+        assert applied["status"] == "APPLIED"
+        with Session(pg_store.engine) as session:
+            pending = session.scalar(
+                select(OutboxRecord).where(OutboxRecord.command_id == command["command_id"])
+            )
+            assert pending and not pending.delivered and pending.last_error == "OSError"
+            outbox_id = pending.id
+        before = json.loads((await handle.fetch_history()).to_json())
+        expire_own_lease(pg_store, outbox_id)
+        assert await dispatch_once(settings, pg_store, client, workflow_id=identity) == 1
+        assert await dispatch_once(settings, pg_store, client, workflow_id=identity) == 0
+
+    fresh = Store(create_database(os.environ["TEST_DATABASE_URL"]))
+    try:
+        assert fresh.command(command["command_id"]) == applied
+        assert fresh.workflow(identity)["state"] == "CANCELLED"
+        with Session(fresh.engine) as session:
+            saved = session.get(OutboxRecord, outbox_id)
+            assert saved and saved.delivered and saved.last_error == "" and saved.attempts == 2
+    finally:
+        fresh.engine.dispose()
+    history = await handle.fetch_history()
+    assert json.loads(history.to_json()) == before
+    assert (
+        await Replayer(workflows=[DeliveryWorkflow]).replay_workflow(history)
+    ).replay_failure is None

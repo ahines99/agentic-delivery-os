@@ -7,6 +7,7 @@ from uuid import uuid4
 import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from temporalio.service import RPCError, RPCStatusCode
 
 from agentic_delivery.config import Budget, RepositoryConfig, Settings
 from agentic_delivery.domain.models import WorkItem
@@ -156,3 +157,34 @@ async def test_unknown_dispatch_scope_has_no_claims_or_provider_calls(setup) -> 
     assert await dispatch_once(settings, store, client, workflow_id="missing-workflow") == 0
     assert client.starts == [] and client.signals == []
     assert outbox(store) == before
+
+
+@pytest.mark.parametrize("disposition", ["RECEIVED", "APPLIED", "REJECTED"])
+async def test_closed_workflow_acknowledges_redelivery_without_changing_final_command(
+    setup, disposition
+):
+    store, settings = setup
+    identity = submit(store)
+    assert await dispatch_once(settings, store, FakeClient(), workflow_id=identity) == 1
+    command = store.enqueue_command(
+        identity, kind="cancel", actor="scope-test", key=uuid4().hex, payload={}
+    )
+    if disposition != "RECEIVED":
+        store.command_status(command["command_id"], disposition, "Original disposition")
+
+    class ClosedHandle:
+        async def signal(self, *args):
+            raise RPCError("Owned closed workflow", RPCStatusCode.NOT_FOUND, b"")
+
+    class ClosedClient:
+        def get_workflow_handle(self, value):
+            assert value == identity
+            return ClosedHandle()
+
+    assert await dispatch_once(settings, store, ClosedClient(), workflow_id=identity) == 1
+    saved = store.command(command["command_id"])
+    assert saved["status"] == ("REJECTED" if disposition == "RECEIVED" else disposition)
+    assert saved["reason"] == (
+        "Workflow closed" if disposition == "RECEIVED" else "Original disposition"
+    )
+    assert all(row["delivered"] and not row["last_error"] for row in outbox(store))

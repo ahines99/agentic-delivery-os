@@ -18,7 +18,13 @@ The [terminal outbox redelivery follow-up](postgres-faults.md#terminal-redeliver
 passed the expanded 15-case PostgreSQL/Temporal fault suite in 8.43 seconds. All three
 lost-acknowledgement boundaries now also prove that redelivery after completion is
 rejected by Temporal without a new run, changed terminal state or altered history.
-The existing dispatcher behavior required no production code change.
+The existing start-dispatch behavior required no production code change. A further
+lost cancellation acknowledgement reproduced a pending-outbox bug after completion:
+the dispatcher tried to reject an already APPLIED command. It now preserves the
+final decision and acknowledges the delivery. The expanded PostgreSQL/Temporal
+suite passed 16 cases, including the real closed-workflow signal response and replay;
+all 13 scoped dispatcher cases passed. Full regression and installation of this
+dispatcher change remain pending.
 
 The [Linear PR-link recovery](linear-attachment-recovery.md) follow-up adds one
 bounded confirming read after a lost attachment response, with current ticket and

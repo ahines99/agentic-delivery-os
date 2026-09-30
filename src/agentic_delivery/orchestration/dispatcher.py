@@ -59,7 +59,13 @@ async def dispatch_once(
                     await client.get_workflow_handle(identity).signal("command", command)
                 except RPCError as exc:
                     if exc.status == RPCStatusCode.NOT_FOUND:
-                        store.command_status(command["command_id"], "REJECTED", "Workflow closed")
+                        # A lost signal/ack may be redelivered after the command
+                        # was applied and the workflow closed. Keep that decision.
+                        saved = store.command(command["command_id"])
+                        if saved["status"] not in {"APPLIED", "REJECTED"}:
+                            store.command_status(
+                                command["command_id"], "REJECTED", "Workflow closed"
+                            )
                     else:
                         raise
             store.finish_outbox(command["outbox_id"], owner)

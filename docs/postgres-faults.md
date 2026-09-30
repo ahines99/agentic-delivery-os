@@ -93,3 +93,19 @@ Ruff, formatting and mypy passed. No production code change was needed: the exis
 REJECT_DUPLICATE reuse policy supplies this behavior. This proves late start
 redelivery for the named completed-workflow case, not remote side-effect recovery,
 Temporal retention expiry or arbitrary terminal races.
+
+The follow-up also exposed an applied-command acknowledgement bug: a cancellation
+could finish the workflow before its signal response was lost. Redelivery then
+received NOT_FOUND and tried to change APPLIED to REJECTED. The immutable disposition
+check correctly refused, but the outbox stayed pending with Conflict until its retry
+limit. The dispatcher now preserves an existing final disposition and acknowledges
+that delivery; a command never applied to the closed workflow is still rejected.
+
+Three scoped dispatcher cases passed for RECEIVED/APPLIED/REJECTED. An additional
+actual PostgreSQL/Temporal case loses the cancellation acknowledgement after the
+workflow completes, then redelivers to the closed execution. A fresh engine confirms
+the original APPLIED decision, terminal CANCELLED state and acknowledged outbox after
+two attempts. The history remains unchanged and replays. The expanded fault suite
+passed **16 tests in 10.22 seconds**, and all 13 dispatcher scope tests passed. The
+earlier reproducer failed only the APPLIED case before the fix. Full final-source
+regression and installation remain tracked separately.
