@@ -14,7 +14,7 @@ GitHub checks, and moved to Linear In Review with its PR attached. A second tick
 paused for clarification, resumed after a ticket edit, and completed the same handoff
 with [PR #7](https://github.com/ahines99/agentic-delivery-os/pull/7). The delivery-proof source
 at `8413dc4` passed [full CI](https://github.com/ahines99/agentic-delivery-os/actions/runs/36668888799).
-The installed service subsequently received the planning-cancellation fix at `0adc93d`;
+The installed service subsequently received planning-cancellation and Linear response-recovery fixes at `e611917`;
 the [verification status](docs/implementation-status.md) distinguishes later changes and checks. See the
 [live evidence and recovery record](docs/live-automatic-delivery.md). The [webhook gateway](docs/linear-ingress.md)
 supports both providers, and the outbound monitor provides automatic intake without a tunnel.
@@ -75,11 +75,11 @@ validation. Cached recovery added no calls or charges. Synthetic fixtures remain
 from historical admission, worker export, scoring and campaign use. See the
 [recorded qualification](docs/evaluation-calibration.md#completed-synthetic-qualification).
 
-Protected acquisition and v2 import have now reached actual execution for five historical
+Protected acquisition and v2 import have now reached actual execution for seven historical
 development candidates. The [recorded attempts](docs/historical-development-attempts.md)
 retain a deterministic rejection and a truncated model review whose cost was reconciled.
-After calibrated reviews, four candidates passed all deterministic checks,
-two independent model reviews each and authority validation. Four development tasks
+After calibrated reviews, five candidates passed all deterministic checks,
+two independent model reviews each and authority validation. Five development tasks
 have completed qualification; no historical task has been scored or used in a campaign. A separately
 frozen final-scorer configuration passed all five owned development anchors; this is
 [calibration evidence](docs/semantic-calibration.md), not historical accuracy.

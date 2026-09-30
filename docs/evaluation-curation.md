@@ -8,10 +8,10 @@ remains normative: target 36/minimum 30, three repositories, grouped equal split
 reserved for sealed test, at least 24 behavioral tasks, and two independently executed agent qualification passes per admitted task,
 with a distinct adjudicator for disagreements and unresolved findings failing closed. Baseline and accepted-solution checks each require three repetitions.
 
-Five separately acquired development candidates have since reached actual protected
+Seven separately acquired development candidates have since reached actual protected
 import and execution. Their [retained attempts](historical-development-attempts.md)
-include one deterministic rejection and four completed qualifications with two agreeing
-independent reviews each. These admitted development tasks have not been scored and do not
+include one deterministic rejection, five completed qualifications with two agreeing
+independent reviews each, and a stopped first review after provider HTTP 400. These admitted development tasks have not been scored and do not
 replace an original catalog entry or reduce the required corpus.
 
 ## Candidate sources and rights

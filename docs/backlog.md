@@ -20,7 +20,7 @@ Refer to [implementation status](implementation-status.md) for recorded evidence
 | M2 | Real synthetic build, fixed Docker runner, baseline/candidate/criterion tests and immutable artifacts | Broader dependency/resource/escape probes and granular execution recovery |
 | M3 | Fresh independent model review and `LOCAL_REVIEW_READY`; controlled rejection/repair/exhaustion checks; shared A/B candidate engine; GitHub App publishing/observation contracts and Linear adapter | Live App draft publication, exact-head CI and Linear handoff passed; broader provider reconciliation faults, signed callbacks and historical A/B execution remain |
 | M4 | Restart/replay and named failure paths; actual killed-worker cleanup or explicit UNKNOWN; local restore/projection drills and bounded private PG metadata export | Complete P-01–P-12, distributed fencing, daemon/host-loss, adversarial/retention/backup gates and validation qualification before pilot |
-| M5 | Evaluation schema/scoring/leakage controls, 36 UNQUALIFIED metadata candidates, two separately acquired qualified development tasks and conservative Python impact analysis; schema-3 frozen execution budgets | Independently qualified 30+ historical tasks, campaign executor, calibrated independent semantic scoring and frozen paired campaign under ADR-007; no historical scoring or campaign exists |
+| M5 | Evaluation schema/scoring/leakage controls, 36 UNQUALIFIED metadata candidates, five separately acquired qualified development tasks and conservative Python impact analysis; schema-3 frozen execution budgets | Independently qualified 30+ historical tasks and execution of the implemented campaign/scoring tooling under the frozen paired protocol and ADR-007; no historical scoring or campaign exists |
 | M6 | Retained future options | Evidence-led scope decision before implementation |
 
 [ADR-006](adr/ADR-006-verified-local-candidate.md) supersedes the original publication order below: verification/review happen locally before draft publication, and a human controls readiness and every merge. The recorded durable synthetic run stopped `POLICY_BLOCKED` at disabled publication after producing a verified local candidate.
@@ -29,7 +29,7 @@ Refer to [implementation status](implementation-status.md) for recorded evidence
 preference: qualification/scoring uses two independent agent passes, a distinct adjudicator for
 disagreement and authoritative three-repeat baseline/reference execution evidence. Unresolved
 rights/risk/evidence fails closed. This supersedes human benchmark reviewer-name requirements;
-all original 36 candidates remain UNQUALIFIED. Two separately acquired development tasks
+all original 36 candidates remain UNQUALIFIED. Five separately acquired development tasks
 passed qualification; no historical scoring or campaign has run. Actual human effort/benefit
 is unmeasured, not fabricated.
 Plan approval follows ADR-025; pilot signoff and product merges remain human controls.

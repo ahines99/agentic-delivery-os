@@ -14,7 +14,10 @@ CI invalidation during reconciliation. Attachment-response uncertainty remains U
 Three additional GitHub adapter cases lose acknowledgements after branch creation,
 PR creation or final read-back; fresh clients reconcile one branch and one draft PR.
 The combined adapter/handoff suite passed 89 tests. These are controlled provider
-tests, not a new live provider fault drill. Full verification of this change is pending.
+tests, not a new live provider fault drill. Source `e611917` was installed through an idle
+supervised restart; readiness returned and Linear polling advanced while both existing
+review handoffs remained persisted. [Full CI](https://github.com/ahines99/agentic-delivery-os/actions/runs/36724207546)
+for this change is in progress.
 
 Planning cancellation follow-up (2026-09-30): the planning activity previously lacked
 the heartbeat/timeout pair required for Temporal cancellation delivery. An owned
@@ -51,8 +54,14 @@ integration and secret scanning. The corresponding local package-profile suite p
 Ruff, formatting, mypy and package builds; the hosted run above now covers that fix.
 The later planning-cancellation change is tracked separately above.
 
-Four historical development tasks have now completed qualification. Both new
-markdownify attempts passed a freshly ordered runtime matrix, two independent reviews
+Provider availability at 2026-09-30 13:59 UTC: the next historical review and one
+owned diagnostic returned HTTP 400. The diagnostic recorded a billing/credit indicator;
+no raw provider message or historical contents were exposed. Both reservations remain
+unresolved and no retry was issued. Linear/GitHub polling remains available, but new
+model-backed delivery needs the configured Anthropic account's billing restored.
+
+Five historical development tasks have now completed qualification. The three qualified
+markdownify tasks passed a freshly ordered runtime matrix, two independent reviews
 and authority validation; an earlier late-plan attempt and its costs remain retained.
 No historical scoring or campaign ran. See the [protected attempt record](historical-development-attempts.md).
 

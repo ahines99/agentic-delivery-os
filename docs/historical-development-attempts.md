@@ -312,3 +312,49 @@ infrastructure microdollars. No reservation or unknown operation remains in that
 This is the fourth completed development qualification, with no worker export, scoring
 or campaign authorization. Related markdownify tasks stay in the same development family;
 these results do not establish the required corpus or a benchmark success rate.
+
+
+## Further preselected development qualifications (2026-09-30)
+
+PR 214/issue 212 in `matthewwithanm/python-markdownify` completed protected acquisition
+and complete test-package derivation: 21 baseline files, 85,700 source bytes, two
+changed files, one changed-test relocation and one frozen acceptance selector.
+Acquisition made 29 requests totaling 195,515 bytes. Derivation:
+`6ae6c8a9aafbe25443990f87a164eaf0f6ffc0cda46e23a5935d9770940252fd`.
+The protected capture retained the provider-reported pre-solution issue body, with
+no recorded edits; matching reads froze the accepted-fix linkage. License text/history,
+static dependencies and the input scan passed their bounded checks. The import retained
+all 82 original regression nodes and the existing pinned package-compatible image.
+
+A fresh plan at source `e6119176d435f936c79e29f5f63fd64d03d74572` preceded 13 runtime
+operations and two independent reviews. Current authority validation returned
+**QUALIFICATION_PASS**; no adjudication was needed. Qualification artifact:
+`bb7c0e28056244cecf9bbaee0a05add3aeb2bc2ac6416ed780112df4d75fef35`.
+Account `markdownify-pr214-development-v95` settled all 15 operations and closed with
+zero reservation or unknown operations: 1,158,825 model microdollars (171,910 input,
+11,971 output tokens) plus 27 configured infrastructure microdollars. The separate
+input scan settled one infrastructure microdollar. The new candidate's $18 model cap
+was frozen before import and fits the unchanged $25 program ceiling; prior accounts,
+liabilities and deadlines were not reset. Five historical development tasks have now
+completed qualification. No historical scoring, worker export or campaign was authorized.
+
+The next metadata-selected pair, PR 202/issue 201, has also completed protected
+acquisition and import. Its 21 baseline files contain 83,521 source bytes; acquisition
+made 29 requests totaling 215,852 bytes. Derivation:
+`2d05f0079bd690b3ecc48a1a5185ed50209d11c64237aeae05de07d6a9dfe994`.
+The import retained one acceptance node and all 81 original regression nodes, with
+pre-solution requirements/linkage, license/history, dependency and input-scan checks.
+A separately frozen full qualification at `e611917` completed 13 deterministic
+operations, but the first semantic request returned HTTP 400 without reported usage.
+Account `markdownify-pr202-development-v97` retains 29 settled infrastructure
+microdollars and a 1,450,305-microdollar model reservation. It remains unqualified;
+no retry, worker export, scoring, account closure or campaign was authorized.
+
+One subsequent owned, non-historical diagnostic also returned HTTP 400 with an
+allowlisted `invalid_request_error` and billing/credit indicator. It retains its own
+20,200-microdollar reservation in the same program. This indicates an account-level
+availability problem; it does not establish exact billing, a zero charge for either
+failed call, or the original historical response's message. No additional paid calls
+were issued. The owner was asked to restore provider billing. Both candidates remain
+in the same development repository family; no new corpus split or sealed-phase access
+is implied.
