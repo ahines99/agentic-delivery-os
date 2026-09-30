@@ -13,7 +13,46 @@ including controlled HTTP faults, SQLite persistence and fresh-client/store repl
 Ruff, formatting and mypy passed. This is not an atomic provider lock or a live
 provider-fault exercise. Source `0bcd0ee` was installed through an idle supervised
 restart; readiness returned, Linear polling advanced and both existing review
-handoffs remained persisted. Its full local suite is running; hosted CI is pending.
+handoffs remained persisted. Its full local suite is running. [Hosted CI at
+`91f1b21`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36732891287)
+passed Python 3.12 and 3.13 (3,215 tests and 120 explicit skips each), all 120 service
+integration tests, package builds and secret scanning. This includes the intake,
+backup-selection and model-diagnostic fixes described below.
+
+Manual acceptance is implemented at `3550009`: a draft can carry visibly pending
+human criteria, authenticated decisions bind to exact revisions and current evidence,
+and Linear handoff waits for those decisions plus current CI. The focused suite passed
+270 tests with six explicit Docker skips; eight actual PostgreSQL/Temporal scenarios
+passed, including restart, stale/revoked decisions, cancellation and unknown GitHub
+update outcome. [Hosted CI](https://github.com/ahines99/agentic-delivery-os/actions/runs/36735702473)
+has passed its service and secret-scan jobs; full Python jobs and the full local run
+are still pending. These are owned scripted operator identities, not a human pilot
+signoff. [Operator instructions](manual-acceptance.md) describe the API.
+
+The follow-on sandbox fix at `430bc19` replaces the two-hour keepalive with the approved
+command timeout plus a fixed 60-second lifecycle allowance. Ten profile cases and a
+real Docker worker-tree kill case passed together (11 tests in 75.17 seconds); the
+container exited without replacement-worker cleanup. Full local and
+[hosted verification](https://github.com/ahines99/agentic-delivery-os/actions/runs/36737373590)
+are running. See [ADR-031](adr/ADR-031-container-lifetime.md) for limits.
+Neither development feature is installed in the live service yet.
+
+Distribution staging at `430bc19` passed in a fresh non-editable Python 3.12.10
+environment with 31 hash-locked runtime dependencies. All three CLI help entry points
+passed, and the manual acceptance, GitHub finalizer and Docker modules resolved only
+inside the installed wheel. That installed package passed all seven actual Docker
+preflight controls on the pinned runtime image. Wheel SHA-256:
+`376854689419e7129f199c42641539bec4388b1094601fd0dce3e8c0c5f431b1`.
+This staging made no provider calls and did not restart the live service.
+
+A metadata-only registry check on 2026-09-30 confirmed the development evaluation's
+USD 25 cap currently contains USD 6.467064 in closed envelopes and USD 18.030201 in
+two active envelopes, leaving USD 0.502735 for new envelopes. The active amount is
+reserved capacity, not a claim that USD 18 was billed. Earlier unknown operations
+remain unresolved after provider billing restoration. No cap, grant, expiry, ledger
+or reservation was changed. This prospective registry excludes older liabilities
+and does not establish complete program cost. Further historical qualification needs
+sufficient current authorized capacity; live product ticket budgets are separate.
 
 The earlier full Windows run collected at `0adc93d` completed: 3,145 passed and
 126 explicit service/platform skips in 4,642.41 seconds. Later tests and fixes are
@@ -25,9 +64,10 @@ retry rules are unchanged. The focused model/receipt/reconciliation suite passed
 121 tests with one explicit PostgreSQL skip. Five actual PostgreSQL/Temporal fault
 cases passed in 21.19 seconds, including billing-response classification in retained
 workflow failure history, withheld provider-text canary, unchanged reservation,
-denied reissue and successful history replay. Full new-source verification is pending.
+denied reissue and successful history replay. The subsequent `91f1b21` CI above
+covers this source.
 
-Latest complete hosted verification: [CI at `e611917`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36724207546)
+Earlier complete hosted verification: [CI at `e611917`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36724207546)
 passed Python 3.12/3.13 (3,165 tests and 119 explicit integration skips each), all
 119 service integration tests, and secret scanning. This covers planning cancellation
 and Linear status-response recovery. The later backup selection and diagnostic changes

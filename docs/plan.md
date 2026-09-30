@@ -275,8 +275,10 @@ architecture. Licensing is intentionally not granted by this scaffold; the owner
 an open-source license before public distribution. A remote owner/name and secrets are not
 guessed. These facts do not block the local plan or repository setup.
 
-Next release work: onboard the GitHub App, complete durable Linear ingress and handoff, qualify the historical evaluation
-corpus, and satisfy the remaining acceptance gates listed in
-[implementation status](implementation-status.md). Durable storage, Temporal, model-driven local
-execution and the controlled candidate path are implemented; follow that current status record
-when interpreting the original milestone targets above.
+Next release work: finish verification and installation of manual acceptance and the
+independent container lifetime, complete remaining acceptance evidence, qualify and
+execute the historical evaluation, and obtain the required human pilot signoff.
+GitHub App onboarding, automatic Linear intake and the live tested-PR handoff are
+already proved for the configured sample target. Follow
+[implementation status](implementation-status.md) when interpreting the original
+milestone targets above; additional repositories still require onboarding.
