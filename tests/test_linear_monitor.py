@@ -1,3 +1,4 @@
+import asyncio
 import json
 from copy import deepcopy
 from datetime import UTC, datetime, timedelta
@@ -12,6 +13,7 @@ from agentic_delivery.agents.contracts import ImplementationPlan
 from agentic_delivery.config import RepositoryConfig, Settings
 from agentic_delivery.domain.models import AcceptanceCriterion, WorkItem
 from agentic_delivery.integrations.linear import LinearClient
+from agentic_delivery.operations import linear_monitor
 from agentic_delivery.operations.linear_monitor import MonitorState, approve_plans, poll_once
 from agentic_delivery.orchestration.activities import Activities
 from agentic_delivery.storage.artifacts import ArtifactStore
@@ -566,3 +568,28 @@ async def test_automation_cannot_change_nontext_fields(setup, field, value):
         await Activities(settings, store).validate_linear_clarification(
             store.workflow(identity), command
         )
+
+
+async def test_monitor_loop_survives_automatic_approval_failure(setup, monkeypatch, tmp_path):
+    settings, _ = setup
+    approvals = []
+
+    def failing_approval(*_):
+        approvals.append(1)
+        raise OSError("owned transient database failure")
+
+    async def no_poll(*_):
+        return 0
+
+    async def stop_after_two(_):
+        if len(approvals) == 2:
+            raise asyncio.CancelledError
+
+    monkeypatch.setattr(linear_monitor, "load_settings", lambda _: settings)
+    monkeypatch.setattr(linear_monitor, "LinearClient", lambda: None)
+    monkeypatch.setattr(linear_monitor, "poll_once", no_poll)
+    monkeypatch.setattr(linear_monitor, "approve_plans", failing_approval)
+    monkeypatch.setattr(linear_monitor.asyncio, "sleep", stop_after_two)
+    with pytest.raises(asyncio.CancelledError):
+        await linear_monitor.monitor(tmp_path / "config.json")
+    assert len(approvals) == 2

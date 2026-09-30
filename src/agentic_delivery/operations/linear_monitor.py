@@ -240,7 +240,10 @@ async def monitor(config: Path) -> None:
                 await poll_once(settings, store, LinearClient())
             except Exception as exc:
                 logger.error("Linear polling failed; cursor retained (%s)", type(exc).__name__)
-            approve_plans(settings, store)
+            try:
+                approve_plans(settings, store)
+            except Exception as exc:
+                logger.error("Automatic plan approval failed; retrying (%s)", type(exc).__name__)
             await asyncio.sleep(settings.linear_poll_seconds)
     finally:
         store.engine.dispose()
