@@ -37,6 +37,11 @@ also recovered during its CI wait without another attempt or model charge. See t
 sample-repository branch; this closes the bounded clear-ticket demonstration, not
 all operational, historical evaluation or portfolio release gates.
 
+[ADR-031](adr/ADR-031-container-lifetime.md) adds a container lifetime independent of
+worker survival. The command budget plus a fixed lifecycle allowance replaces the
+two-hour keepalive; verification and installation are tracked separately from the
+existing process-loss evidence.
+
 Build a single-tenant delivery control plane that takes a bounded Linear ticket for an
 onboarded Python repository, produces an isolated change and GitHub pull request, independently
 verifies the candidate, and gives a human a concise evidence package. All merges are human.

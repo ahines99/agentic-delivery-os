@@ -12,6 +12,9 @@ from uuid import UUID, uuid4
 
 from agentic_delivery.execution.files import archive
 
+# Independent of the worker: allow one bounded snapshot transfer and report read.
+CONTAINER_LIFECYCLE_GRACE_SECONDS = 60
+
 
 class SandboxError(RuntimeError):
     pass
@@ -118,7 +121,12 @@ class DockerRunner:
         run_id: str | None = None,
         verification_binding: dict[str, Any] | None = None,
     ) -> ExecutionResult:
-        if not argv or timeout_seconds <= 0 or timeout_seconds > 1800:
+        if (
+            not argv
+            or type(timeout_seconds) is not int
+            or timeout_seconds <= 0
+            or timeout_seconds > 1800
+        ):
             raise ValueError("Invalid approved command or timeout")
         await self.check_host()
         name = "delivery-" + uuid4().hex
@@ -160,10 +168,13 @@ class DockerRunner:
                 "none",
                 "--pull",
                 "never",
+                "--restart",
+                "no",
                 self.image,
                 "python",
+                "-I",
                 "-c",
-                "import time; time.sleep(7200)",
+                f"import time; time.sleep({timeout_seconds + CONTAINER_LIFECYCLE_GRACE_SECONDS})",
             )
             if code:
                 raise SandboxError("Sandbox provisioning failed")
