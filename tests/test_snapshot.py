@@ -145,3 +145,9 @@ async def test_git_does_not_inherit_credentials(monkeypatch: pytest.MonkeyPatch)
     )
     assert await snapshot.git("fetch") == b""
     assert os.environ["SNAPSHOT_TEST_CREDENTIAL"] == "not-a-real-secret"
+
+
+async def test_git_preserves_windows_system_root(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("SYSTEMROOT", os.environ.get("SYSTEMROOT", "C:\\Windows"))
+    substitute_git(monkeypatch, "import os; assert os.environ.get('SYSTEMROOT')")
+    assert await snapshot.git("fetch") == b""

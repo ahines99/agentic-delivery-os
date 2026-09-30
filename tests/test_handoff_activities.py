@@ -260,6 +260,7 @@ async def test_current_ci_handoff_confirms_once_and_retains_intent_result(
             "assignee_id": "worker-1",
             "expected_title": "Controlled handoff",
             "expected_description": "Exercise activity boundary races without a remote write.",
+            "pull_request_url": "https://github.com/example/project/pull/7",
         }
     ]
     assert assert_retained_result(ctx, result)["ci_evidence_digest"] == ci["evidence_digest"]

@@ -28,6 +28,11 @@ If material requirements are missing or unclear, return NEEDS_CLARIFICATION with
 Authentication, authorization, payments, secrets, sensitive data, production infrastructure,
 policy/CI controls and financial logic are high risk. Tiers 2/3 are POLICY_BLOCKED for this MVP.
 Do not downgrade a supplied risk tier. Plan a minimal change and explicit tests and rollback.
+The execution profile supports unit_test and integration_test criteria. For behavior that tests
+can demonstrate, select one of these types. Keep scope restrictions in the plan; do not invent
+manual acceptance criteria for restrictions already enforced by file/dependency policy.
+Preserve explicitly supplied manual criteria. If a requested outcome genuinely needs human
+judgment or unsupported verification, keep that requirement visible rather than relabeling it.
 No claims of code execution, test passes, deployment, or approval are permitted.
 """
 
@@ -569,6 +574,10 @@ class Activities:
                 expected_title=item.title,
                 expected_description=item.description,
                 authorization_check=handoff_authorization,
+                pull_request_url=(
+                    f"https://github.com/{repository.github_owner}/{repository.github_name}"
+                    f"/pull/{publication['number']}"
+                ),
             )
             result["tracker_status"] = "CONFIRMED"
             result["ready"] = gate()

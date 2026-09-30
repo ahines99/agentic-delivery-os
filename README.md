@@ -9,8 +9,8 @@ local directory name `agentic-delivery-engineer`; the product/package name is Ag
 
 **Current implementation focus:** complete one real Linear ticket through a tested GitHub
 draft PR and Linear review-status handoff. The [webhook gateway](docs/linear-ingress.md)
-now supports both providers; finish [App onboarding](docs/provider-onboarding.md) and
-run the existing delivery pipeline before extending evaluation infrastructure.
+supports both providers, and the outbound monitor provides automatic intake without a tunnel.
+Use [App onboarding](docs/provider-onboarding.md) to configure another installation.
 
 The [automatic delivery mode](docs/automatic-delivery.md) adds outbound Linear detection
 and owner-configured low-risk plan approval. Start the API, worker, dispatcher and enabled
@@ -37,7 +37,7 @@ Linear key now passes live workspace/team discovery, and a controlled real ticke
 webhook intake, a non-content update and exact signed replay through a temporary HTTPS gateway.
 One workflow/start command was retained. Two real test tickets subsequently reached persisted
 `NEEDS_CLARIFICATION` and `PLAN_REVIEW` states through metered planning. Status handoff remains unverified. GitHub App credentials
-are still absent. Complete
+are now installed and repository-scoped authentication has been verified. Complete
 recovery/security qualification and the independently scored 30+ historical-task evaluation
 remain release gates. The Docker checks establish named controls, not safety against arbitrary
 hostile code. See [implementation status](docs/implementation-status.md) for recorded runs,

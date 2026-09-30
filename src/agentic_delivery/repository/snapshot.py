@@ -18,7 +18,7 @@ async def git(*args: str, cwd: Path | None = None) -> bytes:
     env = {
         key: value
         for key, value in os.environ.items()
-        if key in {"PATH", "SystemRoot", "WINDIR", "TEMP", "TMP"}
+        if key.upper() in {"PATH", "SYSTEMROOT", "WINDIR", "TEMP", "TMP"}
     }
     env.update(
         {

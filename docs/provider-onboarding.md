@@ -4,7 +4,9 @@ The implementation PR is maintained with the owner's authenticated GitHub CLI. T
 publisher accepts only a GitHub App installation; CLI credentials are never a fallback.
 Keep `publication_enabled=false` until the following inputs and checks are complete.
 
-Use the [combined webhook gateway](linear-ingress.md) for the public HTTPS endpoint.
+The [automatic local service](automatic-delivery.md) uses outbound Linear polling and
+GitHub CI reads; it needs no public endpoint for ticket-to-PR delivery.
+Use the [combined webhook gateway](linear-ingress.md) when enabling public callbacks.
 It forwards Linear and GitHub callbacks to the private API while leaving operator
 commands private. The original Linear-only gateway will reject GitHub callbacks.
 
@@ -23,7 +25,7 @@ commands private. The original Linear-only gateway will reject GitHub callbacks.
    `GITHUB_APP_PRIVATE_KEY` directly. Never print the key.
 3. Set `github_app_id`, `github_installation_id`, and the repository's numeric
    `github_repository_id` in private configuration. These are distinct identifiers.
-4. For observations, configure an HTTPS callback ending in `/webhooks/github`, subscribe to
+4. For external merge/close observations, configure an HTTPS callback ending in `/webhooks/github`, subscribe to
    pull-request and check-run events, and set a fresh webhook secret both in GitHub and the API process's
    `GITHUB_WEBHOOK_SECRET`. Never put a secret in a URL. Keep other API routes private.
 5. Protect the target base branch with required independent checks and human review. Grant
@@ -71,11 +73,13 @@ a review-state ID. Record these as `linear_organization_id`, `linear_team_id`,
 `linear_assignee_id`, and `linear_review_state_id`. Supply an authorized personal API key as
 `LINEAR_API_KEY` for this single-tenant prototype. A production OAuth lifecycle remains separate work.
 
-A workspace admin must configure an Issue webhook for that team pointing to a publicly
+For webhook intake, a workspace admin configures an Issue webhook for that team pointing to a publicly
 reachable HTTPS `/webhooks/linear` endpoint. Put its signing secret in the API process's
 `LINEAR_WEBHOOK_SECRET`. The route verifies exact raw-body signatures, timestamps, workspace,
 team and assignee, then commits the inbox/outbox receipt before returning. Linear's
 [webhook documentation](https://linear.app/developers/webhooks) describes the admin and HTTPS requirements.
+For outbound automatic intake, configure `linear_poll_start` and repository
+`automatic_execution` instead; no webhook or public tunnel is required.
 
 Test a clear ticket, ambiguity/clarification, duplicate delivery, changed requirements,
 assignment changes and review-state handoff. A changed payload for the same ticket is a

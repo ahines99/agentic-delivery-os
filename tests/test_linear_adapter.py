@@ -189,3 +189,70 @@ async def test_review_state_authorization_is_checked_before_new_effects(monkeypa
     if revoke == "during_write":
         with pytest.raises(AccessDenied):
             guard()  # The activity retains confirmed effects then denies readiness.
+
+
+@pytest.mark.parametrize("already_reviewed", [False, True])
+@pytest.mark.parametrize("link_result", ["success", "unconfirmed", "revoked"])
+async def test_pull_request_link_precedes_status_and_retries_same_url(
+    monkeypatch, already_reviewed, link_result
+):
+    monkeypatch.setenv("TEST_LINEAR_KEY", "synthetic-key-never-a-real-secret")
+    live = issue()
+    if already_reviewed:
+        live["state"]["id"] = "review"
+    authorized = True
+    attachments = []
+    states = []
+
+    def guard():
+        if not authorized:
+            raise AccessDenied("Revoked")
+
+    def provider(request):
+        nonlocal authorized
+        body = json.loads(request.content)
+        if "query Issue" in body["query"]:
+            return httpx.Response(200, json={"data": {"issue": live}})
+        if "attachmentCreate" in body["query"]:
+            attachments.append(body["variables"]["input"])
+            authorized = link_result != "revoked"
+            return httpx.Response(
+                200, json={"data": {"attachmentCreate": {"success": link_result != "unconfirmed"}}}
+            )
+        guard()
+        states.append(body["variables"])
+        live["state"]["id"] = "review"
+        return httpx.Response(200, json={"data": {"issueUpdate": {"success": True}}})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(provider)) as client:
+
+        async def handoff():
+            await LinearClient("TEST_LINEAR_KEY", client).set_review_state(
+                "issue-1",
+                "review",
+                team_id="team-1",
+                assignee_id="worker-1",
+                pull_request_url="https://github.com/owner/repo/pull/7",
+                authorization_check=guard,
+            )
+            guard()  # The activity also checks after effects before marking ready.
+
+        if link_result == "success":
+            await handoff()
+            await handoff()
+            assert attachments[0] == attachments[1]
+            assert len(states) == (0 if already_reviewed else 1)
+        else:
+            with pytest.raises(ValueError):
+                await handoff()
+            assert not states
+    assert attachments[0]["issueId"] == "issue-1"
+    assert attachments[0]["url"] == "https://github.com/owner/repo/pull/7"
+
+
+@pytest.mark.parametrize("url", ["https://example.com/pull/7", "https://github.com/o/r/pull/0"])
+async def test_invalid_pull_request_link_is_rejected_before_provider_call(url):
+    with pytest.raises(ValueError, match="Invalid GitHub"):
+        await LinearClient().set_review_state(
+            "issue-1", "review", team_id="team-1", assignee_id="worker-1", pull_request_url=url
+        )

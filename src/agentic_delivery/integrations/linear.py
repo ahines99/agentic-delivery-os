@@ -1,5 +1,6 @@
 """Linear GraphQL reads and version-aware status updates through the control plane."""
 
+import re
 from collections.abc import Callable
 from typing import Any
 
@@ -93,7 +94,13 @@ class LinearClient:
         expected_title: str | None = None,
         expected_description: str | None = None,
         authorization_check: Callable[[], None] | None = None,
+        pull_request_url: str | None = None,
     ) -> None:
+        if pull_request_url is not None and not re.fullmatch(
+            r"https://github\.com/[A-Za-z0-9-]+/[A-Za-z0-9_.-]+/pull/[1-9][0-9]*",
+            pull_request_url,
+        ):
+            raise ValueError("Invalid GitHub pull request URL")
         if authorization_check is not None:
             authorization_check()
         issue = await self.issue(identity)
@@ -104,6 +111,24 @@ class LinearClient:
             expected_title=expected_title,
             expected_description=expected_description,
         )
+        if pull_request_url is not None:
+            if authorization_check is not None:
+                authorization_check()
+            # Linear upserts by (issueId, URL), including after a lost response.
+            attachment = await self.query(
+                "mutation DeliveryPullRequest($input: AttachmentCreateInput!) { "
+                "attachmentCreate(input: $input) { success } }",
+                {
+                    "input": {
+                        "issueId": identity,
+                        "url": pull_request_url,
+                        "title": "Delivery pull request",
+                        "subtitle": "Human review and merge required",
+                    }
+                },
+            )
+            if attachment.get("attachmentCreate", {}).get("success") is not True:
+                raise ValueError("Linear pull request link was not confirmed")
         if issue["state"]["id"] == state_id:
             return
         if authorization_check is not None:

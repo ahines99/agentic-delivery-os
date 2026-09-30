@@ -9,7 +9,10 @@ completed/cancelled tickets are skipped.
 The local service checks Linear every 30 seconds by default, persists one workflow,
 plans the change, automatically approves an eligible low-risk plan, builds and tests
 in Docker, obtains independent review, publishes a draft PR, checks GitHub CI and
-updates Linear to In Review. The PR stays available for human review and merge.
+attaches the PR link to the ticket and updates Linear to In Review. The PR stays
+available for human review and merge. Link creation uses Linear's
+[issue-and-URL idempotency](https://linear.app/developers/attachments), so a repeated
+handoff updates the same attachment.
 Ambiguous, high-risk, failed or stale work does not become review-ready.
 
 Configuration:
@@ -38,6 +41,17 @@ it as the current user's login task for unattended local operation. It uses a mu
 to prevent duplicate supervisors and writes private logs under `.local/runtime`.
 This is a local login service, not an always-on hosted deployment.
 
+Install the current-user task from PowerShell after configuring the service:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File scripts/install_local_service.ps1
+```
+
+The execution policy applies only to the task process; the installer does not change
+the machine policy or require administrator privileges. Docker Desktop must be running.
+Use a dedicated live PostgreSQL database and Temporal task queue. Test databases and
+queues must remain separate: test fixtures can contain pending commands and old workflows.
+
 Use authenticated `/work-items` and `/workflows/{id}` reads for progress. The monitor
 state records the last successful cursor and held source IDs; private service logs
 record polling failure types. Editing an already admitted ticket does not silently
@@ -45,3 +59,16 @@ start a new budget. Resolve the existing workflow through clarification or rerun
 
 See [ADR-025](adr/ADR-025-automatic-linear-delivery.md) for the owner-authorized change
 from mandatory human plan approval to explicit per-repository automation.
+
+## Installed local target
+
+The current owner installation maps the Personal Project Portfolio team to
+`ahines99/agentic-delivery-os`, using the protected `delivery-workbench` branch and
+the bounded `demos/sample_repo` Python source. New tickets can use
+`Repository: agentic-delivery-os`. This is the exercised target; installing the App
+on all repositories does not automatically configure their source, dependencies,
+test commands or CI checks. Each additional target needs that onboarding.
+
+The implementation remains in [PR #1](https://github.com/ahines99/agentic-delivery-os/pull/1).
+Delivery to `main` requires its human merge and an explicit target-base configuration
+change. Existing attempts retain their original base and configuration.
