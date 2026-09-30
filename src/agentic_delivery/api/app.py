@@ -17,6 +17,8 @@ from agentic_delivery.agents.manual_acceptance import manual_readiness, validate
 from agentic_delivery.config import AUTOMATION_ACTOR, Operator, Settings, load_settings, secret
 from agentic_delivery.domain.models import WorkItem
 from agentic_delivery.integrations.checks import parse_check_run
+from agentic_delivery.integrations.linear import LinearClient
+from agentic_delivery.integrations.product_ops import admit as admit_product_ops
 from agentic_delivery.security import AccessDenied, authenticate, authorize, verified_payload
 from agentic_delivery.storage.artifacts import ArtifactStore
 from agentic_delivery.storage.database import create_database
@@ -117,6 +119,21 @@ def create_app(settings: Settings | None = None, store: Store | None = None) -> 
             key=key(request),
             budget=settings.budget,
             configuration_digest=settings.execution_digest(item.repository),
+        )
+
+    @api.post("/handoffs/product-ops", status_code=202)
+    async def product_ops_handoff(request: Request) -> dict[str, Any]:
+        actor = operator(request)
+        expected = request.headers.get("x-approved-specification-digest", "")
+        if not re.fullmatch(r"[a-f0-9]{64}", expected):
+            raise ValueError("Exact approved specification digest required")
+        return await admit_product_ops(
+            await body(request),
+            expected_digest=expected,
+            actor=actor,
+            settings=settings,
+            store=store,
+            linear=LinearClient(),
         )
 
     @api.get("/workflows/{identity}")

@@ -1,0 +1,1533 @@
+{
+  "$defs": {
+    "AcceptanceCriterion": {
+      "additionalProperties": false,
+      "properties": {
+        "blocking": {
+          "title": "Blocking",
+          "type": "boolean"
+        },
+        "evidence_required": {
+          "maxLength": 16000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Evidence Required",
+          "type": "string"
+        },
+        "id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Id",
+          "type": "string"
+        },
+        "provenance": {
+          "enum": [
+            "directly_stated",
+            "repository_or_policy",
+            "safe_inference",
+            "requires_human_decision"
+          ],
+          "title": "Provenance",
+          "type": "string"
+        },
+        "requirement_ids": {
+          "items": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Requirement Ids",
+          "type": "array"
+        },
+        "text": {
+          "maxLength": 16000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Text",
+          "type": "string"
+        },
+        "verification_kind": {
+          "enum": [
+            "automated_test",
+            "manual_behavior",
+            "telemetry",
+            "security_check",
+            "data_reconciliation",
+            "documentation"
+          ],
+          "title": "Verification Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "text",
+        "requirement_ids",
+        "provenance",
+        "verification_kind",
+        "evidence_required",
+        "blocking"
+      ],
+      "title": "AcceptanceCriterion",
+      "type": "object"
+    },
+    "ApprovalPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "max_age_seconds": {
+          "exclusiveMinimum": 0,
+          "maximum": 86400,
+          "title": "Max Age Seconds",
+          "type": "integer"
+        },
+        "policy_version": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "required_role": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Required Role",
+          "type": "string"
+        },
+        "workspace_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Workspace Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "policy_version",
+        "workspace_id",
+        "max_age_seconds",
+        "required_role"
+      ],
+      "title": "ApprovalPolicy",
+      "type": "object"
+    },
+    "ApprovalScope": {
+      "additionalProperties": false,
+      "properties": {
+        "allowed_mutation_count": {
+          "exclusiveMinimum": 0,
+          "maximum": 100,
+          "title": "Allowed Mutation Count",
+          "type": "integer"
+        },
+        "operation_keys": {
+          "items": {
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Operation Keys",
+          "type": "array"
+        },
+        "plan_digest": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Plan Digest",
+          "type": "string"
+        },
+        "repository_ids": {
+          "items": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "type": "string"
+          },
+          "title": "Repository Ids",
+          "type": "array"
+        },
+        "team_ids": {
+          "items": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "type": "string"
+          },
+          "title": "Team Ids",
+          "type": "array"
+        },
+        "workspace_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Workspace Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "workspace_id",
+        "team_ids",
+        "repository_ids",
+        "plan_digest",
+        "operation_keys",
+        "allowed_mutation_count"
+      ],
+      "title": "ApprovalScope",
+      "type": "object"
+    },
+    "Assumption": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Id",
+          "type": "string"
+        },
+        "non_behavioral": {
+          "const": true,
+          "title": "Non Behavioral",
+          "type": "boolean"
+        },
+        "text": {
+          "maxLength": 16000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "text",
+        "non_behavioral"
+      ],
+      "title": "Assumption",
+      "type": "object"
+    },
+    "ClarificationReceipt": {
+      "additionalProperties": false,
+      "properties": {
+        "actor_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Actor Id",
+          "type": "string"
+        },
+        "answer": {
+          "maxLength": 16000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Answer",
+          "type": "string"
+        },
+        "base_digest": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Base Digest",
+          "type": "string"
+        },
+        "base_revision": {
+          "minimum": 1,
+          "title": "Base Revision",
+          "type": "integer"
+        },
+        "id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Id",
+          "type": "string"
+        },
+        "question_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Question Id",
+          "type": "string"
+        },
+        "question_text": {
+          "maxLength": 16000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Question Text",
+          "type": "string"
+        },
+        "resolved_at": {
+          "format": "date-time",
+          "title": "Resolved At",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "1",
+          "default": "1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "specification_id": {
+          "format": "uuid",
+          "title": "Specification Id",
+          "type": "string"
+        },
+        "workspace_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Workspace Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "workspace_id",
+        "specification_id",
+        "base_revision",
+        "base_digest",
+        "question_id",
+        "question_text",
+        "answer",
+        "actor_id",
+        "resolved_at"
+      ],
+      "title": "ClarificationReceipt",
+      "type": "object"
+    },
+    "Dependency": {
+      "additionalProperties": false,
+      "properties": {
+        "depends_on": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Depends On",
+          "type": "string"
+        },
+        "work_item_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Work Item Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "work_item_id",
+        "depends_on"
+      ],
+      "title": "Dependency",
+      "type": "object"
+    },
+    "DispatchAuthority": {
+      "additionalProperties": false,
+      "properties": {
+        "approval_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Approval Id",
+          "type": "string"
+        },
+        "dispatch_at": {
+          "format": "date-time",
+          "title": "Dispatch At",
+          "type": "string"
+        },
+        "mode": {
+          "enum": [
+            "mock_transport",
+            "live_provider"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "operation_key": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Operation Key",
+          "type": "string"
+        },
+        "plan_digest": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Plan Digest",
+          "type": "string"
+        },
+        "request_digest": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Request Digest",
+          "type": "string"
+        },
+        "specification_digest": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Specification Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "operation_key",
+        "mode",
+        "approval_id",
+        "specification_digest",
+        "plan_digest",
+        "request_digest",
+        "dispatch_at"
+      ],
+      "title": "DispatchAuthority",
+      "type": "object"
+    },
+    "Evidence": {
+      "additionalProperties": false,
+      "properties": {
+        "advisory": {
+          "const": true,
+          "default": true,
+          "title": "Advisory",
+          "type": "boolean"
+        },
+        "blob_digest": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Blob Digest",
+          "type": "string"
+        },
+        "excerpt": {
+          "maxLength": 16000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Excerpt",
+          "type": "string"
+        },
+        "id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Id",
+          "type": "string"
+        },
+        "path": {
+          "maxLength": 16000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "path",
+        "excerpt",
+        "blob_digest"
+      ],
+      "title": "Evidence",
+      "type": "object"
+    },
+    "HandoffPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "approval": {
+          "$ref": "#/$defs/SpecificationApproval"
+        },
+        "audience": {
+          "const": "agentic-delivery-os",
+          "default": "agentic-delivery-os",
+          "title": "Audience",
+          "type": "string"
+        },
+        "clarifications": {
+          "items": {
+            "$ref": "#/$defs/ClarificationReceipt"
+          },
+          "title": "Clarifications",
+          "type": "array"
+        },
+        "dispatches": {
+          "items": {
+            "$ref": "#/$defs/DispatchAuthority"
+          },
+          "title": "Dispatches",
+          "type": "array"
+        },
+        "expires_at": {
+          "format": "date-time",
+          "title": "Expires At",
+          "type": "string"
+        },
+        "issued_at": {
+          "format": "date-time",
+          "title": "Issued At",
+          "type": "string"
+        },
+        "issuer": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Issuer",
+          "type": "string"
+        },
+        "key_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Key Id",
+          "type": "string"
+        },
+        "mode": {
+          "enum": [
+            "mock_transport",
+            "live_provider"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "plan": {
+          "$ref": "#/$defs/NativePlan"
+        },
+        "publications": {
+          "items": {
+            "$ref": "#/$defs/OperationEvidence"
+          },
+          "title": "Publications",
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "2",
+          "default": "2",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "specification": {
+          "$ref": "#/$defs/WorkSpecification"
+        }
+      },
+      "required": [
+        "issuer",
+        "key_id",
+        "issued_at",
+        "expires_at",
+        "mode",
+        "specification",
+        "approval",
+        "plan",
+        "publications",
+        "dispatches",
+        "clarifications"
+      ],
+      "title": "HandoffPayload",
+      "type": "object"
+    },
+    "LinearScope": {
+      "additionalProperties": false,
+      "properties": {
+        "actor_id": {
+          "format": "uuid",
+          "title": "Actor Id",
+          "type": "string"
+        },
+        "labels": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ProviderBinding"
+          },
+          "maxItems": 100,
+          "title": "Labels",
+          "type": "array"
+        },
+        "organization_id": {
+          "format": "uuid",
+          "title": "Organization Id",
+          "type": "string"
+        },
+        "projects": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ProviderBinding"
+          },
+          "maxItems": 100,
+          "title": "Projects",
+          "type": "array"
+        },
+        "teams": {
+          "items": {
+            "$ref": "#/$defs/ProviderBinding"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Teams",
+          "type": "array"
+        }
+      },
+      "required": [
+        "organization_id",
+        "actor_id",
+        "teams"
+      ],
+      "title": "LinearScope",
+      "type": "object"
+    },
+    "NativeOperation": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "issue_create",
+            "relation_create"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "operation_key": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Operation Key",
+          "type": "string"
+        },
+        "payload": {
+          "maxLength": 65000,
+          "minLength": 1,
+          "title": "Payload",
+          "type": "string"
+        },
+        "prerequisite_keys": {
+          "items": {
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
+          },
+          "title": "Prerequisite Keys",
+          "type": "array"
+        },
+        "request_digest": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Request Digest",
+          "type": "string"
+        },
+        "target_id": {
+          "format": "uuid",
+          "title": "Target Id",
+          "type": "string"
+        },
+        "team_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Team Id",
+          "type": "string"
+        },
+        "work_item_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Work Item Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "operation_key",
+        "target_id",
+        "work_item_id",
+        "team_id",
+        "payload",
+        "prerequisite_keys",
+        "request_digest"
+      ],
+      "title": "NativeOperation",
+      "type": "object"
+    },
+    "NativePlan": {
+      "additionalProperties": false,
+      "properties": {
+        "content_digest": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Content Digest",
+          "type": "string"
+        },
+        "operations": {
+          "items": {
+            "$ref": "#/$defs/NativeOperation"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Operations",
+          "type": "array"
+        },
+        "publication_generation": {
+          "const": 1,
+          "default": 1,
+          "title": "Publication Generation",
+          "type": "integer"
+        },
+        "schema_version": {
+          "const": "2",
+          "default": "2",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/LinearScope"
+        },
+        "specification_digest": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Specification Digest",
+          "type": "string"
+        },
+        "workspace_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Workspace Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "specification_digest",
+        "workspace_id",
+        "scope",
+        "operations",
+        "content_digest"
+      ],
+      "title": "NativePlan",
+      "type": "object"
+    },
+    "OperationEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "attempt": {
+          "minimum": 1,
+          "title": "Attempt",
+          "type": "integer"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "title": "Observed At",
+          "type": "string"
+        },
+        "operation_key": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Operation Key",
+          "type": "string"
+        },
+        "provider_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_.:-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Provider Id"
+        },
+        "provider_request_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_.:-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Provider Request Id"
+        },
+        "request_digest": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Request Digest",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "SUCCEEDED",
+            "UNKNOWN"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "operation_key",
+        "request_digest",
+        "attempt",
+        "status",
+        "provider_id",
+        "provider_request_id",
+        "observed_at"
+      ],
+      "title": "OperationEvidence",
+      "type": "object"
+    },
+    "ProviderBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "local_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Local Id",
+          "type": "string"
+        },
+        "provider_id": {
+          "format": "uuid",
+          "title": "Provider Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "local_id",
+        "provider_id"
+      ],
+      "title": "ProviderBinding",
+      "type": "object"
+    },
+    "RepositoryContext": {
+      "additionalProperties": false,
+      "properties": {
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            }
+          ],
+          "title": "Confidence"
+        },
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/Evidence"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "relevant_tests": {
+          "items": {
+            "maxLength": 16000,
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          "title": "Relevant Tests",
+          "type": "array"
+        },
+        "repository_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Repository Id",
+          "type": "string"
+        },
+        "snapshot_digest": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Snapshot Digest",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "maxLength": 16000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "unknown_edges": {
+          "items": {
+            "maxLength": 16000,
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          "title": "Unknown Edges",
+          "type": "array"
+        }
+      },
+      "required": [
+        "repository_id",
+        "snapshot_id",
+        "snapshot_digest",
+        "evidence",
+        "relevant_tests",
+        "unknown_edges",
+        "confidence"
+      ],
+      "title": "RepositoryContext",
+      "type": "object"
+    },
+    "Requirement": {
+      "additionalProperties": false,
+      "properties": {
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            }
+          ],
+          "title": "Confidence"
+        },
+        "id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "functional",
+            "non_functional",
+            "security",
+            "analytics",
+            "data",
+            "operational",
+            "compliance"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "needs_human_decision": {
+          "title": "Needs Human Decision",
+          "type": "boolean"
+        },
+        "provenance": {
+          "enum": [
+            "explicit_source",
+            "repository_evidence",
+            "policy",
+            "safe_inference",
+            "human_clarification"
+          ],
+          "title": "Provenance",
+          "type": "string"
+        },
+        "source_refs": {
+          "items": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Refs",
+          "type": "array"
+        },
+        "text": {
+          "maxLength": 16000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "text",
+        "kind",
+        "provenance",
+        "source_refs",
+        "confidence",
+        "needs_human_decision"
+      ],
+      "title": "Requirement",
+      "type": "object"
+    },
+    "RiskAssessment": {
+      "additionalProperties": false,
+      "properties": {
+        "policy_version": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "reasons": {
+          "items": {
+            "maxLength": 16000,
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Reasons",
+          "type": "array"
+        },
+        "tier": {
+          "enum": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "title": "Tier",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "tier",
+        "reasons",
+        "policy_version"
+      ],
+      "title": "RiskAssessment",
+      "type": "object"
+    },
+    "SourceStatement": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Id",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 16000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "text"
+      ],
+      "title": "SourceStatement",
+      "type": "object"
+    },
+    "SpecificationApproval": {
+      "additionalProperties": false,
+      "properties": {
+        "actor_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Actor Id",
+          "type": "string"
+        },
+        "approval_id": {
+          "format": "uuid",
+          "title": "Approval Id",
+          "type": "string"
+        },
+        "content_digest": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Content Digest",
+          "type": "string"
+        },
+        "decision": {
+          "enum": [
+            "approve",
+            "reject"
+          ],
+          "title": "Decision",
+          "type": "string"
+        },
+        "expires_at": {
+          "format": "date-time",
+          "title": "Expires At",
+          "type": "string"
+        },
+        "issued_at": {
+          "format": "date-time",
+          "title": "Issued At",
+          "type": "string"
+        },
+        "policy_version": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "revision": {
+          "minimum": 1,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "scope": {
+          "$ref": "#/$defs/ApprovalScope"
+        },
+        "specification_id": {
+          "format": "uuid",
+          "title": "Specification Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "approval_id",
+        "specification_id",
+        "revision",
+        "content_digest",
+        "actor_id",
+        "decision",
+        "scope",
+        "issued_at",
+        "expires_at",
+        "policy_version"
+      ],
+      "title": "SpecificationApproval",
+      "type": "object"
+    },
+    "SpecificationProvenance": {
+      "additionalProperties": false,
+      "properties": {
+        "clarification_refs": {
+          "items": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "type": "string"
+          },
+          "title": "Clarification Refs",
+          "type": "array"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "mode": {
+          "enum": [
+            "authored_fixture",
+            "unrecognized_input",
+            "model_proposal"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "policy_refs": {
+          "items": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "type": "string"
+          },
+          "title": "Policy Refs",
+          "type": "array"
+        },
+        "producer": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Producer",
+          "type": "string"
+        },
+        "source_kind": {
+          "enum": [
+            "prompt",
+            "structured_notes"
+          ],
+          "title": "Source Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "mode",
+        "created_at",
+        "producer",
+        "source_kind",
+        "policy_refs",
+        "clarification_refs"
+      ],
+      "title": "SpecificationProvenance",
+      "type": "object"
+    },
+    "UnresolvedQuestion": {
+      "additionalProperties": false,
+      "properties": {
+        "affected_requirement_ids": {
+          "items": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "type": "string"
+          },
+          "title": "Affected Requirement Ids",
+          "type": "array"
+        },
+        "blocking": {
+          "title": "Blocking",
+          "type": "boolean"
+        },
+        "id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Id",
+          "type": "string"
+        },
+        "question": {
+          "maxLength": 16000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Question",
+          "type": "string"
+        },
+        "resolution": {
+          "anyOf": [
+            {
+              "maxLength": 16000,
+              "minLength": 1,
+              "pattern": "\\S",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Resolution"
+        },
+        "resolved_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Resolved At"
+        },
+        "resolved_by": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_.:-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Resolved By"
+        },
+        "why_it_matters": {
+          "maxLength": 16000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Why It Matters",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "question",
+        "why_it_matters",
+        "affected_requirement_ids",
+        "blocking",
+        "resolution",
+        "resolved_by",
+        "resolved_at"
+      ],
+      "title": "UnresolvedQuestion",
+      "type": "object"
+    },
+    "WorkItem": {
+      "additionalProperties": false,
+      "properties": {
+        "acceptance_criteria": {
+          "items": {
+            "$ref": "#/$defs/AcceptanceCriterion"
+          },
+          "minItems": 1,
+          "title": "Acceptance Criteria",
+          "type": "array"
+        },
+        "dependencies": {
+          "items": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "type": "string"
+          },
+          "title": "Dependencies",
+          "type": "array"
+        },
+        "description": {
+          "maxLength": 16000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Description",
+          "type": "string"
+        },
+        "local_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Local Id",
+          "type": "string"
+        },
+        "proposed_labels": {
+          "items": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "type": "string"
+          },
+          "title": "Proposed Labels",
+          "type": "array"
+        },
+        "proposed_project_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_.:-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Proposed Project Id"
+        },
+        "proposed_team_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Proposed Team Id",
+          "type": "string"
+        },
+        "repository_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_.:-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Repository Id"
+        },
+        "requirement_ids": {
+          "items": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Requirement Ids",
+          "type": "array"
+        },
+        "risk_tier": {
+          "enum": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "title": "Risk Tier",
+          "type": "integer"
+        },
+        "title": {
+          "maxLength": 240,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Title",
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "epic",
+            "feature",
+            "task",
+            "bug",
+            "research"
+          ],
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "local_id",
+        "title",
+        "description",
+        "type",
+        "requirement_ids",
+        "acceptance_criteria",
+        "dependencies",
+        "risk_tier",
+        "repository_id",
+        "proposed_team_id",
+        "proposed_project_id",
+        "proposed_labels"
+      ],
+      "title": "WorkItem",
+      "type": "object"
+    },
+    "WorkSpecification": {
+      "additionalProperties": false,
+      "properties": {
+        "approval_policy": {
+          "$ref": "#/$defs/ApprovalPolicy"
+        },
+        "assumptions": {
+          "items": {
+            "$ref": "#/$defs/Assumption"
+          },
+          "title": "Assumptions",
+          "type": "array"
+        },
+        "content_digest": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Content Digest",
+          "type": "string"
+        },
+        "dependencies": {
+          "items": {
+            "$ref": "#/$defs/Dependency"
+          },
+          "title": "Dependencies",
+          "type": "array"
+        },
+        "objective": {
+          "maxLength": 16000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Objective",
+          "type": "string"
+        },
+        "provenance": {
+          "$ref": "#/$defs/SpecificationProvenance"
+        },
+        "repository_context": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RepositoryContext"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "requirements": {
+          "items": {
+            "$ref": "#/$defs/Requirement"
+          },
+          "title": "Requirements",
+          "type": "array"
+        },
+        "revision": {
+          "minimum": 1,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "risk": {
+          "$ref": "#/$defs/RiskAssessment"
+        },
+        "schema_version": {
+          "const": "1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "source_digest": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Source Digest",
+          "type": "string"
+        },
+        "source_statements": {
+          "items": {
+            "$ref": "#/$defs/SourceStatement"
+          },
+          "minItems": 1,
+          "title": "Source Statements",
+          "type": "array"
+        },
+        "specification_id": {
+          "format": "uuid",
+          "title": "Specification Id",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 16000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Title",
+          "type": "string"
+        },
+        "unresolved_questions": {
+          "items": {
+            "$ref": "#/$defs/UnresolvedQuestion"
+          },
+          "title": "Unresolved Questions",
+          "type": "array"
+        },
+        "work_items": {
+          "items": {
+            "$ref": "#/$defs/WorkItem"
+          },
+          "title": "Work Items",
+          "type": "array"
+        }
+      },
+      "required": [
+        "schema_version",
+        "specification_id",
+        "revision",
+        "source_digest",
+        "title",
+        "objective",
+        "source_statements",
+        "requirements",
+        "unresolved_questions",
+        "assumptions",
+        "repository_context",
+        "risk",
+        "dependencies",
+        "work_items",
+        "approval_policy",
+        "provenance",
+        "content_digest"
+      ],
+      "title": "WorkSpecification",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "algorithm": {
+      "const": "Ed25519",
+      "default": "Ed25519",
+      "title": "Algorithm",
+      "type": "string"
+    },
+    "payload": {
+      "$ref": "#/$defs/HandoffPayload"
+    },
+    "payload_digest": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Payload Digest",
+      "type": "string"
+    },
+    "signature": {
+      "maxLength": 88,
+      "minLength": 88,
+      "title": "Signature",
+      "type": "string"
+    }
+  },
+  "required": [
+    "payload",
+    "payload_digest",
+    "signature"
+  ],
+  "title": "SignedHandoff",
+  "type": "object"
+}

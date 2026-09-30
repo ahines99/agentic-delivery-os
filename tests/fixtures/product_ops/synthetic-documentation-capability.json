@@ -1,0 +1,8 @@
+{
+  "kind": "add-documentation-v1",
+  "semantic_digest": "1c3f236bf61d5ea1eb3e9465f27672e77f0ede621c4a59e6cef1c6b61507de91",
+  "repository_id": "sample-reporting",
+  "base_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "path": "docs/success.md",
+  "content": "# Success\n\nExact approved content.\n"
+}

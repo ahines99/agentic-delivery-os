@@ -1,0 +1,14 @@
+title = "Delivery secret scanning with exact public fixture digest exceptions"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "generic-api-key"
+
+[[rules.allowlists]]
+description = "Two deterministic operation digests in synthetic public Product Ops receipts"
+condition = "AND"
+paths = ['''(^|/)tests/fixtures/product_ops/synthetic-(documentation|handoff)-payload\.json$''']
+regexTarget = "line"
+regexes = ['''^\s*"operation_key": "(559c63be968fa8140f6b66c95f6330e62e518f038e49a84ea571d12863faa761|fd8b202a2bbbef94bc70d1a38d615cacc9d0bd5a741f6888f1f918f1ffd8c6cc)",?\s*$''']
