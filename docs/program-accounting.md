@@ -58,10 +58,16 @@ NOT_REQUESTED. Inconsistent evidence means UNAVAILABLE; revoked scope/registry p
 denies the requested report. OBSERVED includes valid partial states and does not mean the
 program or campaign is finished. The existing selected accounting totals remain separate.
 
-This verifies current enrolled prospective accounting. It does not include historical
-pre-registry liability, prove mandatory enrollment of every future entry point, reconcile
-external invoices, or authorize spending/promotion. `historical_costs_included`,
-`complete_program_cost`, `distributed_atomic_snapshot`, `model_results_read`,
+With a [schema-2 registry](program-legacy-liabilities.md), the context must also supply the
+exact concrete legacy collection and current permission. Reconciliation matches its archived
+binding, accounting and liability to the original pinned inventory before and after reading
+prospective ledgers. Schema-2 reports expose `legacy_settled_microdollars` and
+`legacy_reserved_microdollars` separately; existing `observed_totals` remain prospective.
+`historical_costs_included` is true only for that declared, reconstructed archived selection.
+Missing legacy context or changed archive facts refuse the current report.
+
+This does not attest that all historical ledgers were declared, reconcile external invoices,
+or authorize spending/promotion. `complete_program_cost`, `distributed_atomic_snapshot`, `model_results_read`,
 `ledger_mutations` and `execution_authorized` remain false. Closing all current program
 envelopes cannot mark unrun campaign assignments complete or repair a missing preparation
 inventory. Program-wide release accounting remains open until the other scope obligations

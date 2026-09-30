@@ -1,7 +1,8 @@
 # ADR-022: Archive legacy ledgers before incorporating historical liability
 
-Status: implemented with scoped SQLite/PostgreSQL verification; registry incorporation and
-live historical archival remain unfinished.
+Status: implemented with scoped SQLite/PostgreSQL verification. Subsequent
+[ADR-023](ADR-023-pinned-legacy-program-liabilities.md) supplies versioned registry incorporation;
+live historical archival remains unfinished.
 
 ## Context
 

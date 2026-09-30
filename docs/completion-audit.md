@@ -1444,3 +1444,28 @@ assert rollback of schema changes before commit, preserve a committed archive af
 acknowledgement, and verify stable metadata reconstruction. These overlapping scopes are not
 summed. Exact-head full CI, stopped older writer processes, registry incorporation, complete
 program inventory and invoice reconciliation remain required.
+
+E161: [Pinned archived program liabilities](program-legacy-liabilities.md), under
+[ADR-023](adr/ADR-023-pinned-legacy-program-liabilities.md), adds an explicitly selected
+schema-2 policy for new registries. Creation reconstructs actual archived stores, verifies
+the exact target list and metadata digest, retains settled costs and unresolved reservations,
+and checks the inventory again before commit. Every subsequent capacity transaction validates
+the stored inventory against the policy. Historical account IDs cannot acquire fresh prospective
+capacity, and schema-1 policies cannot silently ignore supplied historical context.
+
+Current schema-2 program reports require and reread the concrete historical context; changed
+archive facts make evidence unavailable, and campaign reporting propagates revoked legacy
+permission. Historical settled/reserved amounts remain distinct from prospective usage and
+overlapping capacity envelopes. Complete inventory, known final cost and promotion are not
+inferred from a declared archived selection. No historical file or paid provider was used.
+
+The initial registry scope passed 54 tests with one PostgreSQL skip in 10.42 seconds; adding
+current reporting passed 65 tests with the same one skip in 33.27 seconds. The service-enabled
+combined archive/store/registry/accounting scope passed 179 tests in 50.05 seconds. After the
+final explicit schema-2 report tag/assertion, that full scope passed all 179 tests in 50.85
+seconds with actual PostgreSQL and no skips. Eight actual aggregate-report cases passed in
+20.63 seconds (17 deselected), including original prospective reporting, concrete archived
+selection, legacy permission revocation and changed archive facts. Unique owned PostgreSQL
+databases were dropped and absence verified. Ruff/format (381 files), mypy (119 sources) and
+package builds passed. These overlapping counts are not summed. Exact-head full CI and
+independent review remain required; all live historical enrollment and release gates remain open.

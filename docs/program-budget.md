@@ -48,13 +48,16 @@ held maxima, concretely closed spend and remaining capacity. Those values must n
 to ledger spent/reserved totals: they describe overlapping views of the same accounts.
 Snapshots are transactionally consistent registry metadata, not a distributed census of all
 ledgers. The [concrete reconciliation reader](program-accounting.md) now checks every bound
-ledger against those envelopes, preserving partial boundaries and actual observed usage. `historical_costs_included`, `complete_program_cost` and `execution_authorized`
-remain false. Existing [preparation inventories](campaign-accounting.md) are not silently
-imported or dropped; incorporating their retained liabilities is unfinished release work.
+ledger against those envelopes, preserving partial boundaries and actual observed usage.
+Schema-1 registries retain `historical_costs_included=false`; `complete_program_cost` and
+`execution_authorized` remain false in both policy versions. Existing
+[preparation inventories](campaign-accounting.md) are not silently imported or dropped.
 
 [Legacy archival](legacy-accounting.md) now supplies an explicit irreversible fence and
-metadata-only liability reader for old ledgers. Registry incorporation remains a separate
-unfinished step; this does not silently reduce or migrate historical budgets.
+metadata-only liability reader for old ledgers. The explicit
+[schema-2 registry policy](program-legacy-liabilities.md) now incorporates a pinned concrete
+archived selection before new capacity is allocated. Live archival/import and complete program
+inventory remain unfinished; old policy bytes, budgets and grants are not silently migrated.
 
 ## Verification
 

@@ -13,6 +13,11 @@ from uuid import uuid4
 from pydantic import Field, TypeAdapter, model_validator
 
 from agentic_delivery.domain.models import Contract
+from agentic_delivery.evaluation.program_legacy import (
+    ProgramLegacyContext,
+    ProgramLegacyInventory,
+    capture_program_legacy_inventory,
+)
 from agentic_delivery.evaluation.qualification import Digest
 from agentic_delivery.storage.store import digest_json
 
@@ -74,17 +79,41 @@ class ProgramAccountEnvelope(Contract):
     closed_microdollars: Amount | None
 
 
+class ProgramBudgetPolicyV2(Contract):
+    schema_version: Literal[2] = 2
+    program_id: str = Field(pattern=r"^[A-Za-z0-9_.-]{1,100}$")
+    authorization_digest: Digest
+    cap_microdollars: int = Field(strict=True, gt=0, le=1_000_000_000)
+    approved_ledger_identities: tuple[Digest, ...] = Field(min_length=1, max_length=64)
+    legacy_ledger_identities: tuple[Digest, ...] = Field(min_length=1, max_length=64)
+    legacy_inventory_digest: Digest
+
+    @model_validator(mode="after")
+    def separate_targets(self) -> "ProgramBudgetPolicyV2":
+        _require(len(set(self.approved_ledger_identities)) == len(self.approved_ledger_identities))
+        _require(self.legacy_ledger_identities == tuple(sorted(set(self.legacy_ledger_identities))))
+        _require(not set(self.legacy_ledger_identities) & set(self.approved_ledger_identities))
+        return self
+
+
+ProgramPolicy = Annotated[
+    ProgramBudgetPolicy | ProgramBudgetPolicyV2, Field(discriminator="schema_version")
+]
+
+
 class ProgramBudgetSnapshot(Contract):
     registry_identity: Digest
-    policy: ProgramBudgetPolicy
+    policy: ProgramPolicy
     bound_ledger_identities: tuple[Digest, ...]
     target_nonces: dict[Digest, Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")]]
     envelopes: tuple[ProgramAccountEnvelope, ...]
     held_microdollars: Amount
     closed_microdollars: Amount
     available_microdollars: Amount
+    legacy_inventory: ProgramLegacyInventory | None = None
+    legacy_liability_microdollars: Amount = 0
     # Registry metadata is not a census of historical/pre-registry spending or invoices.
-    historical_costs_included: Literal[False] = False
+    historical_costs_included: bool = Field(default=False, strict=True)
     complete_program_cost: Literal[False] = False
     execution_authorized: Literal[False] = False
 
@@ -97,6 +126,11 @@ _SCHEMA = (
     "budget TEXT NOT NULL, ceiling INTEGER NOT NULL, state TEXT NOT NULL, closed INTEGER)",
 )
 
+_SCHEMA_V2 = (
+    *_SCHEMA,
+    "CREATE TABLE legacy_inventory (id INTEGER PRIMARY KEY, document TEXT NOT NULL)",
+)
+
 
 class ProgramBudgetRegistry:
     """One trusted local registry serializes envelopes across explicitly approved ledgers.
@@ -107,22 +141,46 @@ class ProgramBudgetRegistry:
 
     @classmethod
     def create(
-        cls, path: Path, policy: ProgramBudgetPolicy, *, current_guard: Callable[[], None]
+        cls,
+        path: Path,
+        policy: ProgramBudgetPolicy | ProgramBudgetPolicyV2,
+        *,
+        current_guard: Callable[[], None],
+        legacy_context: ProgramLegacyContext | None = None,
     ) -> "ProgramBudgetRegistry":
         current_guard()
-        policy = ProgramBudgetPolicy.model_validate(policy.model_dump())
+        policy = TypeAdapter(ProgramPolicy).validate_python(policy.model_dump())
+        legacy = None
+        if isinstance(policy, ProgramBudgetPolicyV2):
+            _require(type(legacy_context) is ProgramLegacyContext)
+            assert legacy_context is not None
+            legacy = capture_program_legacy_inventory(context=legacy_context)
+            _require(
+                tuple(row.ledger_identity for row in legacy.ledgers)
+                == policy.legacy_ledger_identities
+            )
+            _require(legacy.digest == policy.legacy_inventory_digest)
+            _require(legacy.liability_microdollars <= policy.cap_microdollars)
+        else:
+            _require(legacy_context is None)
         path = cls._path(path)
         # Exclusive creation never overwrites an existing database or silently reinitializes it.
         descriptor = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
         os.close(descriptor)
         with sqlite3.connect(path) as connection:
             connection.execute("BEGIN IMMEDIATE")
-            for statement in _SCHEMA:
+            for statement in _SCHEMA_V2 if legacy is not None else _SCHEMA:
                 connection.execute(statement)
             connection.execute(
                 "INSERT INTO program VALUES (1, ?, ?)",
                 (uuid4().hex, policy.model_dump_json()),
             )
+            if legacy is not None:
+                connection.execute(
+                    "INSERT INTO legacy_inventory VALUES (1, ?)", (legacy.model_dump_json(),)
+                )
+                assert legacy_context is not None
+                _require(capture_program_legacy_inventory(context=legacy_context) == legacy)
             current_guard()
         return cls(path, current_guard=current_guard)
 
@@ -143,12 +201,14 @@ class ProgramBudgetRegistry:
         self._file = (stamp.st_dev, stamp.st_ino)
         current_guard()
         with self._connection() as connection:
-            self._schema(connection)
             rows = connection.execute("SELECT id, nonce, policy FROM program").fetchall()
             _require(len(rows) == 1 and rows[0][0] == 1)
             _require(re.fullmatch(r"[0-9a-f]{32}", rows[0][1]) is not None)
             self._program_row = tuple(rows[0])
-            self.policy = ProgramBudgetPolicy.model_validate_json(rows[0][2])
+            self.policy: ProgramBudgetPolicy | ProgramBudgetPolicyV2 = TypeAdapter(
+                ProgramPolicy
+            ).validate_json(rows[0][2])
+            self._schema(connection)
             self.identity = digest_json(
                 {
                     "kind": "prospective-program-budget",
@@ -164,7 +224,8 @@ class ProgramBudgetRegistry:
         objects = connection.execute(
             "SELECT type, name, sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%'"
         ).fetchall()
-        expected = {statement.split()[2]: statement for statement in _SCHEMA}
+        statements = _SCHEMA_V2 if isinstance(self.policy, ProgramBudgetPolicyV2) else _SCHEMA
+        expected = {statement.split()[2]: statement for statement in statements}
         _require(len(objects) == len(expected))
         _require(all(kind == "table" and expected.get(name) == sql for kind, name, sql in objects))
 
@@ -202,6 +263,17 @@ class ProgramBudgetRegistry:
             self.current_guard()
 
     def _snapshot(self, connection: sqlite3.Connection) -> ProgramBudgetSnapshot:
+        legacy = None
+        if isinstance(self.policy, ProgramBudgetPolicyV2):
+            legacy_rows = connection.execute("SELECT id, document FROM legacy_inventory").fetchall()
+            _require(len(legacy_rows) == 1 and legacy_rows[0][0] == 1)
+            legacy = ProgramLegacyInventory.model_validate_json(legacy_rows[0][1])
+            _require(legacy.digest == self.policy.legacy_inventory_digest)
+            _require(
+                tuple(row.ledger_identity for row in legacy.ledgers)
+                == self.policy.legacy_ledger_identities
+            )
+        legacy_liability = legacy.liability_microdollars if legacy is not None else 0
         targets = connection.execute(
             "SELECT identity, nonce FROM targets ORDER BY identity"
         ).fetchall()
@@ -245,7 +317,10 @@ class ProgramBudgetRegistry:
             else:
                 _require(envelope.closed_microdollars is None)
                 held += envelope.ceiling_microdollars
-        _require(held + closed <= self.policy.cap_microdollars)
+        _require(held + closed + legacy_liability <= self.policy.cap_microdollars)
+        if legacy is not None:
+            historical_accounts = {account for row in legacy.ledgers for account in row.account_ids}
+            _require(not historical_accounts & {envelope.account_id for envelope in envelopes})
         return ProgramBudgetSnapshot(
             registry_identity=self.identity,
             policy=self.policy,
@@ -254,7 +329,10 @@ class ProgramBudgetRegistry:
             envelopes=envelopes,
             held_microdollars=held,
             closed_microdollars=closed,
-            available_microdollars=self.policy.cap_microdollars - held - closed,
+            available_microdollars=self.policy.cap_microdollars - held - closed - legacy_liability,
+            legacy_inventory=legacy,
+            legacy_liability_microdollars=legacy_liability,
+            historical_costs_included=legacy is not None,
         )
 
     def snapshot(self) -> ProgramBudgetSnapshot:
@@ -303,6 +381,10 @@ class ProgramBudgetRegistry:
         _require(ceiling == _ceiling(budget))
         with self._transaction() as connection:
             self._target(connection, target, nonce)
+            legacy = self._snapshot(connection).legacy_inventory
+            _require(
+                legacy is None or all(account not in row.account_ids for row in legacy.ledgers)
+            )
             old = connection.execute(
                 "SELECT target, budget, ceiling, state FROM envelopes WHERE account=?", (account,)
             ).fetchone()

@@ -107,12 +107,22 @@ crash recovery or live-provider reconciliation.
 
 ## Implemented and exercised
 
+The new [schema-2 program policy](program-legacy-liabilities.md) now pins a concrete archived
+ledger inventory at creation and subtracts all its settled/reserved liability from available
+capacity. Old policy bytes and registries remain unchanged. Current program/campaign reports
+reconstruct that historical selection under separate current permission and keep it separate
+from prospective observed usage. The final combined accounting scope passed 179 tests with
+actual PostgreSQL and no skips; eight reporting cases also passed. Full new-revision CI,
+authorized live archival/import, complete inventory attestation and invoice reconciliation
+remain open. This supersedes earlier statements that no historical registry path is implemented;
+it does not imply any real historical ledger has been archived or imported.
+
 [Legacy accounting archival](legacy-accounting.md) now provides an explicit irreversible
 transition and concrete metadata-only liability reader. It preserves original records and
 unknown reservations, fences current writers including handles opened before archival, and
 retains the archive when permission is lost after commit. The final store/registry/accounting
 scope passed 149 tests with actual PostgreSQL and no skips. This was owned test data only;
-live archival, older-writer quiescence, registry incorporation and full cost promotion remain
+live archival, older-writer quiescence, actual registry incorporation and full cost promotion remain
 unfinished. [ADR-022](adr/ADR-022-legacy-ledger-archival.md) records the authority and limits.
 
 The [final-candidate criterion test reader](criterion-execution-evidence.md) now exports

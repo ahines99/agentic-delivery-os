@@ -19,6 +19,8 @@ from test_campaign_dispatch_execution import (
 )
 from test_campaign_dispatch_journal import dispatch, finish
 from test_campaign_journal import case, claim, corpus_seed, observe, open_phase, register, sequence
+from test_program_legacy import case as legacy_case
+from test_program_legacy import create as create_legacy_registry
 from test_semantic_consumption import completed as completed_semantic
 
 from agentic_delivery.config import Budget
@@ -554,5 +556,74 @@ async def test_prospective_program_accounting_is_concrete_scoped_and_rechecked(
         assert (
             report.preparation_status == "UNAVAILABLE"
         )  # Authored missing inventory remains missing.
+    finally:
+        store.engine.dispose()
+
+
+@pytest.mark.parametrize("fault", [None, "revoked", "changed"])
+async def test_report_reconstructs_versioned_legacy_program_liability(
+    case, legacy_case, tmp_path, fault
+):
+    from sqlalchemy import update
+
+    from agentic_delivery.evaluation.campaign_allocation import ledger_target_identity
+    from agentic_delivery.evaluation.campaign_journal import PreparationAccountIdentity
+    from agentic_delivery.evaluation.execution_store import EvaluationExecutionStore, legacy_archive
+    from agentic_delivery.evaluation.program_accounting import ProgramAccountingContext
+
+    registry = create_legacy_registry(legacy_case)
+    store = EvaluationExecutionStore(legacy_case.urls[0], program_budget=registry)
+    identity = ledger_target_identity(store)
+    try:
+        case.ledger = store
+        case.journal = CampaignJournal(
+            tmp_path / "legacy-program-journal.sqlite",
+            execution_ledger=store,
+            clock=lambda: case.clock[0],
+        )
+        case.preparation = (
+            PreparationAccountIdentity(
+                ledger_identity=identity,
+                account_id="fresh-preparation",
+                inventory_artifact="a" * 64,
+            ),
+        )
+        case.registration = register(case)
+        freeze(case)
+        store.create_account(
+            "fresh-preparation", Budget(model_microdollars=100, input_tokens=100, output_tokens=100)
+        )
+        store.reserve("fresh-preparation", "fresh-op", 10, 10, 10)
+        store.settle(
+            "fresh-op", cost=3, input_tokens=1, output_tokens=1, result={"private": "owned"}
+        )
+        store.close_program_account("fresh-preparation")
+        program = ProgramAccountingContext(
+            registry, {identity: store}, lambda ids: None, legacy_context=legacy_case.context
+        )
+        if fault == "revoked":
+            legacy_case.state["allowed"] = False
+            with pytest.raises(CampaignReportingFailure):
+                await generate_campaign_report(
+                    case.ref, context=context(case, program_accounting=program)
+                )
+            return
+        if fault == "changed":
+            with legacy_case.old[0].engine.begin() as connection:
+                connection.execute(update(legacy_archive).values(nonce="f" * 32))
+        report = await generate_campaign_report(
+            case.ref, context=context(case, program_accounting=program)
+        )
+        if fault == "changed":
+            assert report.program_accounting_status == "UNAVAILABLE"
+        else:
+            assert report.program_accounting_status == "OBSERVED"
+            assert report.program_accounting.schema_version == 2
+            assert report.program_accounting.historical_costs_included
+            assert report.program_accounting.legacy_settled_microdollars == 14
+            assert report.program_accounting.legacy_reserved_microdollars == 60
+            assert report.program_accounting.observed_totals.model_spent_microdollars == 3
+            assert report.program_accounting.registry.available_microdollars == 97
+        assert not report.complete_program_inventory and not report.phase_promoted
     finally:
         store.engine.dispose()

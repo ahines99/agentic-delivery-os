@@ -290,6 +290,10 @@ async def generate_campaign_report(
             _require(program_context.ledgers.get(journal.ledger_identity) is journal.ledger)
             program_context.current_guard(tuple(sorted(program_context.ledgers)))
             program_context.registry.current_guard()
+            if program_context.legacy_context is not None:
+                program_context.legacy_context.current_guard(
+                    tuple(sorted(program_context.legacy_context.ledgers))
+                )
 
         if program_context is not None:
             program_guard()

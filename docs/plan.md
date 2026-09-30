@@ -151,7 +151,10 @@ historical liabilities is still required before claiming a complete program spen
 [ADR-022](adr/ADR-022-legacy-ledger-archival.md) defines explicit legacy archival before
 historical liability incorporation. It preserves original accounting and unknown reservations,
 requires stopped older writers, and grants no new execution authority. The archive transition
-and concrete metadata reader are implemented; registry incorporation remains unfinished.
+and concrete metadata reader are implemented. [ADR-023](adr/ADR-023-pinned-legacy-program-liabilities.md)
+adds a new versioned registry policy that reconstructs and pins archived liability before
+prospective capacity is allocated. Live archival/import, full inventory attestation and cost
+promotion remain unfinished; old policies and grants are not silently migrated.
 
 Use trace/workflow/attempt/operation IDs across structured logs and metrics. Redact secrets
 before export. Track queue/active/human-wait latency, cost per attempted and accepted task,

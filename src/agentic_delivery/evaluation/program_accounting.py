@@ -25,6 +25,11 @@ from agentic_delivery.evaluation.program_budget import (
     ProgramBudgetRegistry,
     ProgramBudgetSnapshot,
 )
+from agentic_delivery.evaluation.program_legacy import (
+    ProgramLegacyContext,
+    ProgramLegacyInventory,
+    capture_program_legacy_inventory,
+)
 from agentic_delivery.evaluation.qualification import Digest
 
 
@@ -42,6 +47,7 @@ class ProgramAccountingContext:
     registry: ProgramBudgetRegistry
     ledgers: Mapping[str, EvaluationExecutionStore]
     current_guard: Callable[[tuple[str, ...]], None]
+    legacy_context: ProgramLegacyContext | None = None
 
 
 class LocalProgramAccount(Contract):
@@ -64,7 +70,7 @@ class ProgramAccountMatch(Contract):
 
 
 class ProgramAccountingReport(Contract):
-    schema_version: Literal[1] = 1
+    schema_version: Literal[1, 2] = 1
     kind: Literal["current-prospective-program-accounting"] = (
         "current-prospective-program-accounting"
     )
@@ -78,7 +84,10 @@ class ProgramAccountingReport(Contract):
     all_approved_targets_enrolled: bool = Field(strict=True)
     all_envelopes_closed: bool = Field(strict=True)
     # Registry envelopes and observed ledger usage overlap; never add them together.
-    historical_costs_included: Literal[False] = False
+    legacy_inventory: ProgramLegacyInventory | None = None
+    legacy_settled_microdollars: int = Field(default=0, strict=True, ge=0)
+    legacy_reserved_microdollars: int = Field(default=0, strict=True, ge=0)
+    historical_costs_included: bool = Field(default=False, strict=True)
     complete_program_cost: Literal[False] = False
     distributed_atomic_snapshot: Literal[False] = False
     model_results_read: Literal[False] = False
@@ -206,6 +215,20 @@ def reconcile_program_accounting(*, context: ProgramAccountingContext) -> Progra
         registry = context.registry.snapshot()
         _require(identities == registry.bound_ledger_identities)
 
+        def legacy_read() -> ProgramLegacyInventory | None:
+            guard()
+            if registry.legacy_inventory is None:
+                _require(context.legacy_context is None)
+                return None
+            _require(type(context.legacy_context) is ProgramLegacyContext)
+            assert context.legacy_context is not None
+            observed = capture_program_legacy_inventory(context=context.legacy_context)
+            _require(observed == registry.legacy_inventory)
+            guard()
+            return observed
+
+        legacy = legacy_read()
+
         def read() -> tuple[ProgramLedgerView, ...]:
             result = []
             operations = accounts = 0
@@ -226,6 +249,7 @@ def reconcile_program_accounting(*, context: ProgramAccountingContext) -> Progra
             == [v.model_dump(exclude=exclude) for v in repeated]
         )
         _require(context.registry.snapshot() == registry)
+        _require(legacy_read() == legacy)
         guard()
         totals = UsageTotals.model_validate(
             {
@@ -234,10 +258,19 @@ def reconcile_program_accounting(*, context: ProgramAccountingContext) -> Progra
             }
         )
         return ProgramAccountingReport(
+            schema_version=2 if legacy is not None else 1,
             registry=registry,
             ledgers=repeated,
             accounts=accounts,
             observed_totals=totals,
+            legacy_inventory=legacy,
+            legacy_settled_microdollars=sum(row.settled_microdollars for row in legacy.ledgers)
+            if legacy
+            else 0,
+            legacy_reserved_microdollars=sum(row.reserved_microdollars for row in legacy.ledgers)
+            if legacy
+            else 0,
+            historical_costs_included=legacy is not None,
             pending_creation=sum(row.status == "PENDING_CREATION" for row in accounts),
             pending_activation=sum(row.status == "PENDING_ACTIVATION" for row in accounts),
             pending_closure=sum(row.status == "CLOSURE_PENDING" for row in accounts),

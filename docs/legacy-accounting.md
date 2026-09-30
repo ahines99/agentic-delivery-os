@@ -23,8 +23,9 @@ archival does not prove a workload stopped or that the provider billed nothing. 
 are never rewritten to release liability. A lost response after archive commit is recovered by
 reading or repeating the same transition, not by reopening the ledger.
 
-Registry incorporation, full program inventory, invoice reconciliation and any later supported
-cost adjustments remain unfinished. This code has only been exercised with owned SQLite and
+The [schema-2 registry policy](program-legacy-liabilities.md) incorporates a concrete archived
+selection into a new program cap. Full program inventory, live import, invoice reconciliation
+and any later supported cost adjustments remain unfinished. This code has only been exercised with owned SQLite and
 temporary PostgreSQL test data; historical ledgers and grants remain untouched.
 
 ## Verification
