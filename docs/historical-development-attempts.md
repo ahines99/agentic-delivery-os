@@ -245,6 +245,22 @@ A separate protected size inventory measured 120,147 bytes for the executable ba
 (261,183 combined). It emitted only counts and digests. This is a partial evidence-size
 screen, not a complete model context, token forecast or execution authorization.
 
+The subsequent semantic continuation was **rejected for stage chronology**. Its
+qualification plan was frozen after the standalone deterministic matrix and after a
+new general-rubric calibration. Admission requires calibration, then the frozen plan,
+then deterministic execution, then reviews. Two reviews had already settled before
+the completed-record reader rejected this sequence. Their contents were not exposed
+to the implementation agent or used to change the task or oracle. No admission,
+worker export, scoring or campaign eligibility resulted.
+
+The retained account contains 15 settled operations: 1,254,700 model microdollars
+(183,590 input and 13,470 output tokens) plus the previously reported 26 infrastructure
+microdollars. It closed with no reservations or unknown operations. This is the same
+runtime account, not an additional charge for the matrix. The controller now checks
+stage chronology before execution/review effects, including attempts to attach a new
+or externally frozen late plan to an already executed runtime. Owned regression tests
+check that these cases make no model calls and preserve the prior accounting.
+
 Further bounded metadata screening retained two unsupported inflection changes and four
 unsupported markdownify changes. Four additional markdownify pairs passed metadata checks:
 PR 230/issue 226, PR 214/issue 212, PR 202/issue 201 and PR 200/issue 199. These follow-ups

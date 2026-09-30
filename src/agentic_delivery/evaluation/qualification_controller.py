@@ -23,6 +23,7 @@ from agentic_delivery.evaluation.qualification_admission import (
     QualificationRecordV2,
     QualificationRequestV2,
     ReviewInvocationV2,
+    _time,
     validate_execution_inputs,
 )
 from agentic_delivery.evaluation.qualification_input_resolution import resolve_qualification_input
@@ -167,7 +168,12 @@ async def _run(
     request_ref = _put(protected_artifacts, request)
     grant_ref = _put(protected_artifacts, grant)
     old = ledger.checkpoint_receipt(runtime.account_id, "qualification-plan-v2")
+    binding = ledger.checkpoint_receipt(runtime.account_id, "deterministic-binding-v1")
     if old is None:
+        _require(
+            binding is None,
+            "Qualification plan must precede deterministic execution",
+        )
         plan = ControllerPlanV2(
             schema_version=2,
             request_artifact=request_ref,
@@ -206,8 +212,17 @@ async def _run(
         and len({x.context_id for x in plan.invocations}) == 3
         and len({x.operation_id for x in plan.invocations}) == 3
         and all(x.operation_id.startswith(runtime.account_id + ":") for x in plan.invocations)
+        and validated.calibration.completed_at <= plan.created_at
         and runtime.issued_at <= plan.created_at <= clock() < plan.execution_deadline,
         "Qualification invocations or lifetime deadline are invalid",
+    )
+    plan_checkpoint = ledger.checkpoint_receipt(runtime.account_id, "qualification-plan-v2")
+    assert plan_checkpoint is not None
+    plan_time = _time(plan_checkpoint["created_at"])
+    _require(
+        plan.created_at <= plan_time <= clock()
+        and (binding is None or plan_time <= _time(binding["created_at"]) <= clock()),
+        "Qualification plan must precede deterministic execution",
     )
 
     def guard() -> None:

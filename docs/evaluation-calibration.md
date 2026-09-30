@@ -282,3 +282,17 @@ A separate read-only census of the three original evaluation ledgers still found
 microdollars across five unresolved operations. No old ledger, grant, result or
 reservation was changed. That census excludes product runs, external invoices and
 this new development ledger; it is not complete project accounting.
+
+The v80 rubric was scoped to owned synthetic fixtures. A subsequent general-rubric
+calibration (v86) reused those five prepared fixtures and unchanged expected outcomes,
+with synthetic-specific rules conditional on synthetic inputs. Five paid calls produced
+five valid matching decisions, zero false admits and zero mandatory failures. The
+completed-evidence reader validated the record before its account closed. Reported
+usage was 48,851 input and 21,700 output tokens, costing 786,755 microdollars with no
+remaining reservation. No historical inputs were used for this calibration.
+
+- Account: `calibration:bc7db014b0a34143b2dbdbb16ac8c5d7`.
+- Spec: `147ef19df10486e4d274fe49161bea8d034c342bbd64f0d71519094e82f020b9`.
+- Evidence: `6575056e1f9faa3f8c005e86b0077d766edb063360103a918a825a518be2aeeb`.
+
+These remain development calibration results, not held-out historical accuracy.

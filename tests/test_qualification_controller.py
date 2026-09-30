@@ -21,6 +21,7 @@ from agentic_delivery.evaluation.qualification_admission import (
     QualificationAuthorizationV2,
     QualificationRecordV2,
     QualificationRequestV2,
+    ReviewInvocationV2,
 )
 from agentic_delivery.evaluation.qualification_controller import (
     QualificationExecutionFailure,
@@ -209,6 +210,65 @@ async def test_complete_chain_and_immutable_resume(integrated):
     assert await run_qualification(bundle["request"], **bundle["options"]) == reference
     assert len(bundle["calls"]) == 2 and ControlledRunner.calls == 12
     assert bundle["options"]["ledger"].account(account_id) == before
+
+
+@pytest.mark.parametrize("late_plan", [False, True])
+async def test_standalone_runtime_cannot_be_retroactively_qualified(integrated, late_plan):
+    bundle = await integrated()
+    options = bundle["options"]
+    ledger = options["ledger"]
+    grant = bundle["state"]["grant"]
+    account_id = grant.runtime_authorization.account_id
+    await runtime.run_deterministic_qualification(
+        bundle["request"].deterministic_request,
+        settings_provider=options["settings_provider"],
+        policy_provider=options["preparation_policy_provider"],
+        authorization_provider=lambda: grant.runtime_authorization,
+        protected_artifacts=options["protected_artifacts"],
+        output_artifacts=options["output_artifacts"],
+        worker_root=options["worker_root"],
+        ledger=ledger,
+    )
+    assert ControlledRunner.calls == 12 and ControlledRunner.preflights == 1
+    if late_plan:
+        artifacts = options["protected_artifacts"]
+        plan = ControllerPlanV2(
+            schema_version=2,
+            request_artifact=artifacts.put(
+                json.dumps(bundle["request"].model_dump(mode="json"), sort_keys=True).encode()
+            ),
+            authorization_artifact=artifacts.put(
+                json.dumps(grant.model_dump(mode="json"), sort_keys=True).encode()
+            ),
+            account_id=account_id,
+            created_at=datetime.now(UTC),
+            execution_deadline=min(
+                grant.runtime_authorization.expires_at,
+                grant.runtime_authorization.issued_at
+                + timedelta(seconds=grant.runtime_authorization.budget.wall_seconds),
+            ),
+            invocations=tuple(
+                ReviewInvocationV2(
+                    stage=stage, context_id=context, operation_id=account_id + ":" + uuid4().hex
+                )
+                for stage, context in zip(
+                    ("qualifier_a", "qualifier_b", "adjudicator"),
+                    (*bundle["task"].reviewers, uuid4().hex),
+                    strict=True,
+                )
+            ),
+        )
+        ledger.checkpoint(
+            account_id, "qualification-plan-v2", artifacts.put(plan.model_dump_json().encode())
+        )
+    before = ledger.account(account_id)
+    with pytest.raises(QualificationExecutionFailure):
+        await run_qualification(bundle["request"], **options)
+    assert not bundle["calls"]
+    assert ControlledRunner.calls == 12 and ControlledRunner.preflights == 1
+    assert ledger.account(account_id) == before
+    assert ledger.checkpoint_receipt(account_id, "qualification-result-v2") is None
+    assert (ledger.checkpoint_receipt(account_id, "qualification-plan-v2") is not None) == late_plan
 
 
 @pytest.mark.parametrize("status", ["PASS", "FAIL", "UNRESOLVED"])
