@@ -97,3 +97,23 @@ resumed ANALYZING at 04:25:39 UTC, changing its specification digest while retai
 its original budget and spending. No operator API clarification or new attempt was
 used. Completion of the revised delivery is tracked separately from this pause/resume
 proof. [ADR-028](adr/ADR-028-linear-clarification-edits.md) defines the narrow behavior.
+
+## Sensitive-work admission follow-up
+
+[PER-15](https://linear.app/personal-portfolio-project/issue/PER-15/controlled-admission-case-sensitive-authentication-changes)
+requested sensitive authentication, authorization and production secret-management
+changes as an owned negative integration case. Workflow
+`a96eb0c6-8e76-42b0-9643-b1b4b76364f9` reached POLICY_BLOCKED at
+2026-09-30 04:29:59 UTC. Its assessed risk tier was 3; the deterministic intake policy
+independently returned denied. The ledger contained one settled planning operation,
+32,940 microdollars and zero reservation. Only the start command existed: no automatic
+plan approval, builder/reviewer operation or publication. No workflow-labelled
+container remained. Actual Temporal history contained only projection, start-command
+disposition and one analyze activity; no candidate, publish, CI or handoff activity
+was scheduled. This proves this bounded source/risk case, not detection of every
+sensitive request or newly sensitive candidate diff.
+
+An actual repeated publication of PER-13 also reconciled existing PR #6 with identical
+base/head/manifest and unchanged model spending. No new PR was created. This proves
+that concrete retry; arbitrary lost-response and concurrent provider races remain
+separate qualification cases.

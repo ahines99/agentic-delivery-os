@@ -5,8 +5,8 @@ Status: approved planning baseline, 2026-09-27. This is the intended product con
 Current refinements: [ADR-006](adr/ADR-006-verified-local-candidate.md) puts independent
 review before publication and keeps the PR draft for human review/merge.
 [ADR-025](adr/ADR-025-automatic-linear-delivery.md) adds outbound polling and explicitly
-configured low-risk automatic plan approval. These supersede the original webhook-only
-intake and automatic ready-for-review wording retained in the journey below.
+configured low-risk automatic plan approval. The scope and journey below incorporate
+these refinements to the original intake and publication sequence.
 The [live clear-ticket demonstration](live-automatic-delivery.md) passed; the full
 release contract below remains broader than that one configured target.
 
@@ -37,7 +37,7 @@ The local JSON input path is a development and offline demonstration interface. 
 ## MVP scope
 
 - One onboarded GitHub Python repository and one pinned base commit per run.
-- Linear intake through authenticated, deduplicated webhooks; explicit repository mapping and operator opt-in.
+- Linear intake through authenticated, deduplicated webhooks or enrolled outbound polling; explicit repository mapping and operator opt-in.
 - Low-risk documentation, tests, and localized software behavior changes with existing, runnable validation.
 - Requirements/planning context, builder context, and fresh independent reviewer context. Test execution and evidence validation belong to trusted services rather than model self-reporting.
 - One real model-provider implementation behind a small internal interface. Choose and record provider/model versions using development evaluations before the first live pilot.
@@ -61,8 +61,8 @@ Missing acceptance criteria, material ambiguity, unsupported dependencies, inacc
 3. Requirements analysis produces explicit criteria, unresolved questions, risk signals, and a plan tied to the base commit. A material question pauses work until an authorized response is recorded.
 4. Policy admits or blocks execution. The trusted runner creates an isolated environment and verifies the baseline.
 5. The builder makes a bounded change. The validator runs approved checks against the candidate commit; failures may enter a bounded correction loop.
-6. After candidate validation and security checks, the publishing broker opens or updates a draft PR. A reviewer with fresh context sees the ticket, criteria, base, diff, repository context, and actual validation evidence. It produces evidence-backed findings and a recommendation without write or publishing authority.
-7. An evidence gate verifies every criterion, required check, reviewer result, and policy decision against the current candidate. Only then does the broker mark the PR ready for human review and Linear move to the configured review status. Corrections update the same PR and invalidate obsolete evidence.
+6. After local candidate validation and security checks, an independent reviewer sees the ticket, criteria, base, diff, repository context and actual validation evidence. It produces evidence-backed findings without write or publishing authority. Only a verified, approved local candidate is published as a draft PR.
+7. The post-publication gate verifies required GitHub checks against the exact PR revisions. Only then does the runtime attach the PR to Linear and move the ticket to the configured review state. The PR remains draft for human review. Changed revisions invalidate old evidence; failed candidates do not become ready.
 8. A human reviews and merges using repository controls. Observed merge/closure updates may be recorded separately; the system never reports deployment success from PR creation.
 
 ## Evidence contract

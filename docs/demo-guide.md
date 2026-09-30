@@ -1,83 +1,84 @@
 # Demonstration guide
 
-The controlled prototype has two demonstration paths: credential-free fixture intake and a configured durable candidate pipeline. Follow [development setup](contributing.md) first. The [implementation status](implementation-status.md) records exercised runs and release limitations.
+The installed local service supports automatic Linear-to-GitHub delivery for the bounded
+Python sample. The examples below distinguish the exercised product path from offline
+fixtures and remaining portfolio evaluation.
+
+## Live automatic delivery
+
+The owner configuration targets `ahines99/agentic-delivery-os`, protected branch
+`delivery-workbench-v2`, and source prefix `demos/sample_repo`. The Windows login task
+`AgenticDeliveryOS` is installed. Keep the machine awake and online with Docker Desktop
+running. See [automatic operation](automatic-delivery.md) and [provider onboarding](provider-onboarding.md)
+for initial setup and additional repositories; installing the App alone does not onboard
+all repositories.
+
+1. Create a new Backlog issue in the configured Personal Project Portfolio team.
+2. Include `Repository: agentic-delivery-os`, a bounded requested behavior and explicit
+   acceptance criteria. Leave it unassigned or assign it to the configured worker.
+3. The monitor checks every 30 seconds, assigns the issue, and creates one durable workflow.
+   An eligible low-risk plan receives an explicit automated approval before isolated
+   implementation, independent validation/review and App publication.
+4. GitHub checks must pass before the runtime attaches the PR and moves Linear to In Review.
+   The PR remains draft for human review and merge. No merge or deployment is automated.
+5. If requirements need clarification, edit the ticket text with the missing decision.
+   A verified edit resumes the paused workflow with its original budget. Other active or
+   completed ticket changes remain held for explicit handling.
+
+Authenticated `/workflows/{id}` provides the state and questions;
+`/workflows/{id}/publication` provides PR observation status. The local API is on
+`127.0.0.1:18090`. `/readyz` checks database access, not the entire model/worker/toolchain.
+The read-only GitHub monitor records later closed/merged/changed-revision outcomes
+without a public webhook. It does not mark Linear Done or restore stale readiness.
+
+## Recorded live evidence
+
+| Case | Actual observation |
+| --- | --- |
+| Clear ticket PER-13 | Automatically created PR #6, passed all four required checks, reached HUMAN_REVIEW, and confirmed Linear In Review with one PR attachment. Three model calls cost $0.215420. |
+| Service restart during PER-13 CI wait | Supervisor restarted the service; workflow, publication and spending remained unchanged. |
+| Repeated PER-13 publication | Actual App retry reconciled PR #6 with identical base/head/manifest, without a duplicate PR or new model spending. |
+| Ambiguous PER-14 | Paused for a missing sorting decision. Editing the ticket caused one applied clarification command, replanning and PR #7 in the same workflow/budget. Final CI/handoff is still pending. |
+| High-risk PER-15 | Actual risk-tier-3 assessment and deterministic policy rejection. One planning call cost $0.032940; no approval, builder, reviewer, container or PR. |
+| External closure observation | App REST reads recorded retained PRs #2-#5 as CLOSED. PR #6 stayed DRAFT_HANDOFF. This is an owned external-close exercise, not an actual human merge. |
+
+See [the live record](live-automatic-delivery.md) for revisions, workflow IDs, earlier
+failures and accounting boundaries. These are owned integration cases, not historical
+benchmark scores, general success rates or human productivity measurements.
 
 ## Offline fixture intake
 
-Run these from the repository root:
+From a checkout with Python 3.12 and locked dependencies:
 
 ```sh
+uv sync --locked --extra dev
 uv run delivery demos/sample_tickets/low-risk.json
 uv run delivery demos/sample_tickets/ambiguous.json
 uv run delivery demos/sample_tickets/high-risk.json
 ```
 
-| Fixture | Expected state | What it demonstrates |
-| --- | --- | --- |
-| `low-risk.json` | `READY` | Explicit fixture criteria and supplied low-risk metadata pass intake |
-| `ambiguous.json` | `NEEDS_CLARIFICATION` | Missing specification prevents readiness |
-| `high-risk.json` | `POLICY_BLOCKED` | Sensitive/high-risk work is outside admitted scope |
+Expected states are READY, NEEDS_CLARIFICATION and POLICY_BLOCKED. These fixture commands
+use supplied metadata and no credentials, model, Docker build or PR publication. READY
+in this interface is not evidence of executed delivery.
 
-The output includes policy reasons and local transition records. `READY` authorizes nothing: risk metadata is supplied by the fixture, and the demo has no trusted risk classifier, durable storage, model call, sandbox, or provider connection. A valid blocked fixture is a successful demo invocation; inspect the JSON state rather than treating CLI exit code zero as delivery success. Schema/input errors terminate the command with an error.
+For a separate configured development runtime, use the [runbook](runbook.md). Live and
+test databases/queues must remain separate. Publication defaults to disabled; provider
+credentials stay in private environment files and never enter candidate containers.
 
-## Configured control plane and candidate pipeline
+## Verification and remaining demonstrations
 
-Follow the [runbook](runbook.md) to generate private configuration, start PostgreSQL/Temporal, migrate the database, build and pin the sandbox image, and start API/worker/dispatcher processes. The API command is:
+The source at `c03a945` passed [full hosted CI](https://github.com/ahines99/agentic-delivery-os/actions/runs/36664407290),
+including both Python versions and real service integrations. Later observer and
+clarification changes have focused passing checks and their own current-head CI.
+Do not treat that earlier run as proof for later source revisions.
 
-```sh
-uv run uvicorn agentic_delivery.api.app:app --host 127.0.0.1 --port 8000
-```
+Actual Docker, PostgreSQL and Temporal tests cover named baseline failures, correction,
+cancellation, process loss, provenance and provider-fault cases. See
+[implementation status](implementation-status.md) and the [completion audit](completion-audit.md)
+for each boundary. A controlled failure fixture is not evidence of every real outage.
 
-Open `http://127.0.0.1:8000/healthz` for `status: ok` and `mode: durable-control-plane`; this is a liveness response, not proof that database, worker, model or Docker are ready. `/docs` documents intake, workflow, command and provider endpoints. Work-item and command operations require operator authentication. Stop the API with Ctrl+C.
-
-`/readyz` checks database/schema access; it does not establish worker/model/sandbox readiness.
-Authenticated `/operations` shows repository-scoped state, spend and dispatch summaries.
-
-Authenticated `POST /work-items` uses an `Idempotency-Key`; receipt is distinct from execution. A plan waits for an authenticated reviewer-role approval bound to the current sequence/specification/plan digests, under an absolute decision deadline. The execution configuration is pinned per attempt; changing model/repository/budget/publication settings requires fresh planning and approval. The worker then builds and tests a pinned candidate in Docker and requests an independent model review. Use the runbook's command-disposition and artifact instructions to inspect results.
-
-A real Anthropic/Temporal/Docker run against the synthetic customer fixture produced `LOCAL_REVIEW_READY`, then ended `POLICY_BLOCKED` at disabled publication. This is the expected observed boundary for that configuration, not a completed remote delivery. The candidate result does not mean a PR was created, merged or deployed. Model-backed runs spend tokens; configure an authorized model/rate card and repository data permission deliberately. Live check scripts under `scripts/` are operator-invoked development checks, not benchmark runs.
-
-The latest recorded candidate run is `2abb68f2-d32f-4ceb-90e9-5b8f53e9b322`: one candidate attempt on the
-actual Compose services, with $0.186240 in recorded model spend. This excludes infrastructure
-and human effort; the manifest digest and prior runs are in [implementation status](implementation-status.md).
-An explicit eligible terminal rerun creates a new attempt/budget while retaining old spend;
-it is blocked when publication is existing or uncertain.
-
-The GitHub App publisher and Linear adapters are implemented, but live App/private-key and authorized Linear workspace credentials are absent. Publication is disabled by default. Do not use a personal token as a product fallback. [ADR-006](adr/ADR-006-verified-local-candidate.md) requires local verification/review before publication and keeps the resulting PR draft for human review.
-
-## Evidence and remaining demonstrations
-
-Run `uv run --no-sync python -m pytest` for unit/contract checks. PostgreSQL, Temporal and Docker integration tests require the environment in the runbook; unconfigured integration tests explicitly skip. Preserve which checks actually ran.
-
-The historical 163-test baseline included actual Docker memory/PID/disk exhaustion and hostile
-PEP 517 hooks. A later 392-test full run and focused follow-ups are recorded separately in
-[implementation status](implementation-status.md); do not infer a final-revision total from them. [Hosted CI passed](https://github.com/ahines99/agentic-delivery-os/actions/runs/36374850293).
-These probes demonstrate
-specific controls, not arbitrary-code or multi-tenant escape resistance.
-
-`uv run delivery-eval --help` exposes schema, manifest-validation and trial-report commands.
-Follow [the evaluation instructions](../evals/README.md); synthetic control reports are labeled,
-and no independently qualified 30+ historical-task campaign has been run.
-
-| Milestone | Demonstration | Evidence to retain |
-| --- | --- | --- |
-| M1 | Local durable intake and restart checks exercised; live Linear delivery remains | Actual workspace delivery/replay/status evidence alongside signed fixtures |
-| M2 | Synthetic candidate build, resource limits and hostile dependency hooks exercised | Exact commands and cleanup records; further runtime-escape and deployment qualification |
-| M3 | Independent local review exercised; actual App publication remains | Draft PR, base/head reconciliation, current criterion matrix and human handoff |
-| M4 | Some failure paths exercised; complete pilot qualification remains | Full product/security gates, granular recovery, retention and restore drills |
-| M5 | Harness implemented; historical campaign remains | Qualified 30+ tasks, frozen paired protocol, independent agent scoring, costs and uncertainty |
-
-Use an operator-owned disposable target repository and synthetic tickets before a live pilot. Record exact versions, inputs, base/head commits, policy, and outcomes. Redact secrets before sharing artifacts. Publish no benchmark numbers until [the evaluation protocol](evaluation-methodology.md) has been executed reproducibly.
-
-Under [ADR-007](adr/ADR-007-automated-benchmark-qualification.md), benchmark qualification/scoring is
-agent-led, with two isolated evidence-bound passes, adjudication for disagreement and deterministic
-baseline/reference checks three times each. All 36 staged candidates remain UNQUALIFIED; the new
-qualification validator has no real candidate admission to demonstrate and local contract and Docker receipt checks pass.
-Human review benefit and effort savings remain unmeasured. Human plan approval, pilot signoff and
-merge controls are unchanged.
-
-The [bounded operational export](operations-export.md) was exercised on the actual private PostgreSQL
-record for the candidate run above, producing SHA-256
-`cac7f2b60b5a8def617cbb15939829cf920c82717347005a5472355241758ef6`.
-It exports allowlisted metadata without artifact bytes or secrets. Present it as partial operational
-evidence, not a completed retention, full telemetry or cross-system recovery capability.
+The portfolio release still requires a qualified historical corpus, frozen paired
+execution, independent agent scoring, complete accounting and a reproducible report.
+Two separately acquired development tasks are qualified; the original 36 catalog
+candidates remain unqualified. No historical campaign or human-benefit measurement is
+claimed. Every product merge and pilot signoff remains human.
