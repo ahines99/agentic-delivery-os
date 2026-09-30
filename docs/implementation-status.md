@@ -14,6 +14,12 @@ subsequently passed Python 3.12/3.13 (3,304 tests and 136 explicit skips each), 
 136 service integration tests, package builds and secret scanning. The full Windows
 feature runs and later test-fixture correction remain separately tracked.
 
+The [publisher-process-loss drill](publication-process-loss.md) passed three real
+abrupt-exit/reconstructed-process cases on application source `6b74944`, after
+controlled branch creation, PR creation and final read. Persistent provider fixtures
+retained one branch and one draft PR. This proves broker recovery across process
+loss, not automatic Temporal publishing-activity recovery; that gap remains open.
+
 The [terminal outbox redelivery follow-up](postgres-faults.md#terminal-redelivery-follow-up-2026-09-30)
 passed the expanded 15-case PostgreSQL/Temporal fault suite in 8.43 seconds. All three
 lost-acknowledgement boundaries now also prove that redelivery after completion is
@@ -31,8 +37,11 @@ bounded confirming read after a lost attachment response, with current ticket an
 authorization checks before any status update. The expanded monitor, ingress,
 adapter and activity selection passed 163 tests; five actual PostgreSQL/Temporal
 fault scenarios passed and replayed. A
-read-only live query confirmed the existing PER-13/PR #6 attachment. Full regression
-verification and installation of this follow-up remain pending.
+read-only live query confirmed the existing PER-13/PR #6 attachment. Its [complete
+hosted CI at `79490f3`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36746926634)
+passed Python 3.12/3.13 (3,321 tests and 141 skips each), all 141 service integration
+tests, package builds and secret scanning. The full Windows run and installation
+remain pending; the later dispatcher revision has its own verification in progress.
 
 Linear intake now rechecks eligibility after assignment. A concurrent completion,
 cancellation or start cannot be admitted from the earlier discovery record once
