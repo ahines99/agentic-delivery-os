@@ -6,10 +6,11 @@ This is the issue-ready execution sequence for [the accepted plan](plan.md). IDs
 
 **Current implementation progress:** the [PER-13 live path](live-automatic-delivery.md)
 completed automatic Linear detection, App publication, required CI and the correct
-review-state handoff. The next concrete provider gap is outbound observation of PR
-closure/merge in the installed local mode; [ADR-027](adr/ADR-027-outbound-publication-observation.md)
-adds it without a public tunnel. Remaining qualification and portfolio release targets
-below stay open.
+review-state handoff. Outbound observation of PR closure/merge is also installed
+under [ADR-027](adr/ADR-027-outbound-publication-observation.md), without a public
+tunnel. Planning cancellation, provider response recovery and an actual live
+backup/restore drill have subsequent verification records. Remaining qualification,
+manual-criterion handoff and portfolio release targets below stay open.
 
 Refer to [implementation status](implementation-status.md) for recorded evidence and remaining gates. Code presence, mock-provider tests and one synthetic live run do not close an entire backlog item.
 

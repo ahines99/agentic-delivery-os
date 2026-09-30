@@ -11,7 +11,9 @@ read, with identity/team/text/assignee checks; no assignment mutation is repeate
 within that scan. The focused Linear monitor/adapter/ingress suite passed 129 tests,
 including controlled HTTP faults, SQLite persistence and fresh-client/store replay.
 Ruff, formatting and mypy passed. This is not an atomic provider lock or a live
-provider-fault exercise. Full new-source CI and installation are still pending.
+provider-fault exercise. Source `0bcd0ee` was installed through an idle supervised
+restart; readiness returned, Linear polling advanced and both existing review
+handoffs remained persisted. Its full local suite is running; hosted CI is pending.
 
 The earlier full Windows run collected at `0adc93d` completed: 3,145 passed and
 126 explicit service/platform skips in 4,642.41 seconds. Later tests and fixes are
