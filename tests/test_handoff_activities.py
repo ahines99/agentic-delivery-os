@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+import httpx
 import pytest
 from sqlalchemy.orm import Session
 
@@ -19,6 +20,7 @@ from agentic_delivery.config import Operator, RepositoryConfig, Settings, token_
 from agentic_delivery.domain.models import WorkItem
 from agentic_delivery.integrations.checks import RequiredCheck, parse_check_run_response
 from agentic_delivery.integrations.github_ci import GitHubCIWaiting
+from agentic_delivery.integrations.linear import LinearClient
 from agentic_delivery.orchestration.activities import Activities
 from agentic_delivery.security import AccessDenied
 from agentic_delivery.storage.artifacts import ArtifactStore
@@ -264,6 +266,53 @@ async def test_current_ci_handoff_confirms_once_and_retains_intent_result(
         }
     ]
     assert assert_retained_result(ctx, result)["ci_evidence_digest"] == ci["evidence_digest"]
+
+
+@pytest.mark.parametrize("invalidate_on_readback", [False, True])
+async def test_handoff_recovers_lost_linear_update_with_current_evidence(
+    tmp_path, monkeypatch, invalidate_on_readback
+):
+    ctx = context(tmp_path, monkeypatch)
+    ci = await ctx.activities._reconcile_ci({"workflow_id": ctx.identity})
+    item = ctx.store.workflow(ctx.identity)["work_item"]
+    live = {
+        "id": item["id"],
+        "title": item["title"],
+        "description": item["description"],
+        "team": {"id": "team-1"},
+        "assignee": {"id": "worker-1"},
+        "state": {"id": "in-progress"},
+    }
+    requests = []
+    monkeypatch.setenv("OWNED_HANDOFF_KEY", "owned-test-key-never-a-real-secret")
+
+    def transport(request):
+        body = json.loads(request.content)
+        if "query Issue" in body["query"]:
+            requests.append("read")
+            if requests.count("read") == 2 and invalidate_on_readback:
+                ctx.invalidate_ci()
+            return httpx.Response(200, json={"data": {"issue": live}})
+        if "attachmentCreate" in body["query"]:
+            requests.append("attachment")
+            assert body["variables"]["input"]["url"] == "https://github.com/example/project/pull/7"
+            return httpx.Response(200, json={"data": {"attachmentCreate": {"success": True}}})
+        requests.append("update")
+        live["state"]["id"] = body["variables"]["input"]["stateId"]
+        raise httpx.ReadTimeout("Owned lost update response", request=request)
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(transport)) as client:
+        monkeypatch.setattr(
+            "agentic_delivery.orchestration.activities.LinearClient",
+            lambda: LinearClient("OWNED_HANDOFF_KEY", client),
+        )
+        result = await ctx.activities._finish_handoff({"workflow_id": ctx.identity, "ci": ci})
+    assert requests == ["read", "attachment", "update", "read"]
+    assert result["tracker_status"] == "CONFIRMED"
+    assert result["ready"] is not invalidate_on_readback
+    assert assert_retained_result(ctx, result)["ci_evidence_digest"] == ci["evidence_digest"]
+    if invalidate_on_readback:
+        assert result["reasons"] == ["handoff_gate_changed_after_tracker_update"]
 
 
 async def test_approval_expiry_during_ci_broker_denies_after_response(

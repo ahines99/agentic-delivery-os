@@ -56,6 +56,56 @@ async def test_current_review_state_is_idempotent(monkeypatch: pytest.MonkeyPatc
     assert len(requests) == 1
 
 
+@pytest.mark.parametrize(
+    "outcome", ["accepted", "not_applied", "changed", "revoked", "read_failed"]
+)
+async def test_lost_status_response_uses_one_read_without_repeating_mutation(monkeypatch, outcome):
+    monkeypatch.setenv("TEST_LINEAR_KEY", "synthetic-key-never-a-real-secret")
+    live = issue()
+    reads, writes = 0, 0
+    authorized = True
+
+    def guard():
+        if not authorized:
+            raise AccessDenied("Synthetic handoff revoked")
+
+    def provider(request):
+        nonlocal reads, writes, authorized
+        body = json.loads(request.content)
+        if "query Issue" in body["query"]:
+            reads += 1
+            if reads == 2 and outcome == "read_failed":
+                raise httpx.ReadTimeout("Owned read failure", request=request)
+            return httpx.Response(200, json={"data": {"issue": live}})
+        writes += 1
+        assert "mutation UpdateIssue" in body["query"]
+        if outcome != "not_applied":
+            live["state"]["id"] = "review"
+        if outcome == "changed":
+            live["description"] = "Changed requirement"
+        if outcome == "revoked":
+            authorized = False
+        raise httpx.ReadTimeout("Owned lost update acknowledgement", request=request)
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(provider)) as client:
+        operation = LinearClient("TEST_LINEAR_KEY", client).set_review_state(
+            "issue-1",
+            "review",
+            team_id="team-1",
+            assignee_id="worker-1",
+            expected_title="Original title",
+            expected_description="Original description",
+            authorization_check=guard,
+        )
+        if outcome == "accepted":
+            await operation
+        else:
+            with pytest.raises(AccessDenied if outcome == "revoked" else ValueError):
+                await operation
+    assert writes == 1
+    assert reads == (1 if outcome == "revoked" else 2)
+
+
 @pytest.mark.parametrize("field", ["team", "assignee"])
 async def test_assignment_change_denies_even_already_reviewed(
     monkeypatch: pytest.MonkeyPatch, field: str

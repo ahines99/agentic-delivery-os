@@ -12,8 +12,10 @@ produced [PR #6](https://github.com/ahines99/agentic-delivery-os/pull/6), passed
 GitHub checks, and moved to Linear In Review with its PR attached. A second ticket,
 [PER-14](https://linear.app/personal-portfolio-project/issue/PER-14/add-customer-sorting-with-an-explicit-direction),
 paused for clarification, resumed after a ticket edit, and completed the same handoff
-with [PR #7](https://github.com/ahines99/agentic-delivery-os/pull/7). The runtime source
-at `8413dc4` passed [full CI](https://github.com/ahines99/agentic-delivery-os/actions/runs/36668888799). See the
+with [PR #7](https://github.com/ahines99/agentic-delivery-os/pull/7). The delivery-proof source
+at `8413dc4` passed [full CI](https://github.com/ahines99/agentic-delivery-os/actions/runs/36668888799).
+The installed service subsequently received the planning-cancellation fix at `0adc93d`;
+the [verification status](docs/implementation-status.md) distinguishes later changes and checks. See the
 [live evidence and recovery record](docs/live-automatic-delivery.md). The [webhook gateway](docs/linear-ingress.md)
 supports both providers, and the outbound monitor provides automatic intake without a tunnel.
 Use [App onboarding](docs/provider-onboarding.md) to configure another installation.

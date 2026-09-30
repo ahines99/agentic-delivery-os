@@ -4,6 +4,18 @@ Updated 2026-09-30 UTC during continued controlled implementation. This is the c
 the original milestone documents remain the release targets. Source code alone is not a passed
 integration or production release gate.
 
+Provider response-loss follow-up (2026-09-30): the Linear adapter now performs one
+read-back after an unavailable status-update response. It confirms only the requested
+review state with unchanged ticket text/team/assignment and current authorization;
+it never repeats the status mutation. The handoff activity still checks current CI
+afterward. Controlled transport and SQLite/artifact tests cover accepted updates,
+unapplied updates, changed requirements, revoked authorization, failed read-back and
+CI invalidation during reconciliation. Attachment-response uncertainty remains UNKNOWN.
+Three additional GitHub adapter cases lose acknowledgements after branch creation,
+PR creation or final read-back; fresh clients reconcile one branch and one draft PR.
+The combined adapter/handoff suite passed 89 tests. These are controlled provider
+tests, not a new live provider fault drill. Full verification of this change is pending.
+
 Planning cancellation follow-up (2026-09-30): the planning activity previously lacked
 the heartbeat/timeout pair required for Temporal cancellation delivery. An owned
 regression with actual Temporal/PostgreSQL and a held controlled model transport

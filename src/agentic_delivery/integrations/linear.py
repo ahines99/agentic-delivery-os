@@ -9,6 +9,10 @@ import httpx
 from agentic_delivery.config import secret
 
 
+class LinearUnavailable(ValueError):
+    """A transport failure leaves the provider's operation outcome uncertain."""
+
+
 class LinearClient:
     def __init__(
         self, api_key_env: str = "LINEAR_API_KEY", client: httpx.AsyncClient | None = None
@@ -38,7 +42,7 @@ class LinearClient:
                 raise ValueError("Linear returned an invalid GraphQL result")
             return dict(result["data"])
         except httpx.HTTPError:
-            raise ValueError(
+            raise LinearUnavailable(
                 "Linear provider unavailable; operation requires reconciliation"
             ) from None
         finally:
@@ -133,10 +137,27 @@ class LinearClient:
             return
         if authorization_check is not None:
             authorization_check()
-        result = await self.query(
-            "mutation UpdateIssue($id: String!, $input: IssueUpdateInput!) { "
-            "issueUpdate(id: $id, input: $input) { success } }",
-            {"id": identity, "input": {"stateId": state_id}},
-        )
+        try:
+            result = await self.query(
+                "mutation UpdateIssue($id: String!, $input: IssueUpdateInput!) { "
+                "issueUpdate(id: $id, input: $input) { success } }",
+                {"id": identity, "input": {"stateId": state_id}},
+            )
+        except LinearUnavailable:
+            # One read can confirm an accepted update whose response was lost.
+            # Do not repeat the mutation or infer success from a transport error.
+            if authorization_check is not None:
+                authorization_check()
+            observed = await self.issue(identity)
+            self.validate_issue(
+                observed,
+                team_id=team_id,
+                assignee_id=assignee_id,
+                expected_title=expected_title,
+                expected_description=expected_description,
+            )
+            if observed.get("state", {}).get("id") != state_id:
+                raise
+            return
         if result.get("issueUpdate", {}).get("success") is not True:
             raise ValueError("Linear status update was not confirmed")

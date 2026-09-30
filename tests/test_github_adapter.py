@@ -114,6 +114,52 @@ async def test_publisher_scoped_token_reconciles_pr_and_never_merges(
     assert counts == {"pull_posts": 1, "revocations": 2, "final_reads": 2}
 
 
+@pytest.mark.parametrize("lost_response", ["/git/refs", "/pulls", "/pulls/1"])
+async def test_publisher_recovers_accepted_write_after_lost_response(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    lost_response: str,
+) -> None:
+    settings, repository, digest = fixture(tmp_path, monkeypatch)
+    provider, state, counts = mock_github_provider()
+    lost = False
+    ref_posts = 0
+
+    def transport(request: httpx.Request) -> httpx.Response:
+        nonlocal lost, ref_posts
+        if request.method == "POST" and request.url.path.endswith("/git/refs"):
+            ref_posts += 1
+        # Apply the provider effect first, then drop its acknowledgement. Losing
+        # the final GET also models a crash after creation but before persistence.
+        response = provider(request)
+        method = "GET" if lost_response == "/pulls/1" else "POST"
+        if not lost and request.method == method and request.url.path.endswith(lost_response):
+            lost = True
+            raise httpx.ReadTimeout("Owned lost acknowledgement", request=request)
+        return response
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(transport)) as client:
+        with pytest.raises(GitHubFailure, match="outcome unknown; reconcile"):
+            await GitHubPublisher(settings, repository, client).publish("run-1", digest)
+    assert lost
+    assert state["ref"] == "c" * 40
+    assert counts["revocations"] == 1
+
+    # Reconstruct both broker and client: no process-local success cache can
+    # supply the result. Reconcile from provider branch/PR state and read back.
+    async with httpx.AsyncClient(transport=httpx.MockTransport(transport)) as client:
+        recovered = await GitHubPublisher(settings, repository, client).publish("run-1", digest)
+    assert recovered["number"] == 1
+    assert recovered["head_sha"] == "c" * 40
+    assert recovered["manifest_digest"] == digest
+    assert recovered["draft"] is True
+    assert recovered["human_merge_required"] is True
+    assert ref_posts == 1
+    assert counts["pull_posts"] == 1
+    assert counts["revocations"] == 2
+    assert counts["final_reads"] == (2 if lost_response == "/pulls/1" else 1)
+
+
 @pytest.mark.parametrize("reconcile", [False, True])
 @pytest.mark.parametrize(
     "field,value",

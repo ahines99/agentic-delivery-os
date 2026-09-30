@@ -13,6 +13,9 @@ attaches the PR link to the ticket and updates Linear to In Review. The PR stays
 available for human review and merge. Link creation uses Linear's
 [issue-and-URL idempotency](https://linear.app/developers/attachments), so a repeated
 handoff updates the same attachment.
+If Linear accepts a review-state update but its response is lost, the adapter makes
+one read-back and checks the current ticket before confirming the handoff. An
+unconfirmed attachment or unavailable read-back still requires reconciliation.
 Ambiguous, high-risk, failed or stale work does not become review-ready.
 When a workflow is waiting for clarification, answer by editing the ticket title or
 description in Linear. The monitor resumes planning in the same workflow and budget
@@ -23,7 +26,8 @@ Configuration:
 
 - Set `automatic_execution: true` on the onboarded repository.
 - Set a timezone-aware `linear_poll_start` once, when enabling monitoring; older backlog
-  is excluded. Keep the saved `.local/linear-monitor.json` cursor across restarts.
+  is excluded. Keep the configured `linear_monitor_state` cursor across restarts
+  (default `.local/linear-monitor.json`).
 - Configure repository/team/worker/review-state IDs, the model and finite budget,
   a pinned sandbox image, GitHub App credentials and required CI checks. Include
   the supported local lint/format command profiles when those checks are required
