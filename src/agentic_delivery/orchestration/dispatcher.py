@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from contextlib import suppress
 from datetime import timedelta
 from uuid import uuid4
@@ -8,6 +9,7 @@ from temporalio.exceptions import WorkflowAlreadyStartedError
 from temporalio.service import RPCError, RPCStatusCode
 
 from agentic_delivery.config import Settings
+from agentic_delivery.integrations.product_ops_documentation import execute_documentation
 from agentic_delivery.orchestration.workflow import DeliveryWorkflow
 from agentic_delivery.storage.store import Store
 
@@ -18,6 +20,7 @@ async def dispatch_once(
     client: Client,
     *,
     workflow_id: str | None = None,
+    settings_provider: Callable[[], Settings] | None = None,
 ) -> int:
     owner = str(uuid4())
     delivered = 0
@@ -26,6 +29,16 @@ async def dispatch_once(
             identity = command["workflow_id"]
             if command["kind"] == "start":
                 run = store.workflow(identity)
+                if run["work_item"]["work_type"] == "documentation_addition":
+                    await execute_documentation(
+                        identity, store, settings_provider or (lambda: settings)
+                    )
+                    store.command_status(
+                        command["command_id"], "APPLIED", "Local documentation review branch ready"
+                    )
+                    store.finish_outbox(command["outbox_id"], owner)
+                    delivered += 1
+                    continue
                 if run["configuration_digest"] and run[
                     "configuration_digest"
                 ] != settings.execution_digest(run["repository"]):

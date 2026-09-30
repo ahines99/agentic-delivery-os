@@ -45,7 +45,9 @@ async def serve(config: Path, mode: str, once: bool = False) -> None:
         await worker.run()
     else:
         while True:
-            count = await dispatch_once(settings, store, client)
+            count = await dispatch_once(
+                settings, store, client, settings_provider=lambda: load_settings(config)
+            )
             if once:
                 print(json.dumps({"delivered": count}))
                 return

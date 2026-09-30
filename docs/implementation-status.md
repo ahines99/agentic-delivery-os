@@ -1,5 +1,7 @@
 # Implementation and verification status
 
+Unreleased Product Ops integration branch: the [signed intake and constrained documentation lane](product-ops-integration.md) use Delivery-owned persistence. Actual approved PER-7 work, published as PER-8, was admitted once and reached HUMAN_REVIEW with commit `b44c681ffa1df5fe0094520219a283416e35239b`, an exact one-file addition and an OPEN/UNMERGED local change request. No model calls, target-repository execution, GitHub push or merge occurred in Delivery. No hosted verification of this branch is claimed. General multi-ticket scheduling and cross-system supersession remain open.
+
 Updated 2026-09-30 UTC during continued controlled implementation. This is the current capability record;
 the original milestone documents remain the release targets. Source code alone is not a passed
 integration or production release gate.
@@ -212,7 +214,7 @@ The latest acquisition-only extension passed 103 focused acquisition/import test
 dependencies and fresh wheel installation. Its isolated offline whole suite passed
 1420 tests with 62 service/Windows skips before the final cleanup guard and extra test;
 the final focused run covers that last change. The earlier complete service-enabled
-verification below remains recorded separately. See [E55–E56](completion-audit.md).
+verification below remains recorded separately. See [E55â€“E56](completion-audit.md).
 
 - Validated operator/repository configuration; hashed bearer credentials, repository/role checks,
   bounded intake bodies, pause flag, idempotency keys and queued commands.
@@ -531,7 +533,7 @@ unmeasured.
    with calibrated independent agent scoring and authoritative deterministic tests under ADR-007.
    Manifest validation and one synthetic live demo cannot satisfy this requirement. Human plan
    approval, pilot signoff and merge remain distinct unchanged controls.
-6. Meet the complete product P-01–P-12 and security acceptance gates before calling this an MVP pilot.
+6. Meet the complete product P-01â€“P-12 and security acceptance gates before calling this an MVP pilot.
    Additional trackers/languages/profiles and release automation remain conditional future options.
 
 Use [ADR-006](adr/ADR-006-verified-local-candidate.md) for the deliberate prepublication review

@@ -18,6 +18,8 @@ dependencies = [
   "temporalio>=1.10,<2",
   "httpx>=0.28,<1",
   "pyjwt[crypto]>=2.10,<3",
+  "jsonschema>=4.26,<5",
+  "markdown-it-py==4.2.0",
 ]
 
 [project.optional-dependencies]
@@ -26,6 +28,7 @@ dev = [
     "pytest-asyncio>=1,<2",
     "ruff>=0.11,<1",
     "mypy>=1.15,<2",
+    "types-jsonschema>=4.26",
     "coverage>=7.15,<8",
 ]
 

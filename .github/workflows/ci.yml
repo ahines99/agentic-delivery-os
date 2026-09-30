@@ -44,6 +44,8 @@ jobs:
         run: uv run --no-sync python -m pytest
       - name: Build distributable package
         run: uv build
+      - name: Clean wheel Product Ops contract smoke
+        run: uv run --no-sync python scripts/product_ops_wheel_smoke.py
 
   secrets:
     name: Secret scan

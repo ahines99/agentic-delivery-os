@@ -1,5 +1,9 @@
 # Agentic Delivery OS
 
+The unreleased [Product Ops integration](docs/product-ops-integration.md) adds signed approved-work
+admission and a constrained local documentation executor. Approved PER-7 work, published by
+Product Ops as PER-8, reached HUMAN_REVIEW with the exact unmerged local documentation change.
+
 A governed agent-assisted delivery platform that aims to convert issue-tracker tickets
 into tested, independently reviewed pull requests, with evidence and human control of merges.
 
@@ -35,7 +39,7 @@ hostile code. See [implementation status](docs/implementation-status.md) for rec
 verification boundaries, and outstanding work. The original proposal remains preserved in
 [docs/reference/original-handoff.md](docs/reference/original-handoff.md).
 
-The [full completion audit](docs/completion-audit.md) tracks every M0–M5 backlog item,
+The [full completion audit](docs/completion-audit.md) tracks every M0â€“M5 backlog item,
 product gate and research recommendation. The [historical candidate catalog](docs/evaluation-curation.md)
 contains 36 real metadata-only candidates; none is represented as a qualified or scored task.
 Benchmark qualification and scoring now follow the user's hands-off preference through
