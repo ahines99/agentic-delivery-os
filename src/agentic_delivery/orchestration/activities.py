@@ -258,6 +258,29 @@ class Activities:
 
     @activity.defn(name="analyze")
     async def analyze(self, request: dict[str, Any]) -> dict[str, Any]:
+        if not activity.in_activity():
+            return await self._analyze(request)
+
+        async def heartbeat() -> None:
+            while True:
+                activity.heartbeat("bounded planning request")
+                await asyncio.sleep(1)
+
+        heartbeat_task = asyncio.create_task(heartbeat())
+        planning_task = asyncio.create_task(self._analyze(request))
+        try:
+            done, _ = await asyncio.wait(
+                {heartbeat_task, planning_task}, return_when=asyncio.FIRST_COMPLETED
+            )
+            if heartbeat_task in done:
+                await heartbeat_task
+            return await planning_task
+        finally:
+            heartbeat_task.cancel()
+            planning_task.cancel()
+            await asyncio.gather(heartbeat_task, planning_task, return_exceptions=True)
+
+    async def _analyze(self, request: dict[str, Any]) -> dict[str, Any]:
         self.validate_configuration(request["workflow_id"])
         item = WorkItem.model_validate(request["item"])
         repository = self.settings.repository(item.repository)

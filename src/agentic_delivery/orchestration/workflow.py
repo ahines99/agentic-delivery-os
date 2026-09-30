@@ -126,6 +126,9 @@ class DeliveryWorkflow:
                         "sequence": self.sequence,
                     },
                     model=True,
+                    heartbeat_timeout=timedelta(seconds=20)
+                    if workflow.patched("planning-heartbeat-v1")
+                    else None,
                 )
                 state = assessment["state"]
                 if state == "POLICY_BLOCKED":

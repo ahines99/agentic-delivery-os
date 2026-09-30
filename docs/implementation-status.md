@@ -4,6 +4,23 @@ Updated 2026-09-30 UTC during continued controlled implementation. This is the c
 the original milestone documents remain the release targets. Source code alone is not a passed
 integration or production release gate.
 
+Planning cancellation follow-up (2026-09-30): the planning activity previously lacked
+the heartbeat/timeout pair required for Temporal cancellation delivery. An owned
+regression with actual Temporal/PostgreSQL and a held controlled model transport
+failed its 25-second cancellation wait before the fix. Planning now heartbeats during
+snapshot/model work; new workflows use a 20-second heartbeat timeout, with a version
+marker preserving older histories. The regression then passed in 18.47 seconds total:
+local request cancellation, CANCELLED projection, APPLIED command, retained unresolved
+reservation/observation, one model invocation, denied reissue through a fresh database
+connection, and successful history replay. The test used a separate disposable database
+and made no provider call. This does not prove remote-provider cancellation or invoice
+reconciliation. Another 71 focused authorization/monitor/handoff/replay tests passed;
+Ruff, formatting and mypy passed. Full new-source verification and installed-service
+restart remain pending.
+
+The SDK requirement is documented in Temporal's
+[heartbeating and cancellation guide](https://github.com/temporalio/sdk-python#heartbeating-and-cancellation).
+
 Latest complete hosted verification: [CI at `13902c3`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36673824570)
 passed Python 3.12/3.13 (3,153 tests and 115 explicit skips each), actual service
 integration and secret scanning. The corresponding local package-profile suite passed
