@@ -29,6 +29,14 @@ plan-approval authority and human merge controls. Additional evaluation framewor
 and broader operational tooling wait until this path works. Existing evaluation code
 and release targets remain; this changes implementation order, not reported results.
 
+That immediate delivery path passed on 2026-09-30: PER-13 was automatically detected,
+implemented and independently reviewed; App-authored PR #6 passed all required CI
+checks, and Linear moved to In Review with one PR attachment. The local login service
+also recovered during its CI wait without another attempt or model charge. See the
+[bound live record](live-automatic-delivery.md). The installed scope is one protected
+sample-repository branch; this closes the bounded clear-ticket demonstration, not
+all operational, historical evaluation or portfolio release gates.
+
 Build a single-tenant delivery control plane that takes a bounded Linear ticket for an
 onboarded Python repository, produces an isolated change and GitHub pull request, independently
 verifies the candidate, and gives a human a concise evidence package. All merges are human.

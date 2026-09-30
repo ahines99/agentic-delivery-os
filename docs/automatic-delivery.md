@@ -62,6 +62,11 @@ start a new budget. Resolve the existing workflow through clarification or rerun
 See [ADR-025](adr/ADR-025-automatic-linear-delivery.md) for the owner-authorized change
 from mandatory human plan approval to explicit per-repository automation.
 
+Detection follows the bounded outbound polling pattern inspected in the sibling
+Agentic Product Ops repository: a durable cursor and overlapping reads reconcile
+new tickets. This service adds delivery-specific assignment, authorization and
+workflow execution. See the [verified live result](live-automatic-delivery.md).
+
 ## Installed local target
 
 The current owner installation maps the Personal Project Portfolio team to

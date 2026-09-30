@@ -6,6 +6,9 @@ Keep `publication_enabled=false` until the following inputs and checks are compl
 
 The [automatic local service](automatic-delivery.md) uses outbound Linear polling and
 GitHub CI reads; it needs no public endpoint for ticket-to-PR delivery.
+The installed owner configuration has completed [live automatic delivery](live-automatic-delivery.md),
+including App PR creation, required CI and the Linear In Review handoff. A Windows
+login task runs the local service; broader hosted operation remains separate.
 Use the [combined webhook gateway](linear-ingress.md) when enabling public callbacks.
 It forwards Linear and GitHub callbacks to the private API while leaving operator
 commands private. The original Linear-only gateway will reject GitHub callbacks.
@@ -62,8 +65,10 @@ ticket into the durable inbox; a non-content update and exact signed replay pres
 and start command. Real planning then persisted a clarification result for PER-5 and a reviewable
 plan for PER-6, each with one settled model operation and no remaining reservation.
 The temporary webhook is now disabled and its test processes stopped; tickets and evidence
-remain retained. See [the ingress record](linear-ingress.md). Durable hosting, actual review-state
-handoff and complete Linear-to-GitHub delivery remain open.
+remain retained. See [the ingress record](linear-ingress.md). The later
+[PER-13 automatic run](live-automatic-delivery.md) completed the real review-state
+handoff through the supervised local service. Always-on hosted deployment and signed
+post-merge/close callbacks remain unconfigured.
 The key stays in the ignored `.local/linear.env`; service processes must receive it through
 their environment, without logging it. Reading a local dotenv file does not configure an
 already running worker automatically.

@@ -4,10 +4,10 @@ Updated 2026-09-30 UTC during continued controlled implementation. This is the c
 the original milestone documents remain the release targets. Source code alone is not a passed
 integration or production release gate.
 
-Latest complete hosted verification: [CI at `04d3356`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36658497378)
-passed both Python versions (3,057 tests and 111 explicit skips each), 111 actual service
-integration tests and secret scanning. Subsequent automatic-runtime changes have scoped
-verification and their own hosted run in progress. The earlier
+Latest complete hosted verification: [CI at `c03a945`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36664407290)
+passed both Python versions (3,114 tests and 114 explicit skips each), 114 actual service
+integration tests and secret scanning. This includes automatic-runtime, Windows snapshot,
+Linear PR-link and local lint/format correction changes. The earlier
 [CI at `5321f4b`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36655858237)
 includes the [campaign journal](campaign-journal.md),
 [completed semantic reader](semantic-consumption.md) and [whole-attempt reader](completed-attempt-reporting.md).
@@ -121,7 +121,12 @@ adds image-owned Ruff check/format-check commands to the existing correction loo
 All 182 verification/pipeline/authorization/monitor checks passed with the actual pinned
 Docker image, followed by 68 GitHub/replay checks. Three real Docker pipeline cases passed
 complete manifest validation for flat, src and mixed pytest/Ruff profiles. These scoped
-counts overlap. Final live CI/handoff and new-head full CI remain in progress.
+counts overlap. Full hosted CI subsequently passed at the revision linked above.
+The [live record](live-automatic-delivery.md) confirms the subsequent PER-13 run:
+App-authored PR #6 passed all four exact-head checks, and the runtime reached
+`HUMAN_REVIEW` at 2026-09-30 04:04:04 UTC. Linear readback confirmed In Review and one
+PR attachment. Three settled model operations cost $0.215420, with no reservation.
+The supervised service recovered during CI wait without another attempt or charge.
 
 [Automatic Linear delivery](automatic-delivery.md) now adds a bounded outbound monitor,
 restart cursor, idempotent intake, explicit low-risk automatic approval and a combined
@@ -130,7 +135,7 @@ Seventy-five monitor/runtime/credential/control-plane/authorization tests passed
 127-case pipeline/GitHub/CI/replay regression scope also passed. An initial cancellation
 test cancelled before the newly sequenced services started; the corrected test waits
 for active services and verifies their shutdown. The Windows startup script parses.
-Live automatic ticket-to-PR execution and new-head full CI remain to be verified.
+Live automatic ticket-to-PR execution and full implementation CI subsequently passed, as recorded above.
 
 The earlier unchanged Windows full run at `4d71ce3` completed with 2,963 passed and
 101 explicit skips in 4,292.95 seconds. It does not cover subsequent changes.
@@ -141,8 +146,8 @@ passes through both gateway and actual API into SQLite, retains one observation 
 duplicate delivery and rejects modified signed bytes. All 130 ingress, GitHub-check
 and control-plane regression tests passed; lint, formatting and type checks passed.
 The earlier Linear-only entry point retains its existing behavior. Live GitHub App
-delivery and persistent HTTPS hosting remain unverified. Implementation priority is
-now the first complete ticket-to-PR flow; further benchmark infrastructure is deferred.
+delivery is verified through outbound polling; persistent HTTPS hosting and live signed
+post-merge/close callbacks remain unconfigured.
 
 [Joint criterion evidence](criterion-acceptance-evidence.md) now joins final-candidate tests
 and independent semantic findings by criterion after concrete whole-attempt reconstruction.
@@ -315,7 +320,8 @@ verification below remains recorded separately. See [E55–E56](completion-audit
   Candidate code shares the collector interpreter: this closes named forgery/early-exit cases,
   not arbitrary semantic manipulation or inadequate tests. Independent behavioral oracles remain required.
 - GitHub App publisher with repository-scoped installation token, base/head checks, draft-only PRs,
-  operation markers/reconciliation and token revocation. Contract tested, not live App authenticated.
+  operation markers/reconciliation and token revocation. Live App publication is verified by PER-13;
+  broader provider fault qualification remains separate.
   A final PR reread checks exact base/head revisions, repositories, branch references, open state
   and draft status before recording publication success.
 - GitHub signed observation endpoint and separate stale/merged/closed publication record;
@@ -325,7 +331,7 @@ verification below remains recorded separately. See [E55–E56](completion-audit
   generation CAS plus a 60-second cache. Workflow CI polling has an absolute deadline and cancellation.
   Linear review-state handoff is a separate activity after CI, with before/after authorization checks
   and intent/result artifacts; uncertain provider outcomes remain UNKNOWN. These are controlled
-  transport/workflow tests; live product App onboarding and Linear review-state handoff remain required.
+  transport/workflow tests, supplemented by the actual PER-13 App/CI/Linear handoff above.
 - Evaluation schema, family/split validation, protected worker-input projection, isolated scoring,
   strict denominators, missing-task accounting and Wilson intervals. `delivery-eval` exports schemas,
   validates manifests and creates reproducible reports; no historical benchmark run exists.
@@ -580,22 +586,22 @@ worklist and audit views, with receipt preservation and workflow-history replay.
 uses an automated test-role approval; human observation and live Linear routing remain
 unmeasured.
 
-1. Configure a GitHub App installation/private key for only the target repository, set branch
-   protections without bot bypass, and exercise actual publication/head-change reconciliation.
-   The user's authenticated CLI is used for maintaining this project, never as the product's PAT fallback.
-2. Complete durable Linear ingress and actual review-state handoff. The authorized personal key,
-   local mapping and temporary Issue-only webhook now pass discovery, actual signed intake,
-   non-content update, exact replay and actual clarification/plan-review checks. Build/PR delivery remains open.
+1. The installed App, protected target and actual publication now pass the bounded live
+   demonstration. Extend provider lost-response/head-change reconciliation qualification
+   and onboard each additional repository explicitly. The product never uses the CLI token.
+2. Automatic Linear detection and the real PR-link/In Review handoff are verified by
+   PER-13. The supervised local login service is running. Always-on hosted operation and
+   signed external merge/close callbacks remain separate work.
 3. Extend security qualification beyond the exercised memory/PID/disk/dependency-hook controls.
    Current Docker tests do not establish general runtime-escape resistance or hostile multi-tenant isolation.
-4. Qualify the implemented check-run/suite ingestion and REST readiness gate with the live product App.
+4. Extend fault qualification beyond the successful live App REST readiness gate.
    Complete granular active-execution crash recovery, production identity hardening, full telemetry,
    coordinated deletion and cross-system recovery. Active cancellation, saved replay, local token
    rotation and read-only retention plans do not replace these broader operational gates.
 5. Independently qualify 30+ historical tasks from a reviewed inventory, then execute the frozen paired evaluation
    with calibrated independent agent scoring and authoritative deterministic tests under ADR-007.
-   Manifest validation and one synthetic live demo cannot satisfy this requirement. Human plan
-   approval, pilot signoff and merge remain distinct unchanged controls.
+   Manifest validation and one owned live demo cannot satisfy this requirement. Plan
+   approval follows ADR-025; pilot signoff and merge remain human controls.
 6. Meet the complete product P-01–P-12 and security acceptance gates before calling this an MVP pilot.
    Additional trackers/languages/profiles and release automation remain conditional future options.
 

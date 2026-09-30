@@ -2,6 +2,14 @@
 
 Status: approved planning baseline, 2026-09-27. This is the intended product contract; the repository foundation is not the completed MVP. The existing repository directory remains `agentic-delivery-engineer`.
 
+Current refinements: [ADR-006](adr/ADR-006-verified-local-candidate.md) puts independent
+review before publication and keeps the PR draft for human review/merge.
+[ADR-025](adr/ADR-025-automatic-linear-delivery.md) adds outbound polling and explicitly
+configured low-risk automatic plan approval. These supersede the original webhook-only
+intake and automatic ready-for-review wording retained in the journey below.
+The [live clear-ticket demonstration](live-automatic-delivery.md) passed; the full
+release contract below remains broader than that one configured target.
+
 ## Purpose and users
 
 Agentic Delivery OS converts bounded engineering tickets into tested pull requests with independently reviewed, commit-bound evidence. Humans retain product decisions and merge authority.

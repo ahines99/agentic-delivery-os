@@ -2,7 +2,23 @@
 
 Audit date: 2026-09-28. Initial inspected checkout: `16dd9fe9e873225dbaee0f761971efcf902e8b72`; the dated follow-up below includes subsequent working-tree implementation and scoped execution evidence, not a newly certified release SHA. This is a completion ledger for the accepted M0–M5 plan, the twelve product gates, and the five research reviews. It does not replace or reduce their acceptance criteria. Subsequent implementation needs new evidence and an updated ledger.
 
-**Finding: the five-agent planning/research baseline and a substantial controlled implementation exist. The complete MVP and portfolio release are not proved.** Live Linear-to-GitHub handoff, full operational/security qualification, a qualified historical corpus, paired execution and independent agent scoring under ADR-007 remain open. The project's manually maintained implementation PR is not a product-generated delivery PR.
+**Finding: the five-agent planning/research baseline and a substantial controlled implementation exist. The complete MVP and portfolio release are not proved.** The bounded live Linear-to-GitHub handoff subsequently passed on 2026-09-30 (E-LIVE below). Full operational/security qualification, a qualified historical corpus, paired execution and independent agent scoring under ADR-007 remain open. The project's manually maintained implementation PR is not a product-generated delivery PR.
+
+## Current live-delivery follow-up (2026-09-30)
+
+E-LIVE: [PER-13 and PR #6](live-automatic-delivery.md) prove the configured clear-ticket
+path through automatic detection, owner-authorized low-risk plan approval, isolated
+build, independent tests/review, App publication, all four exact-head GitHub checks,
+and an actual Linear In Review transition with one PR link. No manual intervention
+was needed to advance this attempt. A service restart during CI wait preserved one
+attempt, three model operations and one publication. Implementation CI at `c03a945`
+passed both Python versions, all 114 service integration tests and secret scanning.
+
+This supersedes older statements below that no real App PR or Linear handoff exists.
+P-01 is proved for the configured bounded sample target. M3 remains partial because
+provider fault reconciliation, broader evidence qualification and signed external
+merge/close outcomes are distinct. The login service is local, not always-on hosting.
+Historical evaluation and the complete portfolio release remain open.
 
 ## Meaning of status
 
@@ -175,10 +191,10 @@ Every stable backlog ID appears below. Dependencies continue to apply even where
 | M2-03 | partial | E5/E6: typed edit proposal replaces arbitrary tools; policy and budget sit outside prompt. Real builder ran. Fault/authorization matrix and development provider qualification incomplete. | Exercise schema/rate-limit/cancel/errors and demonstrate no execution or spend following denied admission. |
 | M2-04 | partial | E6/E11: safe paths, symlink rejection, original tests/protected configuration, exact old-content hashes, immutable candidate/diff artifacts. Complete hostile-output and candidate-reproduction matrix absent. | Verify candidate reproduction and add symlink/traversal/size/secret cases across the entire builder-to-publisher boundary. |
 | M2-05 | partial | E6/E13: image-owned structured pytest collection replaces stdout verdicts; completion, identities/phases, minimum counts and execution bindings are checked. Named forged-summary/early-exit cases now have actual Docker tests. Candidate code still shares the collector interpreter. | Qualify malicious runtime/oracle cases and independent behavioral checks; do not treat structured reports as semantic attestation. |
-| M3-01 | external prerequisite, with partial code | E7: scoped App token broker, branch/tree/PR markers, final exact-ref reread, no merge API; HTTP contract tests only. E10 is not a product App PR. | Install authorized least-permission App; exercise real draft creation, unknown response reconciliation, duplicate/head/base races, token revocation and no-bypass protection. |
+| M3-01 | partial; live publication proved by E-LIVE | E7: scoped App token broker, branch/tree/PR markers, final exact-ref reread, no merge API; HTTP contract tests only. E10 is not a product App PR. | Install authorized least-permission App; exercise real draft creation, unknown response reconciliation, duplicate/head/base races, token revocation and no-bypass protection. |
 | M3-02 | partial | E5/E11/E77: fresh reviewer context and a live approving result; actual Docker with controlled model responses proves rejection, repair with fresh validation/review, and normal exhaustion. | Retain a live development model rejection/repair result; maintain separate capabilities and shared budgets. |
 | M3-03 | partial | E13/E14/E15: strict manifest/reference validation, structured collection and independent producer-scoped CI observations/reconciliation are implemented and fixture tested; fresh synthetic manifest passed the gate. Live App check evidence and complete manual pending/denial handling remain open. | Exercise the full onboarded product chain, manual evidence semantics and remaining adversarial provenance/race matrix. |
-| M3-04 | external prerequisite, with partial code | E7: Linear state adapter and signed GitHub PR observations, staleness/merge/closed records. No actual Linear→product PR→observed close/merge run. ADR-006 keeps PR draft for human review. | Complete live integration sequence and preserve signed receipts and revision tuple; human performs readiness/merge. Do not infer deployment. |
+| M3-04 | partial; live Linear handoff proved by E-LIVE | E7: Linear state adapter and signed GitHub PR observations, staleness/merge/closed records. No actual Linear→product PR→observed close/merge run. ADR-006 keeps PR draft for human review. | Complete live integration sequence and preserve signed receipts and revision tuple; human performs readiness/merge. Do not infer deployment. |
 | M3-05 | partial engine; campaign missing | E78/E79 provide a shared A/B candidate engine and explicit frozen execution-budget contract. No historical A/B campaign or validation promotion result. | Implement the authorized campaign executor and calibrated final scoring; qualify tasks and execute equal-cap arms while leaving the sealed split unopened. |
 | M4-01 | partial | E3/E4/E7/E25/E27/E29/E30 cover fixture faults, wait restart, replay, active Docker cancellation, PG rollback/redelivery and model reservation recovery. E80 proves actual candidate-worker process loss with bounded cleanup or explicit UNKNOWN and no repeated candidate call. | Extend daemon/host loss, distributed fencing, paid-model cancellation and actual-provider lost-response reconciliation; retain one-effect evidence. |
 | M4-02 | partial ? release qualification open | E2/E6/E7/E13/E14: named forged-summary/early-exit paths now rejected; strict manifest and CI producer/revision/rerun guards have regressions. Complete prompt-injection, malicious oracle and race qualification remains open. | Execute the full P-03/P-06/P-09/P-11 matrix on the actual selected runtime; investigate same-interpreter evidence limitations. |
@@ -193,7 +209,7 @@ Every stable backlog ID appears below. Dependencies continue to apply even where
 
 | Gate | Status | Concrete scope proved / gap | Required next evidence |
 | --- | --- | --- | --- |
-| P-01 clear ticket | external prerequisite | E11 proves synthetic local candidate; no product-created GitHub App PR or real Linear review state. | One real authorized Linear ticket, exact candidate PR/evidence, independent checks/review and actual status handoff. |
+| P-01 clear ticket | proved ? configured sample target | E-LIVE: PER-13 produced App-authored PR #6, complete criterion evidence, independent review, passing local and GitHub checks, and actual Linear In Review with the PR attached. | Requalify additional repository configurations; no general success-rate claim. |
 | P-02 ambiguity | partial | Intake fixtures and revisioned clarification routes exist; Temporal test planner returns a fixed ready plan. | End-to-end ambiguous analysis, no execution while blocked, authenticated answer and fresh revision/plan; live source mapping. |
 | P-03 risk | partial | High-risk fixtures and sensitive-change detectors reject named cases. Model must not lower observed risk. | Actual end-to-end high-risk/sensitive-diff rejection with zero unauthorized tools, publication or spend. |
 | P-04 duplicates | partial | E29 adds real PG intake rollback/response-loss dedup and actual Temporal start/ack redelivery with one run; outbox lease fencing and mocked PR reconciliation also exist. | Extend terminal/active activity races and real provider redelivery showing one logical PR/status operation. |

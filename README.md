@@ -7,14 +7,23 @@ into tested, independently reviewed pull requests, with evidence and human contr
 The accepted implementation plan is [docs/plan.md](docs/plan.md). The project retains the
 local directory name `agentic-delivery-engineer`; the product/package name is Agentic Delivery OS.
 
-**Current implementation focus:** complete one real Linear ticket through a tested GitHub
-draft PR and Linear review-status handoff. The [webhook gateway](docs/linear-ingress.md)
+**Verified automatic delivery:** [PER-13](https://linear.app/personal-portfolio-project/issue/PER-13/add-ordered-customer-id-helper)
+produced [PR #6](https://github.com/ahines99/agentic-delivery-os/pull/6), passed all required
+GitHub checks, and moved to Linear In Review with its PR attached. See the
+[live evidence and recovery record](docs/live-automatic-delivery.md). The [webhook gateway](docs/linear-ingress.md)
 supports both providers, and the outbound monitor provides automatic intake without a tunnel.
 Use [App onboarding](docs/provider-onboarding.md) to configure another installation.
 
 The [automatic delivery mode](docs/automatic-delivery.md) adds outbound Linear detection
 and owner-configured low-risk plan approval. Start the API, worker, dispatcher and enabled
 monitor with `delivery-service run`; merges remain human-controlled.
+
+For the installed local service, create a new Backlog ticket in the Personal Project
+Portfolio team, leave it unassigned, include `Repository: agentic-delivery-os`, and
+state clear acceptance criteria for a change within `demos/sample_repo`. Detection
+runs every 30 seconds. Keep this machine awake and Docker Desktop running. The
+current target is protected `delivery-workbench-v2`; additional repositories require
+[onboarding](docs/provider-onboarding.md). The Windows login task is installed and running.
 
 ```text
 Linear -> Requirements -> Risk policy -> Plan -> Isolated build
@@ -36,8 +45,9 @@ GitHub App publication and Linear adapters exist and have contract/fixture tests
 Linear key now passes live workspace/team discovery, and a controlled real ticket passed signed
 webhook intake, a non-content update and exact signed replay through a temporary HTTPS gateway.
 One workflow/start command was retained. Two real test tickets subsequently reached persisted
-`NEEDS_CLARIFICATION` and `PLAN_REVIEW` states through metered planning. Status handoff remains unverified. GitHub App credentials
-are now installed and repository-scoped authentication has been verified. Complete
+`NEEDS_CLARIFICATION` and `PLAN_REVIEW` states through metered planning. The subsequent [automatic run](docs/live-automatic-delivery.md) verified actual App publication,
+exact-head CI, a PR link and the Linear review-state handoff. GitHub App credentials
+are installed and repository-scoped authentication is verified. Complete
 recovery/security qualification and the independently scored 30+ historical-task evaluation
 remain release gates. The Docker checks establish named controls, not safety against arbitrary
 hostile code. See [implementation status](docs/implementation-status.md) for recorded runs,

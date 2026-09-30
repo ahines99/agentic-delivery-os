@@ -39,10 +39,12 @@ This runs the existing services in one foreground process. The API listens on
 the services; a worker/dispatcher failure also stops the API and exits with an error.
 Starting the dispatcher can process queued tickets and spend the configured model
 budget. Service shutdown is not a workflow cancellation; use the authenticated cancel
-command when cancelling a run. The command does not migrate databases, approve plans,
-enable publication or open a public tunnel. Keep the credential-free gateway in its
-separate process, and supply the model key through the environment or an additional
-`--env-file` passed to `uv run`.
+command when cancelling a run. The command does not migrate databases, enable
+publication or open a public tunnel. With `linear_poll_start` and repository
+`automatic_execution` configured, the monitor detects new tickets and approves eligible
+low-risk plans under [ADR-025](adr/ADR-025-automatic-linear-delivery.md). Supply the model
+key through the environment or an additional `--env-file` passed to `uv run`.
+Keep an optional credential-free webhook gateway in its separate process.
 
 Credentials can use a file reference instead of an inline value. For example, put
 `GITHUB_APP_PRIVATE_KEY_FILE='C:/path/to/app.private-key.pem'` in the ignored environment
@@ -184,7 +186,9 @@ cross-system recovery drills remain recorded gaps in
 
 Run lint, format, types and tests as in the README. Integration tests require
 `TEST_DATABASE_URL`, `TEST_TEMPORAL_ADDRESS` and `TEST_SANDBOX_IMAGE`; unconfigured tests report
-explicit skips. The historical baseline was 163 tests with all three configured. On 2026-09-28,
+explicit skips. Use a dedicated test database and queue, separate from the live service;
+the installed service uses `delivery_live` and `agentic-delivery-live`.
+The historical baseline was 163 tests with all three configured. On 2026-09-28,
 392 tests passed with zero skips against actual Compose PostgreSQL/Temporal and Docker in 107.40 seconds;
 Ruff check/format and mypy passed. A later focused run passed 17 dispatch/Temporal CI/Linear tests, including 12 new tests;
 the collection of 404 at that checkpoint was not represented as a new full-suite run.
