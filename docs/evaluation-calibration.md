@@ -245,3 +245,40 @@ Across the four retained calibration stages, configured model cost is **$2.98799
 for twenty calls. These reused development cases do not measure held-out accuracy.
 The new calibration does not itself admit the historical candidate or erase its
 [earlier failed review](historical-development-attempts.md#pr-404-outcomes).
+
+## Current enrolled development calibration (2026-09-30)
+
+At construction revision `5fcc2971a9c5fca0a4edae134bcd656f3ef6e203`, the existing owned
+five-case preparation and calibration APIs were exercised through a new, explicitly
+enrolled development ledger. The prospective program cap is 25,000,000 microdollars;
+this cap does not erase or incorporate the old ledgers' liabilities.
+
+The five newly prepared owned fixtures completed 65 deterministic Docker operations
+on image `sha256:5edf3f631f069f4ce7e1e4eb0fb13ea2562cccb240aea91627889e574e2de224`.
+Preparation made no model calls. Its configured local-duration infrastructure estimate
+was 130 microdollars, not a provider invoice. The five subsequent model calls ran under
+a 3,200,000-microdollar calibration cap after a 3,111,860-microdollar forecast.
+
+The production completed-evidence reader reconstructed all five matching cases, all
+five matching decisions, zero false admits and zero mandatory failures. Actual reported
+model usage was 48,505 input and 20,588 output tokens, costing 757,225 microdollars at
+the recorded rates. No reservation remains. All six preparation/calibration accounts
+were closed only after their completed evidence was validated; remaining prospective
+capacity was 24,242,645 microdollars. The original fixtures, expected decisions and
+reference-solution exclusion were preserved. No historical task was admitted or scored.
+
+- Calibration account: `calibration:7e0a970ca86741408849ef1fc8fb33de`.
+- Calibration spec: `0dac72263ab3a7503e246fa9597b639e754f5f5204c7475453fc89a65eb20817`.
+- Validated evidence: `3449aebfe994076a43e53ff2de37d8f49731f56269ef6ab12cd72198c613601c`.
+
+Private execution state is retained in the owner-controlled
+`evaluation-development-v80/synthetic-preparation-v80` artifact directory. These
+owned calibration measurements are prerequisites for qualification, not historical
+accuracy or portfolio success rates. Current task/data authority, corpus construction,
+qualification, independent final scoring and campaign execution remain required.
+
+A separate read-only census of the three original evaluation ledgers still found
+33 accounts, 214 operations, 9,424,997 settled microdollars and 948,834 reserved
+microdollars across five unresolved operations. No old ledger, grant, result or
+reservation was changed. That census excludes product runs, external invoices and
+this new development ledger; it is not complete project accounting.
