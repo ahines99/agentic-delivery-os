@@ -15,6 +15,21 @@ only scripted operator decisions have exercised it, so a real human manual-accep
 decision remains unexercised. Remaining qualification and portfolio release targets
 below stay open.
 
+**Code review follow-ups (2026-09-30).** A read-only review found these
+open items outside the enforced invariants. They are recorded rather than changed
+because each alters a live publication or workflow path:
+
+- `/workflows/{id}/checks` recomputes approval authority from configured operators, so
+  runs approved by `delivery-automation` (ADR-025) report `ready: false` there even after
+  a completed handoff. The worker's own handoff gate is correct; the endpoint is advisory.
+- Publication does not verify branch protection or rulesets on the base branch.
+- The CI wait keeps polling a failed required check until `ci_wait_seconds` expires
+  instead of stopping at the first definitive failure (a workflow change needs a patch marker).
+- A local-clone snapshot uses the clone's `HEAD` rather than the configured base branch;
+  a mismatch is only caught at publication, after model spend.
+- Published blobs use mode `100644`, so a modified executable file loses its executable bit.
+- The Linear monitor's automatic approval scan reads at most 1,000 recent workflows.
+
 Refer to [implementation status](implementation-status.md) for recorded evidence and remaining gates. Code presence, mock-provider tests and one synthetic live run do not close an entire backlog item.
 
 | Milestone | Implemented/exercised progress | Acceptance still outstanding |

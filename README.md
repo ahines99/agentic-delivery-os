@@ -55,6 +55,9 @@ See [architecture](docs/architecture.md) and the [ADRs](docs/adr/).
 
 ## Known limitations and open gates
 
+- **Merge control relies on GitHub branch protection.** No component can merge, but the
+  publisher's App token can write branches; the owner must keep the base branch protected
+  with required reviews and checks. The service does not verify that configuration.
 - **No human merge has been exercised yet.** PRs #6 and #7 were handed off as drafts for
   human review, and no real human manual-acceptance decision has been recorded; tests use
   scripted operator identities.
