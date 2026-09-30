@@ -20,7 +20,11 @@
       ],
       "snapshot_prefix": "demos/sample_repo",
       "model_data_authorized": false,
-      "commands": [{"id": "pytest", "argv": ["python", "-m", "pytest", "-q", "-p", "no:cacheprovider"], "expected_tests": 1}]
+      "commands": [
+        {"id": "pytest", "argv": ["python", "-m", "pytest", "-q", "-p", "no:cacheprovider"], "expected_tests": 1},
+        {"id": "ruff-check", "argv": ["python", "-I", "-m", "ruff", "check", "--isolated", "--no-cache", "--target-version", "py312", "--line-length", "100", "--select", "E,F,I,UP,B,SIM", "."]},
+        {"id": "ruff-format", "argv": ["python", "-I", "-m", "ruff", "format", "--check", "--isolated", "--no-cache", "--target-version", "py312", "--line-length", "100", "."]}
+      ]
     }
   ],
   "publication_enabled": false,

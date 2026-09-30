@@ -11,6 +11,39 @@ from agentic_delivery.execution.files import safe_path
 from agentic_delivery.storage.artifacts import ArtifactStore
 from agentic_delivery.storage.store import digest_json
 
+RUFF_CHECK = (
+    "python",
+    "-I",
+    "-m",
+    "ruff",
+    "check",
+    "--isolated",
+    "--no-cache",
+    "--target-version",
+    "py312",
+    "--line-length",
+    "100",
+    "--select",
+    "E,F,I,UP,B,SIM",
+    ".",
+)
+RUFF_FORMAT = (
+    "python",
+    "-I",
+    "-m",
+    "ruff",
+    "format",
+    "--check",
+    "--isolated",
+    "--no-cache",
+    "--target-version",
+    "py312",
+    "--line-length",
+    "100",
+    ".",
+)
+QUALITY_COMMANDS = (RUFF_CHECK, RUFF_FORMAT)
+
 
 def pytest_selectors(argv: tuple[str, ...]) -> tuple[str, ...]:
     """Accept a narrow, operator-owned pytest profile; flags cannot replace the collector."""
@@ -49,6 +82,8 @@ def pytest_import_options(commands: tuple[CommandProfile, ...]) -> tuple[str, ..
         raise ValueError("Repository has no approved verification commands")
     layouts = set()
     for command in commands:
+        if command.argv in QUALITY_COMMANDS:
+            continue
         pytest_selectors(command.argv)
         layouts.add("-o" in command.argv)
     if len(layouts) != 1:
@@ -152,7 +187,9 @@ async def verify(
         raise ValueError("Repository has no approved verification commands")
     results = []
     for command in commands:
-        pytest_selectors(command.argv)
+        quality = command.argv in QUALITY_COMMANDS
+        if not quality:
+            pytest_selectors(command.argv)
         binding = {
             "nonce": uuid4().hex,
             "snapshot_digest": digest_json(files),
@@ -164,7 +201,7 @@ async def verify(
             command.argv,
             timeout_seconds=timeout,
             run_id=workflow_id,
-            verification_binding=binding,
+            verification_binding=None if quality else binding,
         )
         document = {
             **asdict(receipt),
@@ -173,15 +210,24 @@ async def verify(
             "argv": command.argv,
             "snapshot_digest": digest_json(files),
             "verification_binding": binding,
-            "collector_profile": "image-owned-pytest-v1",
+            "collector_profile": "image-owned-ruff-v1" if quality else "image-owned-pytest-v1",
         }
         digest = artifacts.put(json.dumps(document, sort_keys=True).encode())
-        success, passed, reason = report_verdict(
-            receipt.verification_report,
-            binding,
-            expected_tests=command.expected_tests,
-            exit_code=receipt.exit_code,
-        )
+        if quality:
+            success = receipt.exit_code == 0 and receipt.verification_report is None
+            passed = 0
+            reason = (
+                "Ruff checks passed"
+                if success
+                else (receipt.stdout + "\n" + receipt.stderr).strip()[:8192] or "Ruff checks failed"
+            )
+        else:
+            success, passed, reason = report_verdict(
+                receipt.verification_report,
+                binding,
+                expected_tests=command.expected_tests,
+                exit_code=receipt.exit_code,
+            )
         success = success and not receipt.timed_out and receipt.report_error is None
         results.append(
             {

@@ -18,6 +18,7 @@ from agentic_delivery.config import CommandProfile, ModelConfig, RepositoryConfi
 from agentic_delivery.domain.models import CommitSHA, Contract, NonEmpty, VerificationType, WorkItem
 from agentic_delivery.execution.files import protected, safe_path, validate_files
 from agentic_delivery.execution.verification import (
+    QUALITY_COMMANDS,
     pytest_import_options,
     pytest_selectors,
     report_verdict,
@@ -65,7 +66,7 @@ class ExecutionReceipt(Contract):
     argv: tuple[NonEmpty, ...]
     snapshot_digest: Digest
     verification_binding: dict[str, Any]
-    collector_profile: Literal["image-owned-pytest-v1"]
+    collector_profile: Literal["image-owned-pytest-v1", "image-owned-ruff-v1"]
     workflow_id: NonEmpty
 
 
@@ -183,12 +184,22 @@ def _verification(
             or receipt.timed_out
         ):
             raise EvidenceFailure("Execution receipt is not bound to this workflow and command")
-        valid, count, _ = report_verdict(
-            receipt.verification_report,
-            binding,
-            expected_tests=profile.expected_tests,
-            exit_code=receipt.exit_code,
-        )
+        if profile.argv in QUALITY_COMMANDS:
+            valid = (
+                receipt.collector_profile == "image-owned-ruff-v1"
+                and receipt.verification_report is None
+                and receipt.exit_code == 0
+            )
+            count = 0
+        else:
+            if receipt.collector_profile != "image-owned-pytest-v1":
+                raise EvidenceFailure("Pytest requires its structured collector")
+            valid, count, _ = report_verdict(
+                receipt.verification_report,
+                binding,
+                expected_tests=profile.expected_tests,
+                exit_code=receipt.exit_code,
+            )
         if (
             not valid
             or result.passed is not True

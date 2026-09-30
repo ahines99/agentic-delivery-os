@@ -21,7 +21,9 @@ Configuration:
 - Set a timezone-aware `linear_poll_start` once, when enabling monitoring; older backlog
   is excluded. Keep the saved `.local/linear-monitor.json` cursor across restarts.
 - Configure repository/team/worker/review-state IDs, the model and finite budget,
-  a pinned sandbox image, GitHub App credentials and required CI checks.
+  a pinned sandbox image, GitHub App credentials and required CI checks. Include
+  the supported local lint/format command profiles when those checks are required
+  by CI; see [ADR-026](adr/ADR-026-local-quality-checks.md).
 - Enable publication only after the target base branch contains the expected source
   and CI workflow. Local snapshot configuration must refer to the intended baseline.
 
@@ -63,7 +65,7 @@ from mandatory human plan approval to explicit per-repository automation.
 ## Installed local target
 
 The current owner installation maps the Personal Project Portfolio team to
-`ahines99/agentic-delivery-os`, using the protected `delivery-workbench` branch and
+`ahines99/agentic-delivery-os`, using the protected `delivery-workbench-v2` branch and
 the bounded `demos/sample_repo` Python source. New tickets can use
 `Repository: agentic-delivery-os`. This is the exercised target; installing the App
 on all repositories does not automatically configure their source, dependencies,

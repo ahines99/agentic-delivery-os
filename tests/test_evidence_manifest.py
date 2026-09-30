@@ -20,6 +20,7 @@ from agentic_delivery.agents.evidence import validate_manifest
 from agentic_delivery.agents.pipeline import build_and_review, diff_files
 from agentic_delivery.config import CommandProfile, ModelConfig, RepositoryConfig, Settings
 from agentic_delivery.domain.models import WorkItem
+from agentic_delivery.execution.verification import RUFF_CHECK, RUFF_FORMAT
 from agentic_delivery.integrations.github import GitHubPublisher
 from agentic_delivery.integrations.model import StructuredModel
 from agentic_delivery.policy.engine import POLICY_VERSION
@@ -462,7 +463,7 @@ def test_rehashed_candidate_cannot_modify_protected_existing_tests(tmp_path: Pat
 
 
 @pytest.mark.integration
-@pytest.mark.parametrize("layout", ["flat", "src"])
+@pytest.mark.parametrize("layout", ["flat", "src", "quality"])
 async def test_actual_pipeline_produces_compatible_receipt_reference_chain(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, layout: str
 ) -> None:
@@ -480,6 +481,32 @@ async def test_actual_pipeline_produces_compatible_receipt_reference_chain(
     plan = ImplementationPlan.model_validate(approved["plan"])
     base = json.loads(artifacts.get(approved["snapshot_digest"]))
     candidate = json.loads(artifacts.get(template["candidate_artifact"]))
+    if layout == "quality":
+        base = {
+            "app.py": "def value():\n    return 1\n",
+            "tests/test_existing.py": (
+                "from app import value\n\n\ndef test_existing():\n    assert value() >= 1\n"
+            ),
+        }
+        candidate = {
+            **base,
+            "app.py": "def value():\n    return 2\n",
+            "tests/test_new.py": (
+                "from app import value\n\n\ndef test_new():\n    assert value() == 2\n"
+            ),
+        }
+        approved["snapshot_digest"] = put(artifacts, base)
+        template["approved_plan_digest"] = put(artifacts, approved)
+        repository = repository.model_copy(
+            update={
+                "commands": (
+                    *repository.commands,
+                    CommandProfile(id="lint", argv=RUFF_CHECK),
+                    CommandProfile(id="format", argv=RUFF_FORMAT),
+                )
+            }
+        )
+        settings = settings.model_copy(update={"repositories": (repository,)})
     if layout == "src":
         base["src/app.py"] = base.pop("app.py")
         candidate["src/app.py"] = candidate.pop("app.py")

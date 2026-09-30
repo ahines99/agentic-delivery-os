@@ -112,6 +112,17 @@ crash recovery or live-provider reconciliation.
 
 ## Implemented and exercised
 
+Live automatic intake has created, assigned, planned, automatically approved, built and
+independently reviewed owned Linear tickets, publishing real App-authored PRs. The first
+PRs were closed after CI exposed a startup-test scheduling race and missing local quality
+checks; none reached review-ready status. Their attempts, costs and PR histories remain.
+The runtime test now waits for worker startup, and [ADR-026](adr/ADR-026-local-quality-checks.md)
+adds image-owned Ruff check/format-check commands to the existing correction loop.
+All 182 verification/pipeline/authorization/monitor checks passed with the actual pinned
+Docker image, followed by 68 GitHub/replay checks. Three real Docker pipeline cases passed
+complete manifest validation for flat, src and mixed pytest/Ruff profiles. These scoped
+counts overlap. Final live CI/handoff and new-head full CI remain in progress.
+
 [Automatic Linear delivery](automatic-delivery.md) now adds a bounded outbound monitor,
 restart cursor, idempotent intake, explicit low-risk automatic approval and a combined
 local service command. This follows the owner's request in [ADR-025](adr/ADR-025-automatic-linear-delivery.md).

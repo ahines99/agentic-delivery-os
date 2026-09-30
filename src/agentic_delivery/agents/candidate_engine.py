@@ -11,7 +11,7 @@ from agentic_delivery.agents.contracts import BuildProposal, ImplementationPlan,
 from agentic_delivery.config import CommandProfile
 from agentic_delivery.domain.models import VerificationType, WorkItem
 from agentic_delivery.execution.files import apply_edits, safe_path, validate_files
-from agentic_delivery.execution.verification import pytest_import_options
+from agentic_delivery.execution.verification import QUALITY_COMMANDS, pytest_import_options
 from agentic_delivery.policy.changes import check_candidate
 from agentic_delivery.policy.engine import evaluate_intake
 from agentic_delivery.storage.store import digest_json
@@ -107,6 +107,15 @@ async def iterate_candidate(
                     for path, content in candidate.items()
                 },
                 "protected_paths": protected_paths,
+                **(
+                    {
+                        "verification_commands": [
+                            command.model_dump(mode="json") for command in commands
+                        ]
+                    }
+                    if any(command.argv in QUALITY_COMMANDS for command in commands)
+                    else {}
+                ),
                 "feedback": feedback,
             },
         )
