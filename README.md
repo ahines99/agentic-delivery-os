@@ -51,7 +51,7 @@ Benchmark qualification and scoring now follow the user's hands-off preference t
 [independent agent reviews and executable checks](docs/adr/ADR-007-automated-benchmark-qualification.md).
 The worker and scorer require current authority over executed v2 qualification records; scoring
 also requires its own metered spending grant. Legacy records allow inspection only. Absent human observations remain
-unmeasured. This does not change human plan approval, merge authority or pilot signoff.
+unmeasured. This does not change the configured plan-approval authority, human merges or pilot signoff.
 
 An owned development fixture has now passed the complete synthetic qualification path:
 13 actual Docker operations, two independent model reviews and reconstructed authority

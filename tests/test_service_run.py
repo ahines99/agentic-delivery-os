@@ -63,10 +63,13 @@ async def test_one_runtime_serves_selected_configuration_and_stops_both_services
 ):
     config, token, servers = runtime
     active, stopped = set(), set()
+    services_started = asyncio.Event()
 
     async def service(path, mode, once=False):
         assert path == config and not once
         active.add(mode)
+        if active == {"worker", "dispatch"}:
+            services_started.set()
         try:
             await asyncio.Event().wait()
         finally:
@@ -76,6 +79,7 @@ async def test_one_runtime_serves_selected_configuration_and_stops_both_services
     task = asyncio.create_task(service_cli.run_local(config, port=0))
     try:
         server = await started(servers, task)
+        await asyncio.wait_for(services_started.wait(), 5)
         port = server.servers[0].sockets[0].getsockname()[1]
         async with httpx.AsyncClient(
             base_url=f"http://127.0.0.1:{port}", trust_env=False

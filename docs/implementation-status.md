@@ -4,9 +4,12 @@ Updated 2026-09-30 UTC during continued controlled implementation. This is the c
 the original milestone documents remain the release targets. Source code alone is not a passed
 integration or production release gate.
 
-Latest complete hosted verification: [CI at `5321f4b`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36655858237)
-passed both Python versions (3,016 tests and 111 explicit skips each), 111 actual service
-integration tests and secret scanning. This includes the [campaign journal](campaign-journal.md),
+Latest complete hosted verification: [CI at `04d3356`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36658497378)
+passed both Python versions (3,057 tests and 111 explicit skips each), 111 actual service
+integration tests and secret scanning. Subsequent automatic-runtime changes have scoped
+verification and their own hosted run in progress. The earlier
+[CI at `5321f4b`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36655858237)
+includes the [campaign journal](campaign-journal.md),
 [completed semantic reader](semantic-consumption.md) and [whole-attempt reader](completed-attempt-reporting.md).
 They reconstruct original outcomes, early failures and optional exact adjudication under
 current report permission, without renewing execution or dropping costs. The subsequent

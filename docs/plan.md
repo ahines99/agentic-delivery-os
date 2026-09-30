@@ -20,8 +20,9 @@ This refinement supersedes the earlier automatic-ready sequence retained below.
 
 Implementation priority, updated after the owner's direction to avoid overengineering:
 finish one usable Linear-to-GitHub delivery before extending benchmark infrastructure.
-The immediate sequence is persistent webhook ingress, GitHub App onboarding, a real
-approved ticket producing a tested draft PR, and the Linear review-status handoff.
+The immediate sequence is persistent automatic intake, GitHub App onboarding, a real
+automatically approved eligible ticket producing a tested draft PR, and the Linear
+review-status handoff. Outbound polling supplies local intake without a public tunnel.
 Fix defects exposed by that path and keep setup and operation straightforward.
 Retain credential isolation, finite budgets, current test/review evidence, explicit
 plan-approval authority and human merge controls. Additional evaluation frameworks, impact-analysis experiments
