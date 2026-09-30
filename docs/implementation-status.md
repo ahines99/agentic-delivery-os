@@ -24,6 +24,13 @@ observations. Full new-source verification remains pending.
 The SDK requirement is documented in Temporal's
 [heartbeating and cancellation guide](https://github.com/temporalio/sdk-python#heartbeating-and-cancellation).
 
+The same real Temporal/PostgreSQL test now also exercises controlled HTTP 429, HTTP 503
+and lost-response failures. All four cases passed in 20.96 seconds. Each ends explicitly
+in CANCELLED or FAILED, retains the unresolved reservation and provider observation,
+starts no build/publication, performs one model invocation, refuses reissue through a
+fresh store, and replays its complete workflow history. This extends the earlier
+ledger-only provider-fault tests into the actual workflow without paid provider calls.
+
 Latest complete hosted verification: [CI at `81fd892`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36718387365)
 passed Python 3.12/3.13 (3,155 tests and 115 explicit skips each), actual service
 integration and secret scanning. The corresponding local package-profile suite passed

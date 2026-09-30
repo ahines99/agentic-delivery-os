@@ -1,4 +1,4 @@
-"""Actual Temporal/PostgreSQL cancellation of a pending, controlled model request."""
+"""Actual Temporal/PostgreSQL planning cancellation and controlled provider faults."""
 
 import asyncio
 import os
@@ -24,9 +24,8 @@ from agentic_delivery.storage.store import Conflict, Store
 
 
 @pytest.mark.integration
-async def test_planning_cancel_stops_pending_request_and_retains_unknown_usage(
-    tmp_path, monkeypatch
-):
+@pytest.mark.parametrize("fault", ["cancel", "rate_limit", "outage", "response_loss"])
+async def test_planning_fault_retains_unknown_usage_without_reissuing(tmp_path, monkeypatch, fault):
     url, address = os.environ.get("TEST_DATABASE_URL", ""), os.environ.get("TEST_TEMPORAL_ADDRESS")
     if not url.startswith("postgresql") or not address:
         pytest.skip("Actual PostgreSQL and Temporal required")
@@ -87,6 +86,10 @@ async def test_planning_cancel_stops_pending_request_and_retains_unknown_usage(
         except asyncio.CancelledError:
             cancelled.set()
             raise
+        if fault == "response_loss":
+            raise httpx.ReadTimeout("Owned response-loss fixture", request=request)
+        if fault in {"rate_limit", "outage"}:
+            return httpx.Response(429 if fault == "rate_limit" else 503)
         # Only used to release the controlled request if the regression fails.
         plan = ImplementationPlan(
             disposition="NEEDS_CLARIFICATION",
@@ -150,20 +153,27 @@ async def test_planning_cancel_stops_pending_request_and_retains_unknown_usage(
                     operation = f"{identity}:plan:{active['spec_digest']}"
                     before = store.operation_receipt(identity, operation)
                     assert before["status"] == "RESERVED"
-                    command = store.enqueue_command(
-                        identity,
-                        kind="cancel",
-                        actor="owned-drill",
-                        key=uuid4().hex,
-                        payload={
-                            "expected_sequence": active["sequence"],
-                            "spec_digest": active["spec_digest"],
-                        },
-                    )
-                    assert await dispatch_once(settings, store, client, workflow_id=identity) == 1
+                    if fault == "cancel":
+                        command = store.enqueue_command(
+                            identity,
+                            kind="cancel",
+                            actor="owned-drill",
+                            key=uuid4().hex,
+                            payload={
+                                "expected_sequence": active["sequence"],
+                                "spec_digest": active["spec_digest"],
+                            },
+                        )
+                        assert (
+                            await dispatch_once(settings, store, client, workflow_id=identity) == 1
+                        )
+                    else:
+                        release.set()
                     result = await asyncio.wait_for(handle.result(), timeout=25)
-                    assert result["state"] == "CANCELLED" and cancelled.is_set()
-                    assert store.command(command["command_id"])["status"] == "APPLIED"
+                    assert result["state"] == ("CANCELLED" if fault == "cancel" else "FAILED")
+                    if fault == "cancel":
+                        assert cancelled.is_set()
+                        assert store.command(command["command_id"])["status"] == "APPLIED"
                     receipt = store.operation_receipt(identity, operation)
                     for field in (
                         "status",
@@ -175,7 +185,19 @@ async def test_planning_cancel_stops_pending_request_and_retains_unknown_usage(
                         "actual_output_tokens",
                     ):
                         assert receipt[field] == before[field]
-                    assert receipt["observation"]["outcome"] == "CANCELLED"
+                    assert (
+                        receipt["observation"]["outcome"]
+                        == {
+                            "cancel": "CANCELLED",
+                            "response_loss": "TRANSPORT_ERROR",
+                            "rate_limit": "HTTP_RESPONSE",
+                            "outage": "HTTP_RESPONSE",
+                        }[fault]
+                    )
+                    if fault in {"rate_limit", "outage"}:
+                        assert receipt["observation"]["http_status"] == (
+                            429 if fault == "rate_limit" else 503
+                        )
                     assert "output" not in receipt["result"]
                     stopped = store.workflow(identity)
                     assert stopped["spent_microdollars"] == 0
