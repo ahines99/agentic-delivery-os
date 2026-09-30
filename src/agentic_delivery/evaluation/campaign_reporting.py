@@ -37,6 +37,12 @@ from agentic_delivery.evaluation.preparation_accounting import (
     PreparationAccountingSnapshot,
     reconcile_preparation_accounting,
 )
+from agentic_delivery.evaluation.program_accounting import (
+    ProgramAccountingContext,
+    ProgramAccountingReport,
+    reconcile_program_accounting,
+)
+from agentic_delivery.evaluation.program_budget import ProgramBudgetRegistry
 from agentic_delivery.evaluation.qualification import Digest
 from agentic_delivery.storage.artifacts import ArtifactStore
 
@@ -71,6 +77,7 @@ class CampaignReportContext:
     # Separate trusted permission for whole-ledger enumeration, including accounts
     # outside the campaign's selected IDs. Absence never broadens metadata access.
     ledger_census_guard: Callable[[tuple[str, ...]], None] | None = None
+    program_accounting: ProgramAccountingContext | None = None
 
 
 JournalState = Literal[
@@ -131,6 +138,8 @@ class CampaignAggregateReport(Contract):
     ledger_coverage_status: Literal["NOT_REQUESTED", "UNAVAILABLE", "OBSERVED"] = "NOT_REQUESTED"
     phase_statistics: tuple[PhaseStatistics, ...] | None = None
     criterion_inventory: CampaignCriterionInventory | None = None
+    program_accounting: ProgramAccountingReport | None = None
+    program_accounting_status: Literal["NOT_REQUESTED", "UNAVAILABLE", "OBSERVED"] = "NOT_REQUESTED"
     # The declared selection still needs complete program-ledger inventory attestation,
     # numerical/operational promotion and pilot signoff; this reader cannot supply them.
     complete_program_inventory: Literal[False] = False
@@ -270,6 +279,24 @@ async def generate_campaign_report(
                 census = read_declared_ledgers(census_ledgers, current_guard=census_guard)
             except Exception:
                 census_guard()
+        program = None
+        program_context = context.program_accounting
+
+        def program_guard() -> None:
+            guard()
+            _require(type(program_context) is ProgramAccountingContext)
+            assert program_context is not None
+            _require(type(program_context.registry) is ProgramBudgetRegistry)
+            _require(program_context.ledgers.get(journal.ledger_identity) is journal.ledger)
+            program_context.current_guard(tuple(sorted(program_context.ledgers)))
+            program_context.registry.current_guard()
+
+        if program_context is not None:
+            program_guard()
+            try:
+                program = reconcile_program_accounting(context=program_context)
+            except Exception:
+                program_guard()
         accounts_by_id = {a.account_id: a for a in before.accounts}
         rows = []
         validated_inputs: dict[int, AttemptReportInput] = {}
@@ -403,6 +430,16 @@ async def generate_campaign_report(
                 coverage = match_ledger_coverage(
                     final_census, attempts=after, preparation=preparation
                 )
+        if program is not None:
+            program_guard()
+            assert program_context is not None
+            final_program = reconcile_program_accounting(context=program_context)
+            exclude_program = {"ledgers": {"__all__": {"accounting": {"observed_at"}}}}
+            _require(
+                program.model_dump(exclude=exclude_program)
+                == final_program.model_dump(exclude=exclude_program)
+            )
+            program = final_program
         _require(journal.inspect(campaign_artifact) == (registration, history))
         _require(
             validate_reporting_policy(
@@ -434,6 +471,8 @@ async def generate_campaign_report(
         guard()
         if context.ledger_census_guard is not None:
             census_guard()
+        if program_context is not None:
+            program_guard()
         return CampaignAggregateReport(
             campaign_artifact=campaign_artifact,
             registration_digest=registration.registration_digest,
@@ -457,6 +496,14 @@ async def generate_campaign_report(
             ledger_coverage=coverage,
             phase_statistics=statistics,
             criterion_inventory=criterion_inventory,
+            program_accounting=program,
+            program_accounting_status=(
+                "OBSERVED"
+                if program is not None
+                else "UNAVAILABLE"
+                if program_context is not None
+                else "NOT_REQUESTED"
+            ),
             ledger_coverage_status=(
                 "OBSERVED"
                 if coverage is not None

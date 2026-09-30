@@ -78,6 +78,7 @@ class ProgramBudgetSnapshot(Contract):
     registry_identity: Digest
     policy: ProgramBudgetPolicy
     bound_ledger_identities: tuple[Digest, ...]
+    target_nonces: dict[Digest, Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")]]
     envelopes: tuple[ProgramAccountEnvelope, ...]
     held_microdollars: Amount
     closed_microdollars: Amount
@@ -249,6 +250,7 @@ class ProgramBudgetRegistry:
             registry_identity=self.identity,
             policy=self.policy,
             bound_ledger_identities=tuple(t[0] for t in targets),
+            target_nonces=dict(targets),
             envelopes=envelopes,
             held_microdollars=held,
             closed_microdollars=closed,

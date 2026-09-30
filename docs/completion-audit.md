@@ -1311,3 +1311,28 @@ The expanded 131-test scope passed in 15.84 seconds with PostgreSQL and no skips
 (365 files), mypy (115 sources), package builds and 494 local documentation links passed.
 New-head full CI and independent review remain required; the registry does not authorize
 execution or establish complete program cost.
+
+E154: [Hosted CI at `503ed5e`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36644080109)
+passed all four jobs. Python 3.12 passed 2,900 tests with 90 explicit skips in 1,731.71 seconds;
+Python 3.13 passed the same counts in 1,389.19 seconds. Actual PostgreSQL/Temporal/Docker
+integration passed 90 tests in 213.11 seconds; secret scanning passed. This includes criterion
+judgment reporting. Later program-budget and reconciliation work needs its own exact-head CI.
+
+E155: [Concrete program accounting reconciliation](program-accounting.md) now compares the
+registry with every bound ledger's actual metadata, binding and local lifecycle state. One
+read-only transaction per ledger captures the complete view; repeated ledger/registry reads
+refuse changing facts without claiming a distributed atomic snapshot. Pending creation,
+activation and closure retain full registry holds. Unexplained accounts, missing active
+accounts, inconsistent costs/budgets/bindings and revoked scope refuse evidence. Campaign
+reports can include the separate proof while preserving unrun assignments and unavailable
+preparation inventory. No mutation, private model result read, promotion or spending authority
+is supplied; historical liability and mandatory future enrollment remain open.
+
+The combined reader/registry/accounting/coverage/campaign scope passed 84 tests in 140.21
+seconds with actual PostgreSQL and no skips. The final focused scope passed 23 tests, with
+17 deselected, in 13.86 seconds after three further registry-change/revocation/unenrolled-target
+cases; production source was unchanged. Tests inspect PostgreSQL read-only repeatable-read
+mode, preserve partial states, forbid result/checkpoint reads and mutation, and verify owned
+database cleanup. Overlapping counts are not summed. Ruff/format (368 files), mypy (116
+sources), and package builds passed. Exact-head hosted CI and independent review remain open.
+No live historical ledger enrollment, paid call, grant renewal or release gate pass is claimed.

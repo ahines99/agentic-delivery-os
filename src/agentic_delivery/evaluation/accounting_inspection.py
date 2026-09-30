@@ -244,77 +244,93 @@ def _read_snapshot(
             _require(len(set(account_ids)) == len(account_ids))
             for account in account_ids:
                 _identity(account)
-        requested = tuple(sorted(account_ids or ()))
         with _read_transaction(store) as connection:
-            # All columns are explicitly allowlisted. Never SELECT operation.result,
-            # receipt payloads, checkpoints, task text, source or reference artifacts.
-            account_rows = (
-                connection.execute(
-                    select(
-                        accounts.c.id,
-                        accounts.c.created_at,
-                        accounts.c.budget,
-                        accounts.c.spent_microdollars,
-                        accounts.c.reserved_microdollars,
-                        accounts.c.input_tokens,
-                        accounts.c.output_tokens,
-                    )
-                    .where(accounts.c.id.in_(requested) if account_ids is not None else true())
-                    .order_by(accounts.c.id)
-                    .limit(10001)
-                )
-                .mappings()
-                .all()
+            result = _snapshot_in_transaction(
+                store,
+                connection,
+                expected_ledger_identity=expected_ledger_identity,
+                account_ids=account_ids,
+                current_guard=current_guard,
             )
-            _require(len(account_rows) <= 10000)
-            if account_ids is None:
-                requested = tuple(row["id"] for row in account_rows)
-            operation_rows = (
-                connection.execute(
-                    select(*(operations.c[name] for name in OperationUsage.model_fields))
-                    .where(
-                        operations.c.account_id.in_(requested)
-                        if account_ids is not None
-                        else true()
-                    )
-                    .order_by(operations.c.id)
-                    .limit(100001)
-                )
-                .mappings()
-                .all()
-            )
-            _require(len(operation_rows) <= 100000)
-            now = datetime.now(UTC)
-            grouped: dict[str, list[OperationUsage]] = {row["id"]: [] for row in account_rows}
-            for raw in operation_rows:
-                row = OperationUsage.model_validate(dict(raw))
-                _require(row.account_id in grouped)
-                grouped[row.account_id].append(row)
-            reports = tuple(
-                _account_usage(dict(row), tuple(grouped[row["id"]]), now) for row in account_rows
-            )
-            current_guard()
-            _require(ledger_target_identity(store) == expected_ledger_identity)
-        totals = UsageTotals.model_validate(
-            {
-                name: sum(getattr(row.totals, name) for row in reports)
-                for name in UsageTotals.model_fields
-            }
-        )
-        missing = tuple(account for account in requested if account not in grouped)
-        result = AccountingSnapshot(
-            ledger_identity=expected_ledger_identity,
-            scope="ENTIRE_LEDGER" if account_ids is None else "SELECTED_ACCOUNTS",
-            observed_at=now,
-            requested_account_ids=requested,
-            missing_account_ids=missing,
-            accounts=reports,
-            totals=totals,
-            all_requested_accounts_settled=not missing and totals.unresolved_operations == 0,
-        )
         current_guard()
         return result
     except Exception:
         raise AccountingInspectionFailure(
             "Accounting metadata is unavailable or inconsistent"
         ) from None
+
+
+def _snapshot_in_transaction(
+    store: EvaluationExecutionStore,
+    connection: Connection,
+    *,
+    expected_ledger_identity: str,
+    account_ids: tuple[str, ...] | None,
+    current_guard: Callable[[], None],
+) -> AccountingSnapshot:
+    """Internal shared reader; caller owns the concrete read-only transaction and guard."""
+    requested = tuple(sorted(account_ids or ()))
+    # All columns are explicitly allowlisted. Never SELECT operation.result,
+    # receipt payloads, checkpoints, task text, source or reference artifacts.
+    account_rows = (
+        connection.execute(
+            select(
+                accounts.c.id,
+                accounts.c.created_at,
+                accounts.c.budget,
+                accounts.c.spent_microdollars,
+                accounts.c.reserved_microdollars,
+                accounts.c.input_tokens,
+                accounts.c.output_tokens,
+            )
+            .where(accounts.c.id.in_(requested) if account_ids is not None else true())
+            .order_by(accounts.c.id)
+            .limit(10001)
+        )
+        .mappings()
+        .all()
+    )
+    _require(len(account_rows) <= 10000)
+    if account_ids is None:
+        requested = tuple(row["id"] for row in account_rows)
+    operation_rows = (
+        connection.execute(
+            select(*(operations.c[name] for name in OperationUsage.model_fields))
+            .where(operations.c.account_id.in_(requested) if account_ids is not None else true())
+            .order_by(operations.c.id)
+            .limit(100001)
+        )
+        .mappings()
+        .all()
+    )
+    _require(len(operation_rows) <= 100000)
+    now = datetime.now(UTC)
+    grouped: dict[str, list[OperationUsage]] = {row["id"]: [] for row in account_rows}
+    for raw in operation_rows:
+        row = OperationUsage.model_validate(dict(raw))
+        _require(row.account_id in grouped)
+        grouped[row.account_id].append(row)
+    reports = tuple(
+        _account_usage(dict(row), tuple(grouped[row["id"]]), now) for row in account_rows
+    )
+    current_guard()
+    _require(ledger_target_identity(store) == expected_ledger_identity)
+    totals = UsageTotals.model_validate(
+        {
+            name: sum(getattr(row.totals, name) for row in reports)
+            for name in UsageTotals.model_fields
+        }
+    )
+    missing = tuple(account for account in requested if account not in grouped)
+    result = AccountingSnapshot(
+        ledger_identity=expected_ledger_identity,
+        scope="ENTIRE_LEDGER" if account_ids is None else "SELECTED_ACCOUNTS",
+        observed_at=now,
+        requested_account_ids=requested,
+        missing_account_ids=missing,
+        accounts=reports,
+        totals=totals,
+        all_requested_accounts_settled=not missing and totals.unresolved_operations == 0,
+    )
+    current_guard()
+    return result

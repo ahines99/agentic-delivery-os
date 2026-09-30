@@ -47,7 +47,8 @@ Actual provider invoice reconciliation and distributed worker quiescence remain 
 held maxima, concretely closed spend and remaining capacity. Those values must not be added
 to ledger spent/reserved totals: they describe overlapping views of the same accounts.
 Snapshots are transactionally consistent registry metadata, not a distributed census of all
-ledgers. `historical_costs_included`, `complete_program_cost` and `execution_authorized`
+ledgers. The [concrete reconciliation reader](program-accounting.md) now checks every bound
+ledger against those envelopes, preserving partial boundaries and actual observed usage. `historical_costs_included`, `complete_program_cost` and `execution_authorized`
 remain false. Existing [preparation inventories](campaign-accounting.md) are not silently
 imported or dropped; incorporating their retained liabilities is unfinished release work.
 

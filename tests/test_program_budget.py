@@ -407,6 +407,44 @@ def test_actual_postgres_program_ledger_and_shared_sqlite_registry(tmp_path):
         )
         assert snapshot.all_requested_accounts_settled
         assert registry.snapshot().held_microdollars == 0
+        from agentic_delivery.evaluation.program_accounting import (
+            ProgramAccountingContext,
+            reconcile_program_accounting,
+        )
+
+        modes = []
+
+        def capture_modes(connection, cursor, statement, parameters, context, many):
+            if (
+                statement.lstrip().startswith("SELECT")
+                and "evaluation_program_accounts" in statement
+            ):
+                modes.append(
+                    (
+                        connection.exec_driver_sql("SHOW transaction_isolation").scalar_one(),
+                        connection.exec_driver_sql("SHOW transaction_read_only").scalar_one(),
+                    )
+                )
+
+        event.listen(reader.engine, "after_cursor_execute", capture_modes)
+        try:
+            report = reconcile_program_accounting(
+                context=ProgramAccountingContext(
+                    registry=registry,
+                    ledgers={
+                        configured_ledger_identity(url): reader,
+                        configured_ledger_identity(local): stores[1],
+                    },
+                    current_guard=lambda identities: None,
+                )
+            )
+        finally:
+            event.remove(reader.engine, "after_cursor_execute", capture_modes)
+        assert report.all_envelopes_closed and modes == [("repeatable read", "on")] * 2
+        assert (
+            report.observed_totals.model_spent_microdollars
+            == registry.snapshot().closed_microdollars
+        )
     finally:
         for store in stores:
             store.engine.dispose()

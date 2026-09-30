@@ -436,3 +436,115 @@ async def test_concrete_semantic_success_and_adjudication_retain_original_outcom
         assert not phase.phase_promoted
     finally:
         await generator.aclose()
+
+
+@pytest.mark.parametrize(
+    "fault", [None, "missing-envelope", "revoked", "registry-revoked", "changed"]
+)
+async def test_prospective_program_accounting_is_concrete_scoped_and_rechecked(
+    case, tmp_path, monkeypatch, fault
+):
+    import sqlite3
+
+    from agentic_delivery.evaluation.campaign_allocation import configured_ledger_identity
+    from agentic_delivery.evaluation.campaign_journal import PreparationAccountIdentity
+    from agentic_delivery.evaluation.execution_store import EvaluationExecutionStore
+    from agentic_delivery.evaluation.program_accounting import ProgramAccountingContext
+    from agentic_delivery.evaluation.program_budget import (
+        ProgramBudgetPolicy,
+        ProgramBudgetRegistry,
+    )
+
+    url = f"sqlite+pysqlite:///{tmp_path / 'delivery_eval_program_report_target.sqlite'}"
+    identity = configured_ledger_identity(url)
+    registry = ProgramBudgetRegistry.create(
+        tmp_path / "delivery_eval_program_report.sqlite",
+        ProgramBudgetPolicy(
+            program_id="owned-report",
+            authorization_digest="a" * 64,
+            cap_microdollars=150,
+            approved_ledger_identities=(identity,),
+        ),
+        current_guard=lambda: None,
+    )
+    store = EvaluationExecutionStore(url, program_budget=registry)
+    try:
+        case.ledger = store
+        case.journal = CampaignJournal(
+            tmp_path / "program-journal.sqlite", execution_ledger=store, clock=lambda: case.clock[0]
+        )
+        case.preparation = (
+            PreparationAccountIdentity(
+                ledger_identity=identity,
+                account_id="owned-preparation",
+                inventory_artifact="a" * 64,
+            ),
+        )
+        case.registration = register(case)
+        freeze(case)
+        store.create_account(
+            "owned-preparation", Budget(model_microdollars=100, input_tokens=100, output_tokens=100)
+        )
+        store.reserve("owned-preparation", "op", 50, 50, 50)
+        store.settle(
+            "op", cost=30, input_tokens=10, output_tokens=10, result={"private_owned": True}
+        )
+        store.close_program_account("owned-preparation")
+
+        def program_guard(identities):
+            assert identities == (identity,)
+            if fault == "revoked":
+                raise ValueError("Owned scope denied")
+
+        program = ProgramAccountingContext(
+            registry=registry, ledgers={identity: store}, current_guard=program_guard
+        )
+        if fault == "registry-revoked":
+
+            def denied_registry():
+                raise ValueError("Owned registry permission denied")
+
+            monkeypatch.setattr(registry, "current_guard", denied_registry)
+
+        if fault == "missing-envelope":
+            with sqlite3.connect(registry.path) as connection:
+                connection.execute("DELETE FROM envelopes")
+        if fault == "changed":
+            original = reporting.reconcile_program_accounting
+            calls = 0
+
+            def changed(**kwargs):
+                nonlocal calls
+                result = original(**kwargs)
+                calls += 1
+                if calls == 1:
+                    store.create_account(
+                        "new-unselected",
+                        Budget(model_microdollars=50, input_tokens=50, output_tokens=50),
+                    )
+                return result
+
+            monkeypatch.setattr(reporting, "reconcile_program_accounting", changed)
+        ctx = context(case, program_accounting=program)
+        if fault in {"revoked", "registry-revoked", "changed"}:
+            with pytest.raises(CampaignReportingFailure):
+                await generate_campaign_report(case.ref, context=ctx)
+            return
+        report = await generate_campaign_report(case.ref, context=ctx)
+        if fault == "missing-envelope":
+            assert (
+                report.program_accounting_status == "UNAVAILABLE"
+                and report.program_accounting is None
+            )
+        else:
+            assert report.program_accounting_status == "OBSERVED"
+            assert report.program_accounting.observed_totals.model_spent_microdollars == 30
+            assert report.program_accounting.all_envelopes_closed
+            assert "private_owned" not in report.model_dump_json()
+        assert not report.complete_program_inventory and not report.campaign_complete
+        assert not report.all_assignment_proof_available and not report.phase_promoted
+        assert (
+            report.preparation_status == "UNAVAILABLE"
+        )  # Authored missing inventory remains missing.
+    finally:
+        store.engine.dispose()

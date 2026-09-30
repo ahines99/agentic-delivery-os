@@ -113,6 +113,14 @@ status counts against this inventory, retaining unscored requirements for missin
 and early failures. Those judgments do not close the criterion-coverage gate or supply
 manual approval; new adjudication concerns remain visible on the completed proof.
 
+An optional [program accounting context](program-accounting.md) reconstructs all enrolled
+prospective ledger accounting under separate metadata and registry permission. Its actual
+execution store must match the journal's store. Results are reread and compared before
+return; invalid evidence remains UNAVAILABLE and revoked permission denies the report.
+OBSERVED does not mean all envelopes are closed, historical cost is included, or a campaign
+is complete. Program usage/envelope totals overlap the selected/census views and are not
+added to them. Missing preparation inventory and unrun assignments retain their own state.
+
 ## Verification
 
 Sixteen focused checks passed in 115.46 seconds after the chronology guard was added;
