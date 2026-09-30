@@ -46,6 +46,7 @@ async def build_and_review(
     *,
     approved_plan_digest: str | None = None,
     authorization_check: Callable[[], None] | None = None,
+    allow_manual: bool = False,
 ) -> dict[str, Any]:
     def guard() -> None:
         if authorization_check is not None:
@@ -53,11 +54,12 @@ async def build_and_review(
 
     guard()
     validate_files(base)
-    if any(
-        criterion.verification_type
-        not in {VerificationType.UNIT_TEST, VerificationType.INTEGRATION_TEST}
-        for criterion in item.acceptance_criteria
-    ):
+    if type(allow_manual) is not bool:
+        raise ValueError("Manual criterion profile must be explicitly enabled")
+    supported = {VerificationType.UNIT_TEST, VerificationType.INTEGRATION_TEST}
+    if allow_manual:
+        supported.add(VerificationType.MANUAL_REVIEW)
+    if any(criterion.verification_type not in supported for criterion in item.acceptance_criteria):
         raise ValueError("This runner cannot satisfy manual, benchmark or static-analysis criteria")
     if not settings.model or not repository.model_data_authorized or not repository.sandbox_image:
         raise ValueError("Execution is not configured for this repository")
@@ -68,12 +70,26 @@ async def build_and_review(
     preflight = await runner.preflight(run_id=workflow_id)
     artifacts = ArtifactStore(settings.artifact_root)
     model = StructuredModel(settings.model, store)
+    manual = any(
+        criterion.verification_type == VerificationType.MANUAL_REVIEW
+        for criterion in item.acceptance_criteria
+    )
 
     async def build(iteration: int, context: dict[str, Any]) -> BuildProposal:
         return await model.generate(
             workflow_id,
             f"{workflow_id}:build:{iteration}",
-            instructions=BUILD_INSTRUCTIONS,
+            instructions=(
+                BUILD_INSTRUCTIONS.replace("every criterion ID", "every automated criterion ID")
+                if manual
+                else BUILD_INSTRUCTIONS
+            )
+            + (
+                "\nMap only automated criteria to tests. Explicit manual_review criteria "
+                "must have no test mapping; preserve them for human acceptance."
+                if manual
+                else ""
+            ),
             context=context,
             output_type=BuildProposal,
         )
@@ -82,7 +98,18 @@ async def build_and_review(
         return await model.generate(
             workflow_id,
             f"{workflow_id}:review:{iteration}",
-            instructions=REVIEW_INSTRUCTIONS,
+            instructions=(
+                REVIEW_INSTRUCTIONS.replace("untested criteria", "untested automated criteria")
+                if manual
+                else REVIEW_INSTRUCTIONS
+            )
+            + (
+                "\nEvery explicit manual_review criterion must have result UNKNOWN. "
+                "You cannot provide human acceptance. APPROVE means only the automated "
+                "portion and implementation are acceptable for a pending human check."
+                if manual
+                else ""
+            ),
             context=context,
             output_type=ReviewResult,
         )
@@ -111,9 +138,10 @@ async def build_and_review(
         review=review_candidate,
         verify=verify_candidate,
         authorization_check=guard,
+        allow_manual=allow_manual,
     )
     evidence = json.loads(outcome.evidence_json)
-    if outcome.status != "REVIEW_APPROVED":
+    if outcome.status not in {"REVIEW_APPROVED", "MANUAL_REVIEW_PENDING"}:
         # Preserve the product failure contract; the internal result retains baseline too.
         if "attempts" in evidence:
             return {
@@ -131,7 +159,8 @@ async def build_and_review(
         path for path in base.keys() | candidate.keys() if base.get(path) != candidate.get(path)
     )
     manifest = {
-        "schema_version": 1,
+        "schema_version": 2 if manual else 1,
+        **({"pending_manual_criteria": evidence["pending_manual_criteria"]} if manual else {}),
         "workflow_id": workflow_id,
         "repository": repository.id,
         "base_sha": base_sha,
@@ -162,7 +191,7 @@ async def build_and_review(
     }
     manifest_digest = artifacts.put(json.dumps(manifest, sort_keys=True).encode())
     return {
-        "state": "LOCAL_REVIEW_READY",
+        "state": "LOCAL_MANUAL_REVIEW_PENDING" if manual else "LOCAL_REVIEW_READY",
         "manifest_digest": manifest_digest,
         "manifest": manifest,
         "candidate_files": candidate,

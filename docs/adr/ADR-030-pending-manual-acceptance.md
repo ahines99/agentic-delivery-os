@@ -16,9 +16,10 @@ MANUAL_REVIEW_PENDING with the exact pending criterion IDs, never REVIEW_APPROVE
 The default shared candidate engine and historical evaluation profiles continue to
 reject manual criteria. This does not change frozen evaluation conditions.
 
-Remaining integration must bind a new manifest version to the complete assessed
-criteria, retain all automated evidence, and expose pending manual criteria on the
-draft PR. Publication admission and final readiness are distinct checks. Existing
+Manifest version 2 binds the complete assessed criteria, retains all automated
+evidence, and exposes pending manual criteria on the draft PR. Publication admission
+requires an explicitly enabled pending-manual profile; final readiness additionally
+requires human decisions. Existing
 v1 manifests retain their all-automated meaning; no missing field implies approval.
 
 An authenticated reviewer submits an explicit decision covering the complete manual
@@ -36,5 +37,25 @@ must reflect confirmed acceptance before the Linear handoff. API, workflow,
 publication, revision-race and actual storage/orchestration tests are required
 before enabling this path in the installed service.
 
-Only the isolated candidate-engine portion is implemented so far. No new manual
-publication or human-decision endpoint is currently installed or release-qualified.
+The isolated candidate engine, pipeline, v2 manifest validator and optional draft
+publisher are implemented. The default product and historical callers do not enable
+the new profile. Focused checks passed 158 tests with six explicit Docker skips;
+the new manual pipeline case then separately passed using the installed pinned Docker
+image and controlled model responses. Its actual baseline, candidate and automated
+criterion receipts passed the v2 reference validator while the manual criterion
+remained pending. Controlled GitHub transport tests retain one draft PR across retry;
+they are not live provider or human-acceptance evidence. Ruff, formatting and mypy pass.
+
+The authenticated API now exposes the current binding at
+`GET /workflows/{id}/manual-review` and queues a complete decision at the corresponding
+POST route. GET requires repository read access; POST requires operator and reviewer
+roles. A queued receipt is not an applied acceptance decision. Persisted decision
+consumption rechecks current reviewer scope, expiry and the complete bound evidence;
+automation identities, partial/duplicate criterion sets and conflicting applied
+decisions are refused. The focused manual-acceptance/control-plane suite passed 47
+tests, including restart, stale bindings, revocation, expiry and authenticated API
+idempotency. These are owned SQLite/artifact tests, not real human acceptance.
+
+The durable wait, workflow command consumption, final handoff integration and
+confirmed-acceptance PR update remain to be connected and tested. The public feature
+has not been installed in the running service or represented as a completed release gate.

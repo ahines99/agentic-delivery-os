@@ -101,6 +101,13 @@ of 30+ historical tasks under ADR-007. Actual human benefit remains unmeasured. 
 The [implementation status](implementation-status.md) is the current capability record;
 the [backlog](backlog.md) annotates progress without treating code presence as release acceptance.
 The five original research reviews and the full milestone plan remain retained as design history.
+
+[ADR-030](adr/ADR-030-pending-manual-acceptance.md) implements the existing manual
+acceptance requirement: a verified automated portion may become a draft with explicit
+pending human criteria, but cannot pass final readiness without authorized revision-bound
+human decisions. The isolated candidate/manifest/publication portion is implemented;
+the human-command and workflow integration remains in progress. Existing automated
+and historical evaluation profiles retain their current meaning.
 The automated evaluation path now uses [ADR-011](adr/ADR-011-current-qualification-authority.md):
 executed v2 qualification with current consumption authority and separate metered scoring grants.
 Legacy records allow inspection only. Live development calibration and synthetic qualification

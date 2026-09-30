@@ -93,8 +93,7 @@ class ApprovedPlan(Contract):
     snapshot_digest: Digest
 
 
-class CandidateManifest(Contract):
-    schema_version: Literal[1]
+class CandidateEvidence(Contract):
     workflow_id: NonEmpty
     repository: NonEmpty
     base_sha: CommitSHA
@@ -116,6 +115,15 @@ class CandidateManifest(Contract):
     impact: dict[str, Any]
     diff_digest: Digest
     limitation: NonEmpty
+
+
+class CandidateManifest(CandidateEvidence):
+    schema_version: Literal[1]
+
+
+class PendingManualManifest(CandidateEvidence):
+    schema_version: Literal[2]
+    pending_manual_criteria: tuple[NonEmpty, ...] = Field(min_length=1)
 
 
 def _object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -215,6 +223,8 @@ def validate_manifest(
     repository: RepositoryConfig,
     workflow_id: str,
     manifest_digest: str,
+    *,
+    allow_pending_manual: bool = False,
 ) -> tuple[dict[str, Any], dict[str, str]]:
     """Validate every required final reference before any provider credentials are requested.
 
@@ -227,12 +237,19 @@ def validate_manifest(
     if (
         not isinstance(raw_manifest, dict)
         or type(raw_manifest.get("schema_version")) is not int
-        or raw_manifest.get("schema_version") != 1
+        or raw_manifest.get("schema_version") not in {1, 2}
+        or type(allow_pending_manual) is not bool
+        or raw_manifest.get("schema_version") == 2
+        and not allow_pending_manual
     ):
         raise EvidenceFailure(
             "Unsupported legacy manifest; rerun the current verification pipeline"
         )
-    manifest = CandidateManifest.model_validate(raw_manifest)
+    manifest: CandidateManifest | PendingManualManifest = (
+        CandidateManifest.model_validate(raw_manifest)
+        if raw_manifest["schema_version"] == 1
+        else PendingManualManifest.model_validate(raw_manifest)
+    )
     if (
         manifest.workflow_id != workflow_id
         or manifest.repository != repository.id
@@ -276,12 +293,21 @@ def validate_manifest(
             "ambiguities": plan.questions,
         }
     )
+    supported = {VerificationType.UNIT_TEST, VerificationType.INTEGRATION_TEST}
+    manual = {
+        criterion.id
+        for criterion in assessed.acceptance_criteria
+        if criterion.verification_type == VerificationType.MANUAL_REVIEW
+    }
+    if isinstance(manifest, PendingManualManifest):
+        supported.add(VerificationType.MANUAL_REVIEW)
+        if list(manifest.pending_manual_criteria) != sorted(manual):
+            raise EvidenceFailure("Pending manual criteria do not match the assessed specification")
     if (
         reconstructed.model_dump(mode="json") != assessed.model_dump(mode="json")
         or not evaluate_intake(assessed).allowed
         or any(
-            criterion.verification_type
-            not in {VerificationType.UNIT_TEST, VerificationType.INTEGRATION_TEST}
+            criterion.verification_type not in supported
             for criterion in assessed.acceptance_criteria
         )
     ):
@@ -329,6 +355,7 @@ def validate_manifest(
         raise EvidenceFailure("The final candidate does not have a matching independent review")
     review = ReviewResult.model_validate(_json(artifacts, manifest.review_artifact))
     criteria = {criterion.id for criterion in assessed.acceptance_criteria}
+    automated = criteria - manual
     verdicts = {verdict.criterion_id: verdict.result for verdict in review.criterion_verdicts}
     if (
         review != final.review
@@ -336,8 +363,9 @@ def validate_manifest(
         or any(finding.severity == "blocking" for finding in review.findings)
         or len(verdicts) != len(review.criterion_verdicts)
         or set(verdicts) != criteria
-        or any(value != "PASS" for value in verdicts.values())
-        or set(final.criteria) != criteria
+        or any(verdicts[identity] != "PASS" for identity in automated)
+        or any(verdicts[identity] != "UNKNOWN" for identity in manual)
+        or set(final.criteria) != automated
     ):
         raise EvidenceFailure("Final review/criterion evidence is missing, conflicting or blocking")
     for summary, files in ((manifest.baseline, base), (final.validation, candidate)):

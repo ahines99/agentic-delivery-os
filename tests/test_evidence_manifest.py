@@ -19,7 +19,7 @@ from agentic_delivery.agents.contracts import (
 from agentic_delivery.agents.evidence import validate_manifest
 from agentic_delivery.agents.pipeline import build_and_review, diff_files
 from agentic_delivery.config import CommandProfile, ModelConfig, RepositoryConfig, Settings
-from agentic_delivery.domain.models import WorkItem
+from agentic_delivery.domain.models import AcceptanceCriterion, WorkItem
 from agentic_delivery.execution.verification import RUFF_CHECK, RUFF_FORMAT
 from agentic_delivery.integrations.github import GitHubPublisher
 from agentic_delivery.integrations.model import StructuredModel
@@ -463,7 +463,7 @@ def test_rehashed_candidate_cannot_modify_protected_existing_tests(tmp_path: Pat
 
 
 @pytest.mark.integration
-@pytest.mark.parametrize("layout", ["flat", "src", "quality"])
+@pytest.mark.parametrize("layout", ["flat", "src", "quality", "manual"])
 async def test_actual_pipeline_produces_compatible_receipt_reference_chain(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, layout: str
 ) -> None:
@@ -524,6 +524,28 @@ async def test_actual_pipeline_produces_compatible_receipt_reference_chain(
         )
         settings = settings.model_copy(update={"repositories": (repository,)})
     review = ReviewResult.model_validate_json(artifacts.get(template["review_artifact"]))
+    if layout == "manual":
+        criteria = (
+            *original.acceptance_criteria,
+            AcceptanceCriterion(
+                id="AC-M",
+                description="Owner checks presentation",
+                verification_type="manual_review",
+            ),
+        )
+        original = original.model_copy(update={"acceptance_criteria": criteria})
+        plan = plan.model_copy(update={"criteria": criteria})
+        approved["plan"] = plan.model_dump(mode="json")
+        template["approved_plan_digest"] = put(artifacts, approved)
+        review = ReviewResult.model_validate(
+            {
+                **review.model_dump(mode="json"),
+                "criterion_verdicts": [
+                    *[v.model_dump(mode="json") for v in review.criterion_verdicts],
+                    {"criterion_id": "AC-M", "result": "UNKNOWN"},
+                ],
+            }
+        )
     engine = create_database(f"sqlite+pysqlite:///{tmp_path / 'pipeline.db'}")
     Base.metadata.create_all(engine)
     store = Store(engine)
@@ -562,12 +584,24 @@ async def test_actual_pipeline_produces_compatible_receipt_reference_chain(
         store,
         repository,
         approved_plan_digest=template["approved_plan_digest"],
+        allow_manual=layout == "manual",
     )
-    assert result["state"] == "LOCAL_REVIEW_READY"
+    assert result["state"] == (
+        "LOCAL_MANUAL_REVIEW_PENDING" if layout == "manual" else "LOCAL_REVIEW_READY"
+    )
     manifest, validated_candidate = validate_manifest(
-        settings, repository, run["workflow_id"], result["manifest_digest"]
+        settings,
+        repository,
+        run["workflow_id"],
+        result["manifest_digest"],
+        allow_pending_manual=layout == "manual",
     )
-    assert manifest["schema_version"] == 1
+    assert manifest["schema_version"] == (2 if layout == "manual" else 1)
+    if layout == "manual":
+        assert manifest["pending_manual_criteria"] == ["AC-M"]
+        assert set(manifest["attempts"][-1]["criteria"]) == {"AC-1"}
+        with pytest.raises(ValueError):
+            validate_manifest(settings, repository, run["workflow_id"], result["manifest_digest"])
     assert validated_candidate == candidate
     criterion = manifest["attempts"][-1]["criteria"]["AC-1"]["commands"][0]
     receipt = json.loads(artifacts.get(criterion["artifact_digest"]))

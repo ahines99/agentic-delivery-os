@@ -801,6 +801,21 @@ class Store:
             command_id = matching[0].id
         return self.command(command_id)
 
+    def applied_manual_review(self, workflow_id: str) -> dict[str, Any] | None:
+        with Session(self.engine) as session:
+            identities = session.scalars(
+                select(CommandRecord.id)
+                .where(
+                    CommandRecord.workflow_id == workflow_id,
+                    CommandRecord.kind == "manual-review",
+                    CommandRecord.status == "APPLIED",
+                )
+                .limit(2)
+            ).all()
+        if len(identities) > 1:
+            raise Conflict("Conflicting applied human acceptance decisions")
+        return self.command(identities[0]) if identities else None
+
     def enqueue_command(
         self,
         workflow_id: str,

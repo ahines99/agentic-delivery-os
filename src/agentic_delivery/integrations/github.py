@@ -35,6 +35,7 @@ class GitHubPublisher:
         manifest_digest: str,
         *,
         authorization_check: Callable[[], None] | None = None,
+        allow_pending_manual: bool = False,
     ) -> dict[str, Any]:
         def guard() -> None:
             if authorization_check is not None:
@@ -50,7 +51,11 @@ class GitHubPublisher:
         if not re.fullmatch(r"[a-zA-Z0-9-]{1,80}", workflow_id):
             raise ValueError("Invalid publication operation identifier")
         manifest, candidate = validate_manifest(
-            self.settings, self.repository, workflow_id, manifest_digest
+            self.settings,
+            self.repository,
+            workflow_id,
+            manifest_digest,
+            allow_pending_manual=allow_pending_manual,
         )
         base_sha = manifest["base_sha"]
         if not re.fullmatch(r"[a-f0-9]{40}", base_sha):
@@ -175,7 +180,9 @@ class GitHubPublisher:
                     "POST",
                     "/pulls",
                     {
-                        "title": "Agentic Delivery: verified candidate",
+                        "title": "Agentic Delivery: pending manual acceptance"
+                        if manifest.get("pending_manual_criteria")
+                        else "Agentic Delivery: verified candidate",
                         "head": branch,
                         "base": self.repository.base_branch,
                         "draft": True,
@@ -257,10 +264,19 @@ def evidence_markdown(manifest: dict[str, Any], digest: str) -> str:
     for criterion, evidence in attempt["criteria"].items():
         safe = str(criterion).replace("|", "\\|").replace("\n", " ").replace("<", "&lt;")
         rows.append(f"| {safe} | {'PASS' if evidence['passed'] else 'FAIL'} |")
+    pending = manifest.get("pending_manual_criteria", ())
+    for criterion in pending:
+        safe = str(criterion).replace("|", "\\|").replace("\n", " ").replace("<", "&lt;")
+        rows.append(f"| {safe} | PENDING — authorized human acceptance required |")
     return (
-        "## Verified candidate\n\n"
-        f"Base: `{manifest['base_sha']}`\n\nEvidence manifest: `{digest}`\n\n"
+        ("## Manual acceptance pending\n\n" if pending else "## Verified candidate\n\n")
+        + f"Base: `{manifest['base_sha']}`\n\nEvidence manifest: `{digest}`\n\n"
         + "\n".join(rows)
+        + (
+            "\n\nPending manual criteria block review readiness and the Linear handoff."
+            if pending
+            else ""
+        )
         + "\n\nIndependent review and isolated checks are recorded in the manifest."
         + "\n\nHuman review and merge are required. No deployment has occurred."
         + "\n\nLimitations: controlled Python scope; static impact analysis is incomplete."

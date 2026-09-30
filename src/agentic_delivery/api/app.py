@@ -13,6 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 
 from agentic_delivery import __version__
+from agentic_delivery.agents.manual_acceptance import manual_readiness, validate_manual_decision
 from agentic_delivery.config import Operator, Settings, load_settings, secret
 from agentic_delivery.domain.models import WorkItem
 from agentic_delivery.integrations.checks import parse_check_run
@@ -127,6 +128,11 @@ def create_app(settings: Settings | None = None, store: Store | None = None) -> 
         permitted_run(request, identity)
         return store.events(identity, max(0, after))
 
+    @api.get("/workflows/{identity}/manual-review")
+    def manual_review(identity: str, request: Request) -> dict[str, Any]:
+        permitted_run(request, identity)
+        return manual_readiness(settings, store, identity)
+
     @api.get("/commands/{identity}")
     def command(identity: str, request: Request) -> dict[str, Any]:
         operator(request)
@@ -137,11 +143,23 @@ def create_app(settings: Settings | None = None, store: Store | None = None) -> 
     @api.post("/workflows/{identity}/{operation}", status_code=202)
     async def send_command(identity: str, operation: str, request: Request) -> dict[str, Any]:
         run = permitted_run(request, identity, "operator")
-        if operation not in {"cancel", "clarify", "approve-plan", "rerun"}:
+        if operation not in {"cancel", "clarify", "approve-plan", "manual-review", "rerun"}:
             raise NotFound("Command does not exist")
         payload = json.loads(await body(request))
         if not isinstance(payload, dict):
             raise ValueError("Command must be a JSON object")
+        if operation == "manual-review":
+            actor = operator(request)
+            decision = validate_manual_decision(
+                settings, store, identity, payload, actor_id=actor.id
+            )
+            return store.enqueue_command(
+                identity,
+                kind=operation,
+                payload=decision.model_dump(mode="json"),
+                actor=actor.id,
+                key=key(request),
+            )
         allowed = {"expected_sequence", "spec_digest"}
         if operation == "clarify":
             allowed.add("item")
