@@ -51,8 +51,9 @@ reconciliation and service selection passed **141 tests with seven explicit miss
 service skips in 25.54 seconds**. Ruff, formatting and mypy passed. Counts overlap;
 they are not additive coverage. Source `bb56d76` subsequently passed complete hosted
 CI (3,359 tests per Python version, all 155 service integration cases, builds and
-secret scanning). Logging is now [installed through `4ae54e6`](local-runtime-upgrade.md),
-whose complete hosted CI also passed. The separate Windows regression remains active.
+secret scanning). Its full Windows suite passed 3,349 tests with 162 explicit skips
+in 5,513.95 seconds. Logging is now [installed through `63f25f2`](local-runtime-upgrade.md),
+whose complete hosted CI also passed.
 
 Owned payload canaries remain absent from captured events on success, provider
 failure, cancellation and lost settlement acknowledgement. Tests retain the original

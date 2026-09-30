@@ -10,14 +10,15 @@ candidate-cleanup observation from the existing read-only database snapshot. Mis
 observations and UNKNOWN outcomes remain explicit; raw payloads are not selected.
 The diagnostic/lifecycle/export selection passed 55 tests with one Windows symlink
 skip, including actual PostgreSQL model-adapter fault outcomes. Ruff, format and
-mypy passed. This newest extension is not installed or fully regression-qualified.
+mypy passed. The extension is now installed at `63f25f2` after complete hosted CI;
+its separate Windows full regression remains running.
 
 [Runtime qualification](runtime-budget-network-probes.md) now includes actual
 candidate wall-time expiry with persisted cleanup and no cancellation command,
 plus explicit DNS/IPv6/raw-socket denial. The four cancellation/runtime cases passed
 against isolated PostgreSQL, Temporal and Docker in 69.84 seconds. All six sandbox
 cases passed in 11.64 seconds. These are test additions on unchanged application
-source; hosted inclusion is pending.
+source. All added cases are included in the passing 163-test service job at `63f25f2`.
 
 The [tool-output admission follow-up](product-admission-controls.md#tool-output-repair-follow-up)
 adds an actual Ruff diagnostic containing hostile instructions, followed by a
@@ -36,7 +37,8 @@ read-only/repeatable-read verification. Read-only measurements also succeeded fo
 existing PER-13/14 handoffs. Ruff, formatting and mypy passed. Lifecycle/export source
 `d482c5b` subsequently passed complete hosted CI: 3,381 tests and 153 skips per Python
 version, all 156 service integration cases, builds and secret scanning. Its Windows
-run remains active; lifecycle metrics are installed through `4ae54e6`. Human benefit and other unmeasured
+run passed 3,371 tests with 163 skips in 5,273.80 seconds. Lifecycle metrics are
+installed through `63f25f2`. Human benefit and other unmeasured
 outcomes remain explicit in the report.
 
 [Correlated operation events](operation-events.md) now cover activity queue/active
@@ -46,21 +48,22 @@ passed, as did the broader 141-test model/service selection; Ruff, format and my
 passed. Logging source `bb56d76` subsequently passed
 [complete hosted CI](https://github.com/ahines99/agentic-delivery-os/actions/runs/36757550789):
 3,359 tests and 152 skips per Python version, all 155 service integration cases,
-builds and secret scanning. Its Windows run is still active; logging is installed through `4ae54e6`.
+builds and secret scanning. Its full Windows run subsequently passed 3,349 tests
+with 162 skips in 5,513.95 seconds. Logging is installed through `63f25f2`.
 Durable records remain authoritative, and the complete lifecycle/quality metrics
 requirement remains open.
 
-The local service is now running `4ae54e6`, including operation logging, lifecycle
-metrics, corrected manual-review exports and automatic confirmation of an
+The local service is now running `63f25f2`, including operation logging, lifecycle
+metrics, provider/cleanup diagnostics, corrected manual-review exports and automatic confirmation of an
 existing publication after worker failure, attachment-response and terminal command
 redelivery recovery, manual acceptance and the
 worker-independent container lifetime. The [idle upgrade record](local-runtime-upgrade.md)
 confirms readiness, fresh Temporal pollers, advancing Linear detection, authenticated
 manual-review routing and preserved exact PR #6/#7 handoff bindings. Application source
-at this installed head passed [complete CI](https://github.com/ahines99/agentic-delivery-os/actions/runs/36761138622):
-Python 3.12/3.13 (3,381 tests and 154 explicit skips each), all
-157 service integration tests, package builds and secret scanning. The full Windows
-feature runs and later test-fixture correction remain separately tracked.
+at this installed head passed [complete CI](https://github.com/ahines99/agentic-delivery-os/actions/runs/36765230833):
+Python 3.12/3.13 (3,398 tests and 160 explicit skips each), all
+163 service integration tests, package builds and secret scanning. The separate
+diagnostic Windows feature run remains active; lifecycle metrics passed as recorded above.
 
 The [publisher-process-loss drill](publication-process-loss.md) passed three real
 abrupt-exit/reconstructed-process cases on application source `6b74944`, after
@@ -74,8 +77,8 @@ including history replay. The broader publication/authority/manual/service/repla
 selection passed 168 tests with four explicit Docker-profile skips. Ruff, format and
 mypy passed. An existing valid draft resumes the normal gates; missing/conflicting
 effects remain blocked, and cancellation never schedules recovery. Complete hosted
-CI and the idle supervised installation have now passed as recorded above; Windows
-regression at this source remains running.
+CI and the idle supervised installation have now passed as recorded above. The full
+Windows suite at `f489947` passed 3,339 tests with 161 skips in 5,511.36 seconds.
 
 The [terminal outbox redelivery follow-up](postgres-faults.md#terminal-redelivery-follow-up-2026-09-30)
 passed the expanded 15-case PostgreSQL/Temporal fault suite in 8.43 seconds. All three

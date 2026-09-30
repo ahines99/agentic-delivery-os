@@ -41,7 +41,9 @@ the existing tmpfs, PID, memory and malicious dependency-hook probes.
 
 Both selections used image
 `sha256:5edf3f631f069f4ce7e1e4eb0fb13ea2562cccb240aea91627889e574e2de224`.
-Ruff, formatting and mypy passed. Application source remains identical to `4ae54e6`;
-hosted inclusion of these added tests is pending. The selected single-host controls
+Ruff, formatting and mypy passed. These test additions left application source
+identical to `4ae54e6`. They are now included in the passing 163-test service job
+in [complete hosted CI at `63f25f2`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36765230833).
+The selected single-host controls
 do not establish resistance to arbitrary kernel escape, daemon/host loss or a
 compromised host administrator.

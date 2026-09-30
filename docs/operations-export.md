@@ -104,7 +104,8 @@ private decisions, comments and evidence payloads remain excluded.
 
 ### Recorded provider and cleanup observations
 
-This extension is newer than installed `4ae54e6` and is not installed yet.
+This extension is installed at `63f25f2` after complete hosted CI and the
+[verified idle upgrade](local-runtime-upgrade.md).
 
 Version 2 also derives `model_provider_observations` and
 `candidate_cleanup_observation` inside the same read-only transaction. The queries
@@ -186,9 +187,12 @@ The lifecycle/export source at `d482c5b` subsequently passed
 3,381 tests and 153 skips on each Python version, all 156 service integration tests,
 builds and secret scanning. Lifecycle metrics are now installed through `4ae54e6`
 after its own complete CI and [verified idle upgrade](local-runtime-upgrade.md).
+The full Windows suite at `d482c5b` passed 3,371 tests with 163 skips in 5,273.80 seconds.
 The later diagnostic observation extension passed
 **55 tests with one Windows symlink skip in 8.78 seconds**, including real
 PostgreSQL adapter success, HTTP failure, transport loss and cancellation. Those
 tests verify unchanged ledger state, retained unknown reservations, one HTTP
-operation and private-canary exclusion. Ruff, format and mypy passed. Its full-source
-verification and installation remain pending.
+operation and private-canary exclusion. Ruff, format and mypy passed. Complete hosted
+CI at `63f25f2` passed 3,398 tests with 160 skips per Python version, all 163 service
+integration cases, builds and secret scanning; that source is now installed.
+The separate full Windows diagnostic regression remains running.

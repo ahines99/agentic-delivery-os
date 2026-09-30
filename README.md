@@ -17,7 +17,7 @@ at `8413dc4` passed [full CI](https://github.com/ahines99/agentic-delivery-os/ac
 The installed service subsequently received cancellation, response-recovery, intake,
 manual-acceptance, bounded-container-lifetime, attachment-response and terminal-command
 recovery changes, automatic existing-publication recovery, operation logging and
-lifecycle metrics through `4ae54e6`;
+lifecycle metrics and provider/cleanup diagnostic exports through `63f25f2`;
 the [verification status](docs/implementation-status.md) distinguishes later changes and checks. See the
 [live evidence and recovery record](docs/live-automatic-delivery.md). The [webhook gateway](docs/linear-ingress.md)
 supports both providers, and the outbound monitor provides automatic intake without a tunnel.

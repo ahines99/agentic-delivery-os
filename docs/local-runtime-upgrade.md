@@ -1,5 +1,34 @@
 # Local runtime upgrades
 
+## Provider and cleanup diagnostics (2026-09-30)
+
+The service was upgraded from `4ae54e6` to `63f25f2` after
+[complete hosted CI](https://github.com/ahines99/agentic-delivery-os/actions/runs/36765230833)
+passed. Python 3.12 passed 3,398 tests with 160 skips in 1,553.93 seconds;
+Python 3.13 passed the same counts in 1,589.62 seconds. The actual
+PostgreSQL/Temporal/Docker job passed 163 tests in 548.94 seconds. Package builds
+and secret scanning passed. These runs overlap and are not additive coverage.
+
+The upgrade installs optional provider/cleanup observations in the read-only
+operational export. The same source also includes the wall-budget and network
+qualification tests. The live database and Temporal queue were idle before and
+after stopping the verified supervisor and its owned processes. The clean checkout
+fast-forwarded, and the existing Windows task restarted with unchanged settings.
+
+At **19:50:39 UTC**, API/database readiness, fresh workflow/activity pollers and an
+advancing Linear cursor (**19:50:36.343236 UTC**) were confirmed. All nine workflow
+states and both exact handoff bindings were retained; their digest remained
+`c3bccc33e891da90cb82329bbf6ac3cf410ea24a797448929d9e34809b176dd6`.
+A follow-up at 19:51:32 UTC confirmed continued readiness and polling. No active
+workflow was interrupted, provider mutation used or PR merged.
+
+The separate Windows suites at `f489947` and `bb56d76` completed: 3,339 passed /
+161 skipped in 5,511.36 seconds and 3,349 passed / 162 skipped in 5,513.95 seconds,
+respectively. The lifecycle-metrics suite at `d482c5b` also passed: 3,371 tests
+and 163 skips in 5,273.80 seconds. The later diagnostic Windows suite remains running.
+This upgrade is not another live ticket result, human acceptance or a full-system
+recovery drill. Historical evaluation and the remaining release gates stay open.
+
 ## Operation logging and lifecycle metrics (2026-09-30)
 
 The service was upgraded from `f489947` to `4ae54e6` after
@@ -48,7 +77,7 @@ ADR-032 is now installed. After publication uncertainty, new workflows may confi
 an existing verified draft and resume the ordinary CI/manual/tracker gates. Missing
 or conflicting effects remain blocked. This upgrade does not install the newer
 `bb56d76` operational-event logging change, whose full verification is separate.
-Windows regression at `f489947` remains running. No host reboot, arbitrary surviving
+Windows regression at `f489947` subsequently passed as recorded above. No host reboot, arbitrary surviving
 worker fencing or new live ticket result is claimed by this restart.
 
 ## Attachment and terminal-command recovery (2026-09-30)

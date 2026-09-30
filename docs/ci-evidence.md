@@ -4,7 +4,10 @@
 It contributes to M3-03's exact-revision evidence gate; it does not authenticate deliveries,
 fetch GitHub state, persist events, authorize merges, or establish that a live integration has
 passed. The connected API/storage projection and authenticated REST broker are implemented
-and fixture-tested separately. Product GitHub App keys are not available for live validation.
+and tested separately. The configured GitHub App is installed: PER-13/14 completed
+actual exact-head CI and Linear handoffs, as recorded in
+[the live delivery evidence](live-automatic-delivery.md). That positive path does not
+prove every adversarial or live revision-change scenario below.
 
 ## Trusted input and producer identity
 
@@ -114,9 +117,46 @@ Two matching REST reads plus webhook generation checks reduce races but do not c
 transaction across GitHub and the local database. Provider eventual consistency, events not yet
 delivered, or a change immediately after the final read remain possible. The 60-second cache is
 a bounded read model, not a lock on GitHub. Required repository checks, protected workflow
-definitions and human merge authority remain necessary. Real product-App onboarding and live
-rerun/head-change tests remain an open release gate; owner-CLI discovery of repository/App IDs
-or hosted CI results does not satisfy it.
+definitions and human merge authority remain necessary. Product-App onboarding and
+the positive live CI path are complete for the configured target. Live rerun/head-change
+qualification remains separate; owner-CLI discovery of IDs or implementation CI alone
+does not prove those provider scenarios.
+
+## P-06 evidence rejection coverage
+
+The installed `63f25f2` source passed
+[complete hosted CI](https://github.com/ahines99/agentic-delivery-os/actions/runs/36765230833),
+including the default suites on Python 3.12/3.13 and the actual
+PostgreSQL/Temporal/Docker selection. The following table connects that result to
+specific assertions; it is not a claim that every test uses all three services.
+
+| Required rejection | Inspected test evidence | Boundary |
+| --- | --- | --- |
+| Missing or mismatched candidate evidence | [Manifest tests](../tests/test_evidence_manifest.py) reject missing artifacts/criteria and mismatched workflow, repository, base, policy, configuration, specification, plan, candidate and diff before any GitHub request. | Owned artifact fixtures; no live provider mutation. |
+| Failing, skipped or incomplete checks | [Check evaluator tests](../tests/test_github_checks.py) deny every non-success conclusion, missing checks and incomplete attempts. [Actual Docker verification](../tests/test_verification.py) rejects assertion failure, skip, xfail and xpass. | Deterministic producer/status checks and selected executed test cases, not semantic correctness. |
+| Forged success or execution provenance | [Manifest tests](../tests/test_evidence_manifest.py) reject rehashed receipts with missing reports/phases, wrong workflow/image, stale snapshot binding or nonzero exit despite passing flags. [Docker tests](../tests/test_verification.py) reject fabricated stdout plus zero-exit collection/test termination and workspace launcher shadowing. | Candidate code still shares the collector interpreter; these cases do not establish universal attestation. |
+| Changed provider revisions or incomplete snapshots | [Broker tests](../tests/test_github_ci_broker.py) refuse changed head/base/refs/repository, incomplete pagination, inconsistent totals, pending suites and changed snapshots; the scoped token is revoked. | Controlled HTTP provider responses, not a live GitHub race experiment. |
+| Stale durable CI authority | [Persistence tests](../tests/test_ci_persistence.py) invalidate changed policy, expired/future snapshots, suite reruns and PR context; competing snapshot writes and intervening events cannot overwrite the current generation. | Controlled signed events and configured test databases. |
+| Readiness while evidence remains unavailable | [Temporal tests](../tests/test_temporal_ci.py) retain the candidate/publication but end POLICY_BLOCKED for missing or late CI, with no HUMAN_REVIEW event; histories replay. [Manual tests](../tests/test_temporal_manual.py) preserve the human-decision wait. | Actual orchestration with controlled candidate/provider activities. |
+
+Read-only verification on 2026-09-30 confirmed that retained drafts
+[PR #2](https://github.com/ahines99/agentic-delivery-os/pull/2),
+[PR #3](https://github.com/ahines99/agentic-delivery-os/pull/3),
+[PR #4](https://github.com/ahines99/agentic-delivery-os/pull/4) and
+[PR #5](https://github.com/ahines99/agentic-delivery-os/pull/5) still expose failing
+named checks through their GitHub check reports. Each remote head matched its
+persisted publication; all four were closed drafts, and none of their retained
+workflow histories contained a HUMAN_REVIEW transition. This provides concrete
+failure visibility and withheld-handoff evidence for the earlier attempts described
+in [the live record](live-automatic-delivery.md#retained-earlier-attempts).
+No PR body, private model artifact or credential was read; no provider state changed.
+This observation does not prove that an automatic failure summary was inserted into
+the generated PR body. The check reports and body are distinct surfaces.
+
+Manual PENDING labels and human decisions have their own
+[acceptance contract](manual-acceptance.md). These named controls and retained failures
+do not establish a full P-06 signoff or live rerun/head-change qualification.
+Actual human acceptance and pilot signoff are also separate.
 
 ## Official source verification
 
