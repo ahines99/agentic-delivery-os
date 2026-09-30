@@ -23,14 +23,14 @@ Verify = Callable[[dict[str, str], tuple[CommandProfile, ...]], Awaitable[dict[s
 
 @dataclass(frozen=True)
 class CandidateResult:
-    status: Literal["BUILD_VERIFIED", "REVIEW_APPROVED", "FAILED"]
+    status: Literal["BUILD_VERIFIED", "REVIEW_APPROVED", "MANUAL_REVIEW_PENDING", "FAILED"]
     evidence_json: bytes
     candidate_json: bytes | None = None
     candidate_digest: str | None = None
 
 
 def _result(
-    status: Literal["BUILD_VERIFIED", "REVIEW_APPROVED", "FAILED"],
+    status: Literal["BUILD_VERIFIED", "REVIEW_APPROVED", "MANUAL_REVIEW_PENDING", "FAILED"],
     evidence: dict[str, Any],
     candidate: dict[str, str] | None = None,
 ) -> CandidateResult:
@@ -57,6 +57,7 @@ async def iterate_candidate(
     review: Review | None,
     verify: Verify,
     authorization_check: Callable[[], None],
+    allow_manual: bool = False,
 ) -> CandidateResult:
     """No execution/spending grant. Only the caller can authorize the injected effects.
 
@@ -69,10 +70,19 @@ async def iterate_candidate(
         raise ValueError("Review callback must exactly match the selected mode")
     if type(repair_rounds) is not int or not 0 <= repair_rounds <= 5:
         raise ValueError("Invalid correction ceiling")
-    if not evaluate_intake(item).allowed or any(
-        criterion.verification_type
-        not in {VerificationType.UNIT_TEST, VerificationType.INTEGRATION_TEST}
+    if type(allow_manual) is not bool or allow_manual and not independent_review:
+        raise ValueError("Manual criteria require the independently reviewed product profile")
+    manual = {
+        criterion.id
         for criterion in item.acceptance_criteria
+        if criterion.verification_type == VerificationType.MANUAL_REVIEW
+    }
+    automated = {criterion.id for criterion in item.acceptance_criteria} - manual
+    supported = {VerificationType.UNIT_TEST, VerificationType.INTEGRATION_TEST}
+    if allow_manual:
+        supported.add(VerificationType.MANUAL_REVIEW)
+    if not evaluate_intake(item).allowed or any(
+        criterion.verification_type not in supported for criterion in item.acceptance_criteria
     ):
         raise ValueError("Execution policy or verification type denied the work item")
     validate_files(base)
@@ -132,10 +142,10 @@ async def iterate_candidate(
         mappings = {mapping.criterion_id: mapping.tests for mapping in proposal.criterion_tests}
         if (
             len(mappings) != len(proposal.criterion_tests)
-            or set(mappings) != {criterion.id for criterion in item.acceptance_criteria}
+            or set(mappings) != automated
             or any(not value for value in mappings.values())
         ):
-            raise ValueError("Every criterion needs a unique explicit test mapping")
+            raise ValueError("Every automated criterion needs a unique explicit test mapping")
         # Execute each declared criterion test in a new sandbox, not merely trust its name.
         criterion_receipts = {}
         for criterion, tests in mappings.items():
@@ -195,8 +205,9 @@ async def iterate_candidate(
         verdicts = {v.criterion_id: v.result for v in review_result.criterion_verdicts}
         complete = (
             len(verdicts) == len(review_result.criterion_verdicts)
-            and set(verdicts) == set(mappings)
-            and all(v == "PASS" for v in verdicts.values())
+            and set(verdicts) == automated | manual
+            and all(verdicts[identity] == "PASS" for identity in automated)
+            and all(verdicts[identity] == "UNKNOWN" for identity in manual)
             and all(v["passed"] for v in criterion_receipts.values())
             and review_result.decision == "APPROVE"
             and not any(f.severity == "blocking" for f in review_result.findings)
@@ -210,6 +221,16 @@ async def iterate_candidate(
         attempts.append(record)
         if complete:
             guard()
+            if manual:
+                return _result(
+                    "MANUAL_REVIEW_PENDING",
+                    {
+                        "baseline": baseline,
+                        "attempts": attempts,
+                        "pending_manual_criteria": sorted(manual),
+                    },
+                    candidate,
+                )
             return _result(
                 "REVIEW_APPROVED", {"baseline": baseline, "attempts": attempts}, candidate
             )
