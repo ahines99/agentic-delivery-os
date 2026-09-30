@@ -28,6 +28,14 @@ in a disposable database, then verified its removal. The supervised service rest
 readiness returned and Linear polling advanced. See the [recorded drill](local-backup.md#installed-live-database-exercise).
 This does not establish Temporal or provider-state recovery.
 
+Distribution verification at `cea4025`: wheel and source archive built successfully,
+and their inventories contained no private environment, key or `.local` paths. The
+wheel installed in a fresh Python 3.12.10 environment with hash-checked locked runtime
+dependencies. Imports came from that installed package; all three CLI help commands,
+all three offline intake outcomes, and bundled migration to revision `0006` passed.
+This checks packaging independently of the development checkout; it makes no live
+provider or historical-evaluation claim.
+
 Planning cancellation follow-up (2026-09-30): the planning activity previously lacked
 the heartbeat/timeout pair required for Temporal cancellation delivery. An owned
 regression with actual Temporal/PostgreSQL and a held controlled model transport
