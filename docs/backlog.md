@@ -4,6 +4,11 @@ This is the issue-ready execution sequence for [the accepted plan](plan.md). IDs
 
 ## Current status annotations
 
+**Next implementation target:** one real Linear ticket reaches a tested GitHub draft PR
+and the correct Linear review state. Complete webhook ingress and App onboarding first,
+then fix concrete delivery failures. Defer additional benchmark machinery and optional
+operational abstractions until that flow works; preserve the later release criteria below.
+
 Refer to [implementation status](implementation-status.md) for recorded evidence and remaining gates. Code presence, mock-provider tests and one synthetic live run do not close an entire backlog item.
 
 | Milestone | Implemented/exercised progress | Acceptance still outstanding |

@@ -1,4 +1,25 @@
-# Narrow Linear ingress
+# Linear and GitHub webhook ingress
+
+For the complete delivery path, use `create_delivery_gateway`. It accepts exact
+`POST /webhooks/linear` and `POST /webhooks/github` callbacks on the same endpoint,
+forwarding each to its matching private API route on port 18090. GitHub callbacks
+carry only the SHA-256 signature, delivery ID, event type and JSON content type.
+The API validates the signature, installation and repository and persists PR/CI
+observations. The gateway keeps the same body/time limits and generic responses
+described below. Operator routes remain inaccessible through this gateway.
+
+```sh
+python -m uvicorn agentic_delivery.api.app:app --host 127.0.0.1 --port 18090 --no-access-log --no-proxy-headers
+python -m uvicorn agentic_delivery.api.linear_ingress:create_delivery_gateway --factory --host 127.0.0.1 --port 18091 --no-access-log --no-proxy-headers --limit-concurrency 16 --h11-max-incomplete-event-size 8192
+```
+
+Point the HTTPS reverse proxy at port 18091 and configure the two provider callbacks
+with their respective paths. Start the gateway without service credentials. Run the
+worker and dispatcher as described in the [runbook](runbook.md). This provides the
+local application routes; persistent HTTPS hosting and GitHub App setup remain
+environment prerequisites. The older Linear-only entry point below stays available.
+
+## Linear-only entry point
 
 `agentic_delivery.api.linear_ingress:create_gateway` exposes only an exact
 `POST /webhooks/linear`, without a query string. Run it on loopback port 18091

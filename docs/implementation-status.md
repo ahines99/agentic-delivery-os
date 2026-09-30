@@ -4,8 +4,8 @@ Updated 2026-09-30 UTC during continued controlled implementation. This is the c
 the original milestone documents remain the release targets. Source code alone is not a passed
 integration or production release gate.
 
-Latest complete hosted verification: [CI at `4d71ce3`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36653200572)
-passed both Python versions (2,973 tests and 91 explicit skips each), 91 actual service
+Latest complete hosted verification: [CI at `5321f4b`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36655858237)
+passed both Python versions (3,016 tests and 111 explicit skips each), 111 actual service
 integration tests and secret scanning. This includes the [campaign journal](campaign-journal.md),
 [completed semantic reader](semantic-consumption.md) and [whole-attempt reader](completed-attempt-reporting.md).
 They reconstruct original outcomes, early failures and optional exact adjudication under
@@ -108,6 +108,15 @@ uncertain usage accounting across fresh consumers; injected exceptions do not es
 crash recovery or live-provider reconciliation.
 
 ## Implemented and exercised
+
+The [combined webhook gateway](linear-ingress.md) now routes both Linear intake and
+GitHub PR/CI callbacks to the existing private API. Its signed GitHub regression test
+passes through both gateway and actual API into SQLite, retains one observation on
+duplicate delivery and rejects modified signed bytes. All 130 ingress, GitHub-check
+and control-plane regression tests passed; lint, formatting and type checks passed.
+The earlier Linear-only entry point retains its existing behavior. Live GitHub App
+delivery and persistent HTTPS hosting remain unverified. Implementation priority is
+now the first complete ticket-to-PR flow; further benchmark infrastructure is deferred.
 
 [Joint criterion evidence](criterion-acceptance-evidence.md) now joins final-candidate tests
 and independent semantic findings by criterion after concrete whole-attempt reconstruction.

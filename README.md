@@ -7,6 +7,11 @@ into tested, independently reviewed pull requests, with evidence and human contr
 The accepted implementation plan is [docs/plan.md](docs/plan.md). The project retains the
 local directory name `agentic-delivery-engineer`; the product/package name is Agentic Delivery OS.
 
+**Current implementation focus:** complete one real Linear ticket through a tested GitHub
+draft PR and Linear review-status handoff. The [webhook gateway](docs/linear-ingress.md)
+now supports both providers; finish [App onboarding](docs/provider-onboarding.md) and
+run the existing delivery pipeline before extending evaluation infrastructure.
+
 ```text
 Linear -> Requirements -> Risk policy -> Plan -> Isolated build
        -> Independent verification -> Evidence -> Human-reviewed GitHub PR

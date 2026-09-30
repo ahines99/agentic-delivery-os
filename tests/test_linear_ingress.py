@@ -15,7 +15,13 @@ HEADERS = {
 
 
 async def call(
-    path="/webhooks/linear", *, method="POST", headers=None, body=b'{"owned":true}', respond=None
+    path="/webhooks/linear",
+    *,
+    method="POST",
+    headers=None,
+    body=b'{"owned":true}',
+    respond=None,
+    delivery=False,
 ):
     seen = []
 
@@ -29,7 +35,8 @@ async def call(
             )
         )
 
-    app = ingress.create_gateway(transport=httpx.MockTransport(upstream))
+    factory = ingress.create_delivery_gateway if delivery else ingress.create_gateway
+    app = factory(transport=httpx.MockTransport(upstream))
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app), base_url="http://gateway"
     ) as client:

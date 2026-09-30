@@ -16,6 +16,16 @@ This refinement supersedes the earlier automatic-ready sequence retained below.
 
 ## Product commitment
 
+Implementation priority, updated after the owner's direction to avoid overengineering:
+finish one usable Linear-to-GitHub delivery before extending benchmark infrastructure.
+The immediate sequence is persistent webhook ingress, GitHub App onboarding, a real
+approved ticket producing a tested draft PR, and the Linear review-status handoff.
+Fix defects exposed by that path and keep setup and operation straightforward.
+Retain credential isolation, finite budgets, current test/review evidence and human
+approval/merge controls. Additional evaluation frameworks, impact-analysis experiments
+and broader operational tooling wait until this path works. Existing evaluation code
+and release targets remain; this changes implementation order, not reported results.
+
 Build a single-tenant delivery control plane that takes a bounded Linear ticket for an
 onboarded Python repository, produces an isolated change and GitHub pull request, independently
 verifies the candidate, and gives a human a concise evidence package. All merges are human.

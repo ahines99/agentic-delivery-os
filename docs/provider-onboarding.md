@@ -4,6 +4,10 @@ The implementation PR is maintained with the owner's authenticated GitHub CLI. T
 publisher accepts only a GitHub App installation; CLI credentials are never a fallback.
 Keep `publication_enabled=false` until the following inputs and checks are complete.
 
+Use the [combined webhook gateway](linear-ingress.md) for the public HTTPS endpoint.
+It forwards Linear and GitHub callbacks to the private API while leaving operator
+commands private. The original Linear-only gateway will reject GitHub callbacks.
+
 ## GitHub App
 
 1. Open this [prefilled private App registration](https://github.com/settings/apps/new?name=ahines99-agentic-delivery-os&url=https%3A%2F%2Fgithub.com%2Fahines99%2Fagentic-delivery-os&public=false&request_oauth_on_install=false&webhook_active=false&contents=write&pull_requests=write&checks=read).
