@@ -2,6 +2,7 @@ import json
 from copy import deepcopy
 from datetime import UTC, datetime, timedelta
 
+import httpx
 import pytest
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -146,6 +147,127 @@ async def test_unassigned_new_issue_is_assigned_before_intake(setup):
     await poll_once(settings, store, linear)
     assert linear.nodes[0]["assignee"] == {"id": "worker"}
     assert len(store.list_workflows(("owned/project",))) == 1
+
+
+@pytest.mark.parametrize("lost_response", [False, True])
+@pytest.mark.parametrize(
+    "outcome",
+    [
+        "accepted",
+        "not_applied",
+        "read_failed",
+        "completed",
+        "canceled",
+        "started",
+        "missing_state",
+        "reassigned",
+        "changed_text",
+        "changed_team",
+        "changed_identity",
+    ],
+)
+async def test_assignment_readback_controls_intake_and_restart(
+    setup, monkeypatch, lost_response, outcome
+):
+    settings, store = setup
+    monkeypatch.setenv("OWNED_LINEAR_KEY", "owned-not-a-provider-key")
+    live = issue()
+    live["assignee"] = None
+    writes, reads = 0, 0
+    await poll_once(settings, store, OwnedLinear([]))
+    cursor_before = settings.linear_monitor_state.read_bytes()
+
+    def provider(request):
+        nonlocal writes, reads
+        payload = json.loads(request.content)
+        query = payload["query"]
+        if "DeliveryMonitor" in query:
+            return httpx.Response(
+                200,
+                json={
+                    "data": {
+                        "organization": {"id": "org"},
+                        "issues": {
+                            "nodes": [deepcopy(live)],
+                            "pageInfo": {"hasNextPage": False, "endCursor": None},
+                        },
+                    }
+                },
+            )
+        if "query Issue" in query:
+            reads += 1
+            assert "state { id type }" in query
+            if writes and outcome == "read_failed":
+                raise httpx.ReadTimeout("Owned unavailable read-back", request=request)
+            return httpx.Response(200, json={"data": {"issue": deepcopy(live)}})
+        assert "mutation DeliveryAssign" in query
+        assert payload["variables"] == {
+            "id": "owned-issue",
+            "input": {"assigneeId": "worker"},
+        }
+        writes += 1
+        if outcome != "not_applied":
+            live["assignee"] = {"id": "worker"}
+        if outcome in {"completed", "canceled", "started"}:
+            live["state"] = {"id": "new-state", "type": outcome}
+        elif outcome == "missing_state":
+            live["state"] = {"id": "unknown"}
+        elif outcome == "reassigned":
+            live["assignee"] = {"id": "another-person"}
+        elif outcome == "changed_text":
+            live["description"] = "Owned changed requirement"
+        elif outcome == "changed_team":
+            live["team"] = {"id": "another-team"}
+        elif outcome == "changed_identity":
+            live["id"] = "another-issue"
+        if lost_response:
+            raise httpx.ReadTimeout("Owned assignment response lost", request=request)
+        return httpx.Response(200, json={"data": {"issueUpdate": {"success": True}}})
+
+    skipped = {"completed", "canceled", "started", "missing_state"}
+    async with httpx.AsyncClient(transport=httpx.MockTransport(provider)) as client:
+        operation = poll_once(settings, store, LinearClient("OWNED_LINEAR_KEY", client))
+        if outcome in skipped | {"accepted"}:
+            assert await operation == 1
+        else:
+            with pytest.raises(ValueError):
+                await operation
+            assert settings.linear_monitor_state.read_bytes() == cursor_before
+    assert writes == 1 and reads == 2
+    runs = store.list_workflows(("owned/project",))
+    if outcome != "accepted":
+        assert runs == []
+        return
+    assert len(runs) == 1
+    assert runs[0]["state"] == "NEW"
+    assert runs[0]["spent_microdollars"] == 0
+    # Reopen durable state and create a fresh client: overlapping discovery must
+    # retain this exact workflow/budget without repeating an accepted assignment.
+    restarted = Store(create_database(settings.database_url))
+    try:
+        async with httpx.AsyncClient(transport=httpx.MockTransport(provider)) as client:
+            await poll_once(settings, restarted, LinearClient("OWNED_LINEAR_KEY", client))
+        assert restarted.list_workflows(("owned/project",)) == runs
+        assert writes == 1
+    finally:
+        restarted.engine.dispose()
+
+
+@pytest.mark.parametrize("state_type", ["completed", "canceled", "started", None])
+async def test_latest_ineligible_state_is_not_assigned(setup, state_type):
+    settings, store = setup
+
+    class ChangedDuringDiscovery(OwnedLinear):
+        async def issue(self, identity):
+            current = await super().issue(identity)
+            current["state"] = {"id": "latest", "type": state_type}
+            return current
+
+    linear = ChangedDuringDiscovery()
+    linear.nodes[0]["assignee"] = None
+    await poll_once(settings, store, linear)
+    assert not any("DeliveryAssign" in query for query, _ in linear.calls)
+    assert not store.list_workflows(("owned/project",))
 
 
 @pytest.mark.parametrize(

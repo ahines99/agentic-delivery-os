@@ -11,7 +11,7 @@ from pydantic import AwareDatetime
 
 from agentic_delivery.config import Settings, load_settings
 from agentic_delivery.domain.models import Contract, WorkItem
-from agentic_delivery.integrations.linear import LinearClient
+from agentic_delivery.integrations.linear import LinearClient, LinearUnavailable
 from agentic_delivery.orchestration.activities import Activities
 from agentic_delivery.security import AccessDenied
 from agentic_delivery.storage.database import create_database
@@ -106,23 +106,38 @@ async def poll_once(settings: Settings, store: Store, linear: LinearClient) -> i
         ):
             continue
         current = await linear.issue(issue["id"])
-        if current.get("team", {}).get("id") != issue["team"]["id"]:
-            raise AccessDenied("Issue team changed during discovery")
+        if (
+            current.get("id") != issue["id"]
+            or current.get("team", {}).get("id") != issue["team"]["id"]
+        ):
+            raise AccessDenied("Issue identity or team changed during discovery")
         if current["updatedAt"] != issue["updatedAt"]:
             # The next overlapping scan will read the new version.
+            continue
+        if current.get("state", {}).get("type") not in {"backlog", "unstarted"}:
             continue
         assignee = current.get("assignee") or {}
         if assignee.get("id") not in {None, repository.linear_assignee_id}:
             continue
         if assignee.get("id") is None:
-            result = await linear.query(
-                "mutation DeliveryAssign($id: String!, $input: IssueUpdateInput!) { "
-                "issueUpdate(id: $id, input: $input) { success } }",
-                {"id": issue["id"], "input": {"assigneeId": repository.linear_assignee_id}},
-            )
-            if result.get("issueUpdate", {}).get("success") is not True:
-                raise ValueError("Linear assignment requires reconciliation")
-            current = await linear.issue(issue["id"])
+            try:
+                result = await linear.query(
+                    "mutation DeliveryAssign($id: String!, $input: IssueUpdateInput!) { "
+                    "issueUpdate(id: $id, input: $input) { success } }",
+                    {"id": issue["id"], "input": {"assigneeId": repository.linear_assignee_id}},
+                )
+            except LinearUnavailable:
+                # Confirm one uncertain assignment by reading; never repeat the
+                # mutation in this scan or treat a lost response as success.
+                current = await linear.issue(issue["id"])
+                if (current.get("assignee") or {}).get("id") != repository.linear_assignee_id:
+                    raise
+            else:
+                if result.get("issueUpdate", {}).get("success") is not True:
+                    raise ValueError("Linear assignment requires reconciliation")
+                current = await linear.issue(issue["id"])
+        if current.get("id") != issue["id"]:
+            raise AccessDenied("Issue identity changed during assignment")
         linear.validate_issue(
             current,
             team_id=issue["team"]["id"],
@@ -130,6 +145,10 @@ async def poll_once(settings: Settings, store: Store, linear: LinearClient) -> i
             expected_title=issue["title"],
             expected_description=issue.get("description") or issue["title"],
         )
+        # Claiming an issue changes updatedAt. Recheck eligibility after the
+        # mutation too, so a concurrent completion/cancellation cannot start work.
+        if current.get("state", {}).get("type") not in {"backlog", "unstarted"}:
+            continue
         item = WorkItem(
             id=issue["id"],
             source_system="linear",

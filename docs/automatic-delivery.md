@@ -6,6 +6,14 @@ configured worker. An optional `Repository: owner/name` or `Repository: name` li
 must match the onboarded GitHub repository. Tickets assigned to someone else and
 completed/cancelled tickets are skipped.
 
+Intake checks the latest issue before assignment and rechecks its state after
+assignment. A completed, cancelled or already-started issue is not admitted from
+a stale discovery result. If an assignment response is lost, one read-back must
+confirm the expected worker, issue identity, team, text and eligible state before
+intake proceeds. Unconfirmed reads retain the polling cursor; the scan does not
+repeat the assignment mutation. These checks observe provider state at read time,
+not an atomic lock against subsequent human edits in Linear.
+
 The local service checks Linear every 30 seconds by default, persists one workflow,
 plans the change, automatically approves an eligible low-risk plan, builds and tests
 in Docker, obtains independent review, publishes a draft PR, checks GitHub CI and

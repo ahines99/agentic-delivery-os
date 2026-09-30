@@ -4,6 +4,19 @@ Updated 2026-09-30 UTC during continued controlled implementation. This is the c
 the original milestone documents remain the release targets. Source code alone is not a passed
 integration or production release gate.
 
+Linear intake now rechecks eligibility after assignment. A concurrent completion,
+cancellation or start cannot be admitted from the earlier discovery record once
+observed on read-back. An unavailable assignment response triggers one confirming
+read, with identity/team/text/assignee checks; no assignment mutation is repeated
+within that scan. The focused Linear monitor/adapter/ingress suite passed 129 tests,
+including controlled HTTP faults, SQLite persistence and fresh-client/store replay.
+Ruff, formatting and mypy passed. This is not an atomic provider lock or a live
+provider-fault exercise. Full new-source CI and installation are still pending.
+
+The earlier full Windows run collected at `0adc93d` completed: 3,145 passed and
+126 explicit service/platform skips in 4,642.41 seconds. Later tests and fixes are
+recorded separately; this local result does not cover the latest source.
+
 Model failure diagnostics now include fixed, sanitized HTTP error categories and a
 bounded Anthropic billing/quota hint. Existing provider observations, accounting and
 retry rules are unchanged. The focused model/receipt/reconciliation suite passed
