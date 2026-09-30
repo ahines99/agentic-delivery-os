@@ -20,6 +20,19 @@ provider fault reconciliation, broader evidence qualification and signed externa
 merge/close outcomes are distinct. The login service is local, not always-on hosting.
 Historical evaluation and the complete portfolio release remain open.
 
+Evaluation follow-up (2026-09-30): the package-preserving markdownify development task
+passed a freshly ordered complete qualification at `ec72597`: 13 runtime operations,
+two independent reviews and current authority validation. Three historical development
+tasks have completed qualification; none has been scored. The earlier late-plan attempt
+was rejected, its settled costs retained, and its account closed. The controller now
+rejects that sequence before runtime/model effects. Focused controller/admission checks
+passed 43 tests with one explicit Docker skip; Ruff, format, mypy and wheel/sdist build
+also passed. The preceding package-profile revision passed the full local suite
+(3,143 passed, 125 explicit skips) and [hosted CI at `13902c3`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36673824570)
+(3,153 passed, 115 explicit skips on each Python version, service integration and secret
+scanning). Full CI for the subsequent chronology fix remains separately tracked. See the
+[attempt record](historical-development-attempts.md) for exact costs and artifact digests.
+
 ## Meaning of status
 
 | Status | Meaning |

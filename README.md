@@ -73,12 +73,12 @@ validation. Cached recovery added no calls or charges. Synthetic fixtures remain
 from historical admission, worker export, scoring and campaign use. See the
 [recorded qualification](docs/evaluation-calibration.md#completed-synthetic-qualification).
 
-Protected acquisition and v2 import have now reached actual execution for three historical
+Protected acquisition and v2 import have now reached actual execution for four historical
 development candidates. The [recorded attempts](docs/historical-development-attempts.md)
 retain a deterministic rejection and a truncated model review whose cost was reconciled.
-After separate capacity calibration, two candidates passed all deterministic checks,
-two independent model reviews each and current authority validation. Two development tasks
-are qualified; no historical task has been scored or used in a campaign. A separately
+After calibrated reviews, three candidates passed all deterministic checks,
+two independent model reviews each and authority validation. Three development tasks
+have completed qualification; no historical task has been scored or used in a campaign. A separately
 frozen final-scorer configuration passed all five owned development anchors; this is
 [calibration evidence](docs/semantic-calibration.md), not historical accuracy.
 A separate [owned adjudicator calibration](docs/semantic-adjudication-calibration.md#recorded-live-owned-calibration)

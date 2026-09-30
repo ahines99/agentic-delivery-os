@@ -4,7 +4,19 @@ Updated 2026-09-30 UTC during continued controlled implementation. This is the c
 the original milestone documents remain the release targets. Source code alone is not a passed
 integration or production release gate.
 
-Latest complete hosted verification: [CI at `c03a945`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36664407290)
+Latest complete hosted verification: [CI at `13902c3`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36673824570)
+passed Python 3.12/3.13 (3,153 tests and 115 explicit skips each), actual service
+integration and secret scanning. The corresponding local package-profile suite passed
+3,143 tests with 125 explicit Windows/service skips. The subsequent chronology fix at
+`ec72597` passed 43 focused controller/admission tests with one explicit Docker skip,
+Ruff, formatting, mypy and package builds; full CI for that fix remains pending.
+
+Three historical development tasks have now completed qualification. The newest
+markdownify attempt passed a freshly ordered runtime matrix, two independent reviews
+and authority validation; an earlier late-plan attempt and its costs remain retained.
+No historical scoring or campaign ran. See the [protected attempt record](historical-development-attempts.md).
+
+Earlier runtime verification: [CI at `c03a945`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36664407290)
 passed both Python versions (3,114 tests and 114 explicit skips each), 114 actual service
 integration tests and secret scanning. This includes automatic-runtime, Windows snapshot,
 Linear PR-link and local lint/format correction changes. The earlier

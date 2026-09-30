@@ -261,9 +261,41 @@ stage chronology before execution/review effects, including attempts to attach a
 or externally frozen late plan to an already executed runtime. Owned regression tests
 check that these cases make no model calls and preserve the prior accounting.
 
+A fresh full attempt at `ec725971f3a4a5ec57ae76e6ea95912c9969a613` then froze its plan
+before runtime under a new finite account in the same prospectively capped program.
+The prepared task, requirements, source, oracle and frozen selectors were unchanged.
+It completed 13 fresh runtime operations, two independent semantic reviews and full
+current admission validation: **QUALIFICATION_PASS**. No adjudication was required.
+The qualification artifact is
+`3c2775d4a7a3670bb8234d0fe0242f8d33842b4531a0fdf6ccf1d0bbe6f31d7f`.
+
+Account `markdownify-pr264-development-v87` settled all 15 operations and closed with
+zero reservation: 1,176,380 model microdollars (183,456 input and 10,364 output tokens)
+plus 27 configured infrastructure microdollars. Earlier rejected attempts and their
+costs remain separate retained records. This is the third completed historical
+development qualification; no worker export, scoring or campaign was authorized.
+
 Further bounded metadata screening retained two unsupported inflection changes and four
 unsupported markdownify changes. Four additional markdownify pairs passed metadata checks:
 PR 230/issue 226, PR 214/issue 212, PR 202/issue 201 and PR 200/issue 199. These follow-ups
 made 20 requests totaling 125,219 bytes, without source, patch or issue-body retrieval.
-The four additional candidates have not been acquired or qualified. Related-task grouping,
-edited-issue provenance and executable relevance remain qualification obligations.
+PR 230/issue 226 subsequently completed protected acquisition and the explicit test-package
+derivation: 21 baseline files, 88,461 source bytes, two changed files, one changed-test
+relocation and one frozen acceptance selector. Acquisition made 29 requests totaling
+226,234 bytes. Its derivation is
+`a1c7157676d7d4d0f048047cf174d936bc56ec2a1e4d736295ffaf887d7cab7f`.
+Subsequent protected issue capture retained a provider-reported pre-solution edited body;
+two matching provider reads froze the accepted-fix linkage. Exact MIT-text observation
+and pre-issue license-history checks passed. Static dependency checks found four
+declarations and no unresolved expressions; the two attribution indicators were identical
+literal package contact fields. An offline scan of 32 prospective input files found no
+configured secret patterns, costing one settled infrastructure microdollar with the
+account closed. These observations are bounded evidence, not exhaustive clearance.
+
+The existing v2 importer accepted task `markdownify-pr230-issue226-development-v88`
+with one acceptance selector and 83 frozen regression nodes, retaining exact source and
+oracle bytes. Its runtime dependencies match the already pinned image. The state is
+**IMPORTED_NOT_QUALIFIED**: no model call, repository execution or qualification has
+occurred. The other three candidates remain metadata-only. Related-task grouping,
+runtime and independent semantic qualification remain obligations; the accepted solution
+and oracle stay outside implementation-agent context.
