@@ -12,14 +12,15 @@ passed. This newer logging change is not yet installed or fully regression-quali
 Durable records remain authoritative, and the complete lifecycle/quality metrics
 requirement remains open.
 
-The local service is now running `6b74944`, including attachment-response and terminal
-command redelivery recovery, manual acceptance and the
+The local service is now running `f489947`, including automatic confirmation of an
+existing publication after worker failure, attachment-response and terminal command
+redelivery recovery, manual acceptance and the
 worker-independent container lifetime. The [idle upgrade record](local-runtime-upgrade.md)
 confirms readiness, fresh Temporal pollers, advancing Linear detection, authenticated
 manual-review routing and preserved exact PR #6/#7 handoff bindings. Application source
-at this installed head passed [complete CI](https://github.com/ahines99/agentic-delivery-os/actions/runs/36748606468):
-Python 3.12/3.13 (3,324 tests and 145 explicit skips each), all
-145 service integration tests, package builds and secret scanning. The full Windows
+at this installed head passed [complete CI](https://github.com/ahines99/agentic-delivery-os/actions/runs/36754579549):
+Python 3.12/3.13 (3,349 tests and 151 explicit skips each), all
+154 service integration tests, package builds and secret scanning. The full Windows
 feature runs and later test-fixture correction remain separately tracked.
 
 The [publisher-process-loss drill](publication-process-loss.md) passed three real
@@ -33,8 +34,9 @@ the final crash, CI and cancellation selection passed 13 tests in 163.82 seconds
 including history replay. The broader publication/authority/manual/service/replay
 selection passed 168 tests with four explicit Docker-profile skips. Ruff, format and
 mypy passed. An existing valid draft resumes the normal gates; missing/conflicting
-effects remain blocked, and cancellation never schedules recovery. Full-branch CI,
-Windows regression and installation of this newer change remain pending.
+effects remain blocked, and cancellation never schedules recovery. Complete hosted
+CI and the idle supervised installation have now passed as recorded above; Windows
+regression at this source remains running.
 
 The [terminal outbox redelivery follow-up](postgres-faults.md#terminal-redelivery-follow-up-2026-09-30)
 passed the expanded 15-case PostgreSQL/Temporal fault suite in 8.43 seconds. All three
@@ -58,7 +60,9 @@ read-only live query confirmed the existing PER-13/PR #6 attachment. Its [comple
 hosted CI at `79490f3`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36746926634)
 passed Python 3.12/3.13 (3,321 tests and 141 skips each), all 141 service integration
 tests, package builds and secret scanning. Installation through `6b74944` is recorded
-above; the full Windows run remains pending.
+above. The full Windows suite at `79490f3` subsequently passed **3,311 tests with
+151 explicit skips in 5,274.88 seconds**. Later source revisions retain their own
+separate verification results.
 
 Linear intake now rechecks eligibility after assignment. A concurrent completion,
 cancellation or start cannot be admitted from the earlier discovery record once

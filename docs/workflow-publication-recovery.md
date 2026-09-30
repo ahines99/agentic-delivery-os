@@ -24,8 +24,11 @@ including all five abrupt-exit cases with actual Temporal history assertions and
 the CI/cancellation regressions. The histories confirm one publication, one recovery,
 one heartbeat timeout and one candidate execution in each crash case. Cancellation
 confirms cleanup and no recovery schedule. Ruff, formatting and mypy passed.
-Full-branch CI and Windows regression remain pending; this feature is not installed
-by the separate `6b74944` runtime upgrade.
+[Complete hosted CI at `f489947`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36754579549)
+subsequently passed Python 3.12/3.13 (3,349 tests and 151 skips each), all 154 service
+integration tests, builds and secret scanning. The feature was then installed through
+the [verified idle upgrade](local-runtime-upgrade.md). Windows regression remains
+running; this does not constitute a new live ticket or completed pilot.
 
 The first combined run retained 12 passes and one cancellation test timeout. Its
 15-second test deadline was shorter than Temporal's possible heartbeat-throttled

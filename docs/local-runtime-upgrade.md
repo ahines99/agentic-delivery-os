@@ -1,5 +1,31 @@
 # Local runtime upgrades
 
+## Automatic publication recovery (2026-09-30)
+
+The installed service was upgraded from `6b74944` to `f489947` after its
+[complete hosted CI](https://github.com/ahines99/agentic-delivery-os/actions/runs/36754579549)
+passed all jobs: Python 3.12/3.13 each passed 3,349 tests with 151 skips; the service
+job passed all 154 integration tests, including actual publishing-worker process
+loss and replacement recovery. Package builds and secret scanning also passed.
+The integration marker selection differs from the per-Python default skip selection;
+these are separate runs, not additive coverage.
+
+Both the live database and Temporal queue were idle before stopping the verified
+supervisor/process tree, and remained idle in the second check before fast-forward.
+The unchanged Windows task and private configuration then restarted the service.
+At **18:20:49 UTC**, API/database readiness, fresh workflow/activity pollers and the
+advancing Linear cursor (**18:20:45.465432 UTC**) were confirmed. All nine workflow
+states and both exact PER-13/14 workflow/PR/head bindings were retained; the binding
+digest stayed `c3bccc33e891da90cb82329bbf6ac3cf410ea24a797448929d9e34809b176dd6`.
+Upgrade verification made no new provider mutation and did not merge a PR.
+
+ADR-032 is now installed. After publication uncertainty, new workflows may confirm
+an existing verified draft and resume the ordinary CI/manual/tracker gates. Missing
+or conflicting effects remain blocked. This upgrade does not install the newer
+`bb56d76` operational-event logging change, whose full verification is separate.
+Windows regression at `f489947` remains running. No host reboot, arbitrary surviving
+worker fencing or new live ticket result is claimed by this restart.
+
 ## Attachment and terminal-command recovery (2026-09-30)
 
 The installed service was upgraded from the `f3bcbc6` application to `6b74944` after

@@ -16,7 +16,7 @@ with [PR #7](https://github.com/ahines99/agentic-delivery-os/pull/7). The delive
 at `8413dc4` passed [full CI](https://github.com/ahines99/agentic-delivery-os/actions/runs/36668888799).
 The installed service subsequently received cancellation, response-recovery, intake,
 manual-acceptance, bounded-container-lifetime, attachment-response and terminal-command
-recovery changes through `6b74944`;
+recovery changes plus automatic existing-publication recovery through `f489947`;
 the [verification status](docs/implementation-status.md) distinguishes later changes and checks. See the
 [live evidence and recovery record](docs/live-automatic-delivery.md). The [webhook gateway](docs/linear-ingress.md)
 supports both providers, and the outbound monitor provides automatic intake without a tunnel.

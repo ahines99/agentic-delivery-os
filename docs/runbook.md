@@ -15,8 +15,9 @@ Ambiguity pauses the workflow; edit the ticket to answer the clarification. A
 successful run attaches a tested draft PR and moves the ticket to In Review.
 Human review and merge remain separate.
 
-The installed application is `6b74944`; its hosted checks and supervised restart
-passed. Newer workflow publication recovery awaits full qualification and installation.
+The installed application is `f489947`; its hosted checks and supervised restart
+passed, including automatic confirmation of an existing publication after worker
+failure. Newer correlated-event logging still awaits complete verification and installation.
 See the [upgrade record](local-runtime-upgrade.md) and [verification status](implementation-status.md)
 for exact evidence. GitHub App and Linear credentials are already configured here.
 Installing the App on all repositories does not enable additional execution targets;
