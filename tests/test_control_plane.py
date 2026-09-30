@@ -247,6 +247,37 @@ async def test_linear_changed_unsigned_delivery_id_is_deduplicated(
         assert second.json()["duplicate"]
 
 
+@pytest.mark.parametrize(
+    "data", [None, [], "issue1", {"title": "Add filter"}, {"id": "issue1", "title": 7}]
+)
+async def test_malformed_signed_linear_issue_is_rejected_not_crashed(
+    store: Store,
+    settings: Settings,
+    monkeypatch: pytest.MonkeyPatch,
+    data: object,
+) -> None:
+    monkeypatch.setenv("LINEAR_WEBHOOK_SECRET", SIGNING_SECRET)
+    payload = {
+        "type": "Issue",
+        "action": "create",
+        "organizationId": "org1",
+        "webhookTimestamp": int(time.time() * 1000),
+        "data": data,
+    }
+    raw = json.dumps(payload).encode()
+    signature = hmac.new(SIGNING_SECRET.encode(), raw, hashlib.sha256).hexdigest()
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=create_app(settings, store)), base_url="http://test"
+    ) as client:
+        response = await client.post(
+            "/webhooks/linear",
+            content=raw,
+            headers={"Linear-Signature": signature, "Linear-Delivery": "delivery1"},
+        )
+    assert response.status_code == 422
+    assert store.list_workflows(("example/project",)) == []
+
+
 def test_artifact_corruption_and_traversal_are_rejected(tmp_path: Path) -> None:
     artifacts = ArtifactStore(tmp_path, max_bytes=10)
     digest = artifacts.put(b"evidence")

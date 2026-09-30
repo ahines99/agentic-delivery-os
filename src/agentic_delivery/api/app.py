@@ -210,7 +210,11 @@ def create_app(settings: Settings | None = None, store: Store | None = None) -> 
             raise AccessDenied("Linear organization not authorized")
         if payload.get("type") != "Issue" or payload.get("action") not in {"create", "update"}:
             return {"status": "ignored", "reason": "Unsupported event"}
-        data = payload.get("data", {})
+        data = payload.get("data")
+        if not isinstance(data, dict) or not all(
+            isinstance(data.get(field), str) and data[field] for field in ("id", "title")
+        ):
+            raise ValueError("Signed Linear issue payload is malformed")
         repository = next(
             (
                 r
