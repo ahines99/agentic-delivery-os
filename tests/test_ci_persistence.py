@@ -7,6 +7,7 @@ from pathlib import Path
 
 import httpx
 import pytest
+from lifecycle_fixtures import advance
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -570,7 +571,7 @@ async def test_handoff_readiness_checks_current_approval_and_artifact_context(
             {"workflow_id": identity, "configuration_digest": policy, "publication": details}
         ).encode()
     )
-    store.project(identity, 1, "HUMAN_REVIEW", actor="workflow", reason="fixture")
+    advance(store, identity, "HUMAN_REVIEW", actor="workflow", reason="fixture")
     assert save(store, store.ci_generation(REPOSITORY, HEAD), policy=policy, evidence=evidence)
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=create_app(settings, store)), base_url="http://test"

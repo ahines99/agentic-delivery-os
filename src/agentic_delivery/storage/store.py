@@ -13,7 +13,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from agentic_delivery.config import Budget
-from agentic_delivery.domain.models import WorkItem
+from agentic_delivery.domain.lifecycle import allowed_transitions
+from agentic_delivery.domain.models import WorkItem, WorkState
 from agentic_delivery.integrations.checks import (
     MAX_OBSERVATIONS,
     CheckRunObservation,
@@ -1037,6 +1038,12 @@ class Store:
                 return
             if sequence != run.sequence + 1:
                 raise Conflict("Projection sequence gap")
+            try:
+                legal = WorkState(state) in allowed_transitions(WorkState(run.state))
+            except ValueError:
+                legal = False
+            if not legal:
+                raise Conflict("Illegal lifecycle transition")
             session.add(
                 AuditRecord(
                     id=str(uuid4()),

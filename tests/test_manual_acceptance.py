@@ -6,6 +6,7 @@ from uuid import uuid4
 
 import httpx
 import pytest
+from lifecycle_fixtures import advance
 from sqlalchemy import update
 from test_evidence_manifest import manifest_fixture, put
 from test_manual_manifest import add_manual
@@ -94,8 +95,12 @@ def prepare_manual(tmp_path, *, database_url=None, project=True, linear=False):
             command["artifact_digest"] = put(artifacts, receipt)
     digest = put(artifacts, manifest)
     if project:
-        store.project(
-            identity, 1, "ACCEPTANCE_CHECK", actor="owned-fixture", reason="Pending manual fixture"
+        advance(
+            store,
+            identity,
+            "ACCEPTANCE_CHECK",
+            actor="owned-fixture",
+            reason="Pending manual fixture",
         )
     store.save_publication(
         identity,

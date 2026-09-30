@@ -129,6 +129,19 @@ def test_projection_cannot_rewind_or_skip_sequence(store: Store) -> None:
         assert session.scalar(select(func.count()).select_from(AuditRecord)) == 1
 
 
+def test_projection_enforces_lifecycle_edges(store: Store) -> None:
+    identity = submit(store)
+    for state in ("HUMAN_REVIEW", "PR_OPEN", "INVENTED", "new"):
+        with pytest.raises(Conflict, match="Illegal lifecycle transition"):
+            store.project(identity, 1, state, actor="workflow", reason="skip")
+    store.project(identity, 1, "INGESTED", actor="workflow", reason="ingestion")
+    store.project(identity, 2, "CANCELLED", actor="workflow", reason="stop")
+    with pytest.raises(Conflict, match="Illegal lifecycle transition"):
+        store.project(identity, 3, "FAILED", actor="workflow", reason="after terminal")
+    assert store.workflow(identity)["state"] == "CANCELLED"
+    assert len(store.events(identity)) == 2
+
+
 def test_budget_reservation_survives_failure_and_settlement_is_idempotent(store: Store) -> None:
     identity = submit(store)
     assert store.reserve(identity, "operation1", 4_000_000, 1000, 1000) is None

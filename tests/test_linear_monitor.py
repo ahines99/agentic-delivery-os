@@ -4,6 +4,7 @@ from datetime import UTC, datetime, timedelta
 
 import httpx
 import pytest
+from lifecycle_fixtures import advance
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -327,9 +328,9 @@ def planned(settings, store, *, source="linear", **changes):
             }
         ).encode()
     )
-    store.project(
+    advance(
+        store,
         identity,
-        1,
         "PLAN_REVIEW",
         actor="owned-test",
         reason="Owned plan fixture",
@@ -423,7 +424,7 @@ def test_manual_criteria_may_start_build_but_do_not_receive_human_acceptance(set
 async def paused_ticket(settings, store, linear):
     await poll_once(settings, store, linear)
     run = store.list_workflows(("owned/project",))[0]
-    store.project(run["id"], 1, "NEEDS_CLARIFICATION", actor="owned-test", reason="Missing choice")
+    advance(store, run["id"], "NEEDS_CLARIFICATION", actor="owned-test", reason="Missing choice")
     linear.nodes[0]["description"] = "Use ascending customer IDs."
     await poll_once(settings, store, linear)
     with Session(store.engine) as session:
@@ -464,9 +465,9 @@ async def test_ticket_edit_clarifies_once_with_same_workflow_budget_and_source(s
     assert revision["digest"] != before["spec_digest"]
     assert revision["item"]["description"] == linear.nodes[0]["description"]
     assert revision["item"]["id"] == before["work_item"]["id"]
-    store.project(
+    advance(
+        store,
         identity,
-        2,
         "ANALYZING",
         actor="owned-test",
         reason="Replan",
@@ -540,14 +541,8 @@ async def test_clarification_can_return_to_original_ticket_text(setup):
     identity, command_id = await paused_ticket(settings, store, linear)
     item = WorkItem.model_validate(store.command(command_id)["payload"]["item"])
     digest = store.record_specification(identity, item)
-    store.project(
-        identity,
-        2,
-        "NEEDS_CLARIFICATION",
-        actor="owned-test",
-        reason="Still ambiguous",
-        spec_digest=digest,
-    )
+    advance(store, identity, "ANALYZING", actor="owned-test", reason="Replan", spec_digest=digest)
+    advance(store, identity, "NEEDS_CLARIFICATION", actor="owned-test", reason="Still ambiguous")
     linear.nodes[0]["description"] = original
     await poll_once(settings, store, linear)
     with Session(store.engine) as session:
