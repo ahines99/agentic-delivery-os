@@ -17,7 +17,9 @@ or merge. Every merge remains human.
 Use outbound Linear polling in the local runtime, following Agentic Product Ops'
 bounded pagination, fixed enrollment date, overlapping cursor and idempotent intake
 approach. The cursor advances only after a complete successful scan. Changed existing
-ticket content is held without creating another run/budget. New unassigned eligible
+ticket content is held without creating another run/budget, except for the explicit
+paused-clarification refinement in [ADR-028](ADR-028-linear-clarification-edits.md).
+New unassigned eligible
 issues are assigned to the configured worker; issues assigned elsewhere are skipped.
 An explicit `Repository: name` must match the configured target. Existing signed
 webhook intake remains supported; both routes converge on the same source identity.

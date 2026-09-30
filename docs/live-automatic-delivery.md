@@ -85,3 +85,15 @@ The observer uses only Pull requests read permission, persists metadata with
 webhook, PR mutation or model call was involved. The live record proves closure
 readback; merged and changed-head cases are exercised with controlled HTTP responses,
 not an actual human merge. See [ADR-027](adr/ADR-027-outbound-publication-observation.md).
+
+## Linear clarification follow-up
+
+PER-14 (`c38a4485-7ddb-41f1-b470-e02dc50e6b77`) deliberately omitted a required sorting
+direction. Actual planning reached NEEDS_CLARIFICATION at 2026-09-30 04:24:24 UTC,
+with 61,370 settled model microdollars and no reservation. No candidate was built.
+The owned test ticket was then edited to specify ascending order. The monitor
+recorded one APPLIED `clarify` command under `linear-monitor`; the same workflow
+resumed ANALYZING at 04:25:39 UTC, changing its specification digest while retaining
+its original budget and spending. No operator API clarification or new attempt was
+used. Completion of the revised delivery is tracked separately from this pause/resume
+proof. [ADR-028](adr/ADR-028-linear-clarification-edits.md) defines the narrow behavior.

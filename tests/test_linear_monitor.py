@@ -72,6 +72,8 @@ class OwnedLinear(LinearClient):
         self.calls.append((query, variables))
         if self.fail:
             raise ValueError("owned transport failure")
+        if "DeliveryClarification" in query:
+            return {"organization": {"id": self.organization}, "issue": deepcopy(self.nodes[0])}
         if "DeliveryAssign" in query:
             self.nodes[0]["assignee"] = {"id": variables["input"]["assigneeId"]}
             return {"issueUpdate": {"success": True}}
@@ -277,3 +279,156 @@ def test_local_fixture_does_not_receive_automatic_approval(setup):
     settings, store = setup
     planned(settings, store, source="local")
     assert approve_plans(settings, store) == 0
+
+
+async def paused_ticket(settings, store, linear):
+    await poll_once(settings, store, linear)
+    run = store.list_workflows(("owned/project",))[0]
+    store.project(run["id"], 1, "NEEDS_CLARIFICATION", actor="owned-test", reason="Missing choice")
+    linear.nodes[0]["description"] = "Use ascending customer IDs."
+    await poll_once(settings, store, linear)
+    with Session(store.engine) as session:
+        command = session.scalar(select(CommandRecord).where(CommandRecord.kind == "clarify"))
+        return run["id"], command.id
+
+
+async def test_ticket_edit_clarifies_once_with_same_workflow_budget_and_source(setup, monkeypatch):
+    settings, store = setup
+    linear = OwnedLinear()
+    identity, command_id = await paused_ticket(settings, store, linear)
+    before = store.workflow(identity)
+    await poll_once(settings, store, linear)
+    with Session(store.engine) as session:
+        assert (
+            session.scalar(
+                select(func.count())
+                .select_from(CommandRecord)
+                .where(CommandRecord.kind == "clarify")
+            )
+            == 1
+        )
+
+    async def query(self, query, variables):
+        return await linear.query(query, variables)
+
+    monkeypatch.setattr(LinearClient, "query", query)
+    activities = Activities(settings, store)
+    command = await activities.resolve_command({"workflow_id": identity, "command_id": command_id})
+    assert command["actor"] == "linear-monitor"
+    revision = await activities.clarify(
+        {
+            "workflow_id": identity,
+            "item": command["payload"]["item"],
+            "expected_repository": "owned/project",
+        }
+    )
+    assert revision["digest"] != before["spec_digest"]
+    assert revision["item"]["description"] == linear.nodes[0]["description"]
+    assert revision["item"]["id"] == before["work_item"]["id"]
+    store.project(
+        identity,
+        2,
+        "ANALYZING",
+        actor="owned-test",
+        reason="Replan",
+        spec_digest=revision["digest"],
+    )
+    await poll_once(settings, store, linear)
+    after = store.workflow(identity)
+    assert after["budget"] == before["budget"]
+    assert after["spent_microdollars"] == before["spent_microdollars"]
+    assert len(store.list_workflows(("owned/project",))) == 1
+    assert not MonitorState.model_validate_json(settings.linear_monitor_state.read_text()).held
+
+
+@pytest.mark.parametrize(
+    "change", ["text", "assignee", "team", "organization", "state", "authority"]
+)
+async def test_stale_or_unauthorized_linear_clarification_is_rejected(setup, monkeypatch, change):
+    settings, store = setup
+    linear = OwnedLinear()
+    identity, command_id = await paused_ticket(settings, store, linear)
+    if change == "text":
+        linear.nodes[0]["description"] = "A newer unqueued answer"
+    elif change == "assignee":
+        linear.nodes[0]["assignee"] = {"id": "other"}
+    elif change == "team":
+        linear.nodes[0]["team"] = {"id": "other"}
+    elif change == "organization":
+        linear.organization = "other"
+    elif change == "state":
+        linear.nodes[0]["state"] = {"id": "done", "type": "completed"}
+
+    async def query(self, query, variables):
+        return await linear.query(query, variables)
+
+    monkeypatch.setattr(LinearClient, "query", query)
+    current = (
+        settings.model_copy(update={"admissions_enabled": False})
+        if change == "authority"
+        else settings
+    )
+    activities = Activities(settings, store, settings_provider=lambda: current)
+    assert (
+        await activities.resolve_command({"workflow_id": identity, "command_id": command_id})
+        is None
+    )
+    assert store.command(command_id)["status"] == "REJECTED"
+    assert store.workflow(identity)["state"] == "NEEDS_CLARIFICATION"
+
+
+async def test_clarification_transport_failure_is_retryable_without_acceptance(setup, monkeypatch):
+    settings, store = setup
+    linear = OwnedLinear()
+    identity, command_id = await paused_ticket(settings, store, linear)
+    linear.fail = True
+
+    async def query(self, query, variables):
+        return await linear.query(query, variables)
+
+    monkeypatch.setattr(LinearClient, "query", query)
+    with pytest.raises(ValueError, match="transport"):
+        await Activities(settings, store).resolve_command(
+            {"workflow_id": identity, "command_id": command_id}
+        )
+    assert store.command(command_id)["status"] == "RECEIVED"
+
+
+async def test_clarification_can_return_to_original_ticket_text(setup):
+    settings, store = setup
+    linear = OwnedLinear()
+    original = linear.nodes[0]["description"]
+    identity, command_id = await paused_ticket(settings, store, linear)
+    item = WorkItem.model_validate(store.command(command_id)["payload"]["item"])
+    digest = store.record_specification(identity, item)
+    store.project(
+        identity,
+        2,
+        "NEEDS_CLARIFICATION",
+        actor="owned-test",
+        reason="Still ambiguous",
+        spec_digest=digest,
+    )
+    linear.nodes[0]["description"] = original
+    await poll_once(settings, store, linear)
+    with Session(store.engine) as session:
+        commands = session.scalars(
+            select(CommandRecord).where(CommandRecord.kind == "clarify")
+        ).all()
+        assert len(commands) == 2
+        assert any(c.payload["item"]["description"] == original for c in commands)
+
+
+@pytest.mark.parametrize(
+    "field,value", [("risk_tier", 0), ("repository", "other/project"), ("source_system", "local")]
+)
+async def test_automation_cannot_change_nontext_fields(setup, field, value):
+    settings, store = setup
+    linear = OwnedLinear()
+    identity, command_id = await paused_ticket(settings, store, linear)
+    command = store.command(command_id)
+    command["payload"]["item"][field] = value
+    with pytest.raises(ValueError, match="only ticket text"):
+        await Activities(settings, store).validate_linear_clarification(
+            store.workflow(identity), command
+        )

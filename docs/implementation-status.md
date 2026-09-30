@@ -112,6 +112,13 @@ crash recovery or live-provider reconciliation.
 
 ## Implemented and exercised
 
+[Linear clarification edits](adr/ADR-028-linear-clarification-edits.md) now resume an
+already paused workflow from verified ticket text, preserving its original budget.
+PER-14 exercised actual ambiguity, one source edit, one applied clarification command
+and replanning in the same workflow. Sixty-nine focused monitor/authorization/control-
+plane tests passed; a separate 55-case scope including actual Temporal restart/replay
+also passed. Counts overlap. The revised ticket's final delivery remains in progress.
+
 [Outbound publication observation](adr/ADR-027-outbound-publication-observation.md)
 now lets the local service notice closed, merged or changed PRs without a webhook.
 The real App read-only path reconciled the five retained product PRs: #2?#5 CLOSED,

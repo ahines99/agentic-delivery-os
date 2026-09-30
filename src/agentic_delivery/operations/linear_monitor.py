@@ -138,13 +138,37 @@ async def poll_once(settings: Settings, store: Store, linear: LinearClient) -> i
             repository=repository.id,
             base_branch=repository.base_branch,
         )
+        run = store.latest_source_workflow(item)
+        if run:
+            previous = WorkItem.model_validate(run["work_item"])
+            revision = previous.model_copy(
+                update={"title": item.title, "description": item.description}
+            )
+            if revision == previous:
+                continue
+            if run["state"] == "NEEDS_CLARIFICATION":
+                payload = {
+                    "expected_sequence": run["sequence"],
+                    "spec_digest": run["spec_digest"],
+                    "item": revision.model_dump(mode="json"),
+                }
+                store.enqueue_command(
+                    run["id"],
+                    kind="clarify",
+                    actor="linear-monitor",
+                    key=digest_json([run["id"], payload]),
+                    payload=payload,
+                )
+            else:
+                held.append(item.id)
+            continue
         try:
             store.submit(
                 item,
                 actor="linear-monitor",
                 key=digest_json(item.model_dump(mode="json")),
                 budget=settings.budget,
-                configuration_digest=settings.execution_digest(repository.id),
+                configuration_digest=settings.execution_digest(item.repository),
             )
         except Conflict:
             held.append(item.id)

@@ -721,6 +721,18 @@ class Store:
             ).all()
         return [self.workflow(identity) for identity in ids]
 
+    def latest_source_workflow(self, item: WorkItem) -> dict[str, Any] | None:
+        source_key = digest_json([item.source_system, item.repository, item.id])
+        with Session(self.engine) as session:
+            identity = session.scalar(
+                select(RunRecord.id)
+                .join(WorkRecord)
+                .where(WorkRecord.source_key == source_key)
+                .order_by(RunRecord.created_at.desc(), RunRecord.id.desc())
+                .limit(1)
+            )
+        return self.workflow(identity) if identity else None
+
     def operational_summary(self, repositories: tuple[str, ...]) -> dict[str, Any]:
         with Session(self.engine) as session:
             scope = (

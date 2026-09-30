@@ -155,6 +155,9 @@ class Activities:
             return None
         run = self.store.workflow(request["workflow_id"])
         try:
+            if command["actor"] == "linear-monitor":
+                await self.validate_linear_clarification(run, command)
+                return command
             if command["actor"] == "delivery-automation":
                 if command["kind"] != "approve-plan":
                     raise AccessDenied("Automation can only approve eligible plans")
@@ -176,6 +179,66 @@ class Activities:
             )
             return None
         return command
+
+    async def validate_linear_clarification(
+        self, run: dict[str, Any], command: dict[str, Any]
+    ) -> None:
+        """Accept only a fresh assigned ticket edit for an already paused workflow."""
+        self.validate_configuration(run["id"])
+        current = self.current_settings()
+        repository = current.repository(run["repository"])
+        original = WorkItem.model_validate(run["work_item"])
+        payload = command["payload"]
+        if (
+            command["kind"] != "clarify"
+            or run["state"] != "NEEDS_CLARIFICATION"
+            or not current.admissions_enabled
+            or current.linear_poll_start is None
+            or not current.linear_organization_id
+            or not repository.automatic_execution
+            or not repository.model_data_authorized
+            or not repository.linear_team_id
+            or not repository.linear_assignee_id
+            or original.source_system != "linear"
+            or set(payload) != {"expected_sequence", "spec_digest", "item"}
+            or payload["expected_sequence"] != run["sequence"]
+            or payload["spec_digest"] != run["spec_digest"]
+        ):
+            raise AccessDenied("Automatic Linear clarification is not authorized")
+        revision = WorkItem.model_validate(payload["item"])
+        expected = original.model_copy(
+            update={"title": revision.title, "description": revision.description}
+        )
+        if revision != expected or revision == original:
+            raise AccessDenied("Linear clarification may change only ticket text")
+        result = await LinearClient().query(
+            "query DeliveryClarification($id: String!) { organization { id } "
+            "issue(id: $id) { id title description team { id } assignee { id } "
+            "state { type } } }",
+            {"id": original.id},
+        )
+        issue = result.get("issue")
+        if (
+            result.get("organization", {}).get("id") != current.linear_organization_id
+            or not isinstance(issue, dict)
+            or issue.get("id") != original.id
+            or issue.get("state", {}).get("type") not in {"backlog", "unstarted"}
+        ):
+            raise AccessDenied("Linear clarification source changed")
+        try:
+            LinearClient.validate_issue(
+                issue,
+                team_id=repository.linear_team_id,
+                assignee_id=repository.linear_assignee_id,
+                expected_title=revision.title,
+                expected_description=revision.description,
+            )
+        except ValueError:
+            raise AccessDenied(
+                "Linear clarification no longer matches the assigned ticket"
+            ) from None
+        if self.current_settings() != current:
+            raise AccessDenied("Linear clarification authority changed during read")
 
     @activity.defn(name="project")
     async def project(self, request: dict[str, Any]) -> None:

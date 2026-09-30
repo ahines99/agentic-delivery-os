@@ -14,6 +14,10 @@ available for human review and merge. Link creation uses Linear's
 [issue-and-URL idempotency](https://linear.app/developers/attachments), so a repeated
 handoff updates the same attachment.
 Ambiguous, high-risk, failed or stale work does not become review-ready.
+When a workflow is waiting for clarification, answer by editing the ticket title or
+description in Linear. The monitor resumes planning in the same workflow and budget
+after verifying the current assignment and text. Other in-flight or completed ticket
+edits remain held; they do not silently create another attempt.
 
 Configuration:
 
@@ -64,7 +68,8 @@ queues must remain separate: test fixtures can contain pending commands and old 
 Use authenticated `/work-items` and `/workflows/{id}` reads for progress. The monitor
 state records the last successful cursor and held source IDs; private service logs
 record polling failure types. Editing an already admitted ticket does not silently
-start a new budget. Resolve the existing workflow through clarification or rerun.
+start a new budget. A NEEDS_CLARIFICATION workflow accepts a verified ticket-text edit;
+other states require explicit workflow handling or an eligible rerun.
 
 See [ADR-025](adr/ADR-025-automatic-linear-delivery.md) for the owner-authorized change
 from mandatory human plan approval to explicit per-repository automation.
