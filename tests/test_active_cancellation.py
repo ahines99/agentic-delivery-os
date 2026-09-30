@@ -95,6 +95,7 @@ async def run_cancellation_drill(
     *,
     fail_cleanup_report: bool = False,
     expire_approval: bool = False,
+    expire_wall: bool = False,
 ) -> None:
     address = os.environ.get("TEST_TEMPORAL_ADDRESS")
     url = os.environ.get("TEST_DATABASE_URL")
@@ -111,7 +112,7 @@ async def run_cancellation_drill(
         task_queue="cancel-drill-" + uuid4().hex,
         artifact_root=tmp_path / "artifacts",
         human_wait_seconds=60,
-        budget=Budget(wall_seconds=180, command_seconds=180),
+        budget=Budget(wall_seconds=20 if expire_wall else 180, command_seconds=180),
         repositories=(
             RepositoryConfig(
                 id="demo/customer-service",
@@ -268,7 +269,7 @@ while True:
                     row = session.get(CommandRecord, approval["command_id"])
                     assert row is not None and row.workflow_id == identity
                     row.created_at = (datetime.now(UTC) - timedelta(days=2)).isoformat()
-            else:
+            elif not expire_wall:
                 cancel = store.enqueue_command(
                     identity,
                     kind="cancel",
@@ -287,7 +288,9 @@ while True:
                 assert await managed_names(runner, identity) == []
             elapsed = time.monotonic() - started
             assert elapsed < 30
-            expected_state = "FAILED" if fail_cleanup_report or expire_approval else "CANCELLED"
+            expected_state = (
+                "FAILED" if fail_cleanup_report or expire_approval or expire_wall else "CANCELLED"
+            )
             if fail_cleanup_report:
                 assert runner.cleanup_error_reported is True
                 assert cleanup_errors == ["SandboxError"]
@@ -312,12 +315,37 @@ while True:
                 event["next_state"] == "PR_OPEN" for event in fresh_store.events(identity)
             )
             assert fresh_store.workflow(identity)["spent_microdollars"] == 0
+            if expire_wall:
+                assert cancel is None
+                cleanup = fresh_store.workflow(identity)["result"]["candidate_cleanup"]
+                assert cleanup["status"] == "CLEANED" and cleanup["verified_absent"]
+                history = await handle.fetch_history()
+                scheduled = {}
+                for event in history.events:
+                    if event.HasField("activity_task_scheduled_event_attributes"):
+                        attributes = event.activity_task_scheduled_event_attributes
+                        scheduled[event.event_id] = attributes.activity_type.name
+                assert list(scheduled.values()).count("candidate") == 1
+                assert "publish" not in scheduled.values()
+                failures = [
+                    event.activity_task_failed_event_attributes.failure
+                    for event in history.events
+                    if event.HasField("activity_task_failed_event_attributes")
+                    and scheduled.get(
+                        event.activity_task_failed_event_attributes.scheduled_event_id
+                    )
+                    == "candidate"
+                ]
+                assert len(failures) == 1
+                assert failures[0].application_failure_info.type == "TimeoutError"
             finished = True
             print(
                 json.dumps(
                     {
                         "drill": (
-                            "active-docker-approval-expiry-v1"
+                            "active-docker-wall-budget-expiry-v1"
+                            if expire_wall
+                            else "active-docker-approval-expiry-v1"
                             if expire_approval
                             else "active-docker-cancellation-v1"
                         ),
@@ -326,6 +354,7 @@ while True:
                         "state": observed_state,
                         "injected_cleanup_acknowledgement_failure": fail_cleanup_report,
                         "injected_approval_expiry": expire_approval,
+                        "configured_wall_seconds": settings.budget.wall_seconds,
                         "cancel_command_sent": cancel is not None,
                         "managed_containers_remaining": 0,
                         "image": image,
@@ -374,3 +403,11 @@ async def test_expired_approval_stops_actual_docker_activity_without_cancel_comm
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     await run_cancellation_drill(tmp_path, monkeypatch, expire_approval=True)
+
+
+@pytest.mark.integration
+async def test_wall_budget_stops_actual_docker_activity_and_records_cleanup_without_cancel(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    await run_cancellation_drill(tmp_path, monkeypatch, expire_wall=True)

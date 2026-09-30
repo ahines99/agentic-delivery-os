@@ -208,3 +208,54 @@ print(json.dumps(checks))
         "metadata_denied",
     }
     assert all(checks.values())
+
+
+async def test_actual_dns_ipv6_and_raw_socket_transports_are_denied(sandbox: TrackedRunner) -> None:
+    # The DNS packet contains only the public example.com name, never host or
+    # repository data. Require a local routing denial, not merely a silent server.
+    probe = """import errno, json, socket, struct
+checks = {'loopback_only': [name for _, name in socket.if_nameindex()] == ['lo']}
+errors = {}
+query = struct.pack('!HHHHHH', 0xA11D, 0x0100, 1, 0, 0, 0)
+query += b'\\x07example\\x03com\\x00' + struct.pack('!HH', 1, 1)
+with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as dns:
+    dns.settimeout(1)
+    try:
+        dns.sendto(query, ('1.1.1.1', 53))
+        checks['dns_udp_denied'] = False
+    except OSError as exc:
+        errors['dns_udp'] = exc.errno
+        checks['dns_udp_denied'] = exc.errno == errno.ENETUNREACH
+try:
+    with socket.socket(socket.AF_INET6, socket.SOCK_STREAM) as ipv6:
+        ipv6.settimeout(1)
+        ipv6.connect(('2606:4700:4700::1111', 443))
+        checks['ipv6_denied'] = False
+except OSError as exc:
+    errors['ipv6'] = exc.errno
+    checks['ipv6_denied'] = exc.errno in {
+        errno.ENETUNREACH, errno.EAFNOSUPPORT, errno.EADDRNOTAVAIL}
+for name, family, protocol in [
+    ('raw_ip', socket.AF_INET, socket.IPPROTO_ICMP),
+    ('raw_packet', socket.AF_PACKET, 0),
+]:
+    try:
+        with socket.socket(family, socket.SOCK_RAW, protocol):
+            checks[name + '_denied'] = False
+    except OSError as exc:
+        errors[name] = exc.errno
+        checks[name + '_denied'] = exc.errno in {errno.EPERM, errno.EACCES}
+assert all(checks.values()), {'checks': checks, 'errno': errors}
+print(json.dumps({'checks': checks, 'errno': errors}))
+"""
+    result = await sandbox.run({}, ("python", "-I", "-c", probe), timeout_seconds=10)
+    assert result.exit_code == 0 and not result.timed_out, result.stderr
+    report = json.loads(result.stdout)
+    assert set(report["checks"]) == {
+        "loopback_only",
+        "dns_udp_denied",
+        "ipv6_denied",
+        "raw_ip_denied",
+        "raw_packet_denied",
+    }
+    assert all(report["checks"].values())

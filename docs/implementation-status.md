@@ -4,6 +4,13 @@ Updated 2026-09-30 UTC during continued controlled implementation. This is the c
 the original milestone documents remain the release targets. Source code alone is not a passed
 integration or production release gate.
 
+[Runtime qualification](runtime-budget-network-probes.md) now includes actual
+candidate wall-time expiry with persisted cleanup and no cancellation command,
+plus explicit DNS/IPv6/raw-socket denial. The four cancellation/runtime cases passed
+against isolated PostgreSQL, Temporal and Docker in 69.84 seconds. All six sandbox
+cases passed in 11.64 seconds. These are test additions on unchanged application
+source; hosted inclusion is pending.
+
 The [tool-output admission follow-up](product-admission-controls.md#tool-output-repair-follow-up)
 adds an actual Ruff diagnostic containing hostile instructions, followed by a
 controlled compromised repair response. The production edit guard rejects replacement
@@ -26,7 +33,10 @@ remain explicit in the report.
 timing and model reservation, settlement, cache recovery and uncertainty using
 allowlisted identifiers/numbers. Real Temporal/PostgreSQL and model-fault selections
 passed, as did the broader 141-test model/service selection; Ruff, format and mypy
-passed. This newer logging change is not yet installed or fully regression-qualified.
+passed. Logging source `bb56d76` subsequently passed
+[complete hosted CI](https://github.com/ahines99/agentic-delivery-os/actions/runs/36757550789):
+3,359 tests and 152 skips per Python version, all 155 service integration cases,
+builds and secret scanning. Its Windows run is still active; logging is not yet installed.
 Durable records remain authoritative, and the complete lifecycle/quality metrics
 requirement remains open.
 
