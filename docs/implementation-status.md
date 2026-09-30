@@ -4,8 +4,8 @@ Updated 2026-09-30 UTC during continued controlled implementation. This is the c
 the original milestone documents remain the release targets. Source code alone is not a passed
 integration or production release gate.
 
-Latest complete hosted verification: [CI at `7d98508`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36646987961)
-passed both Python versions (2,923 tests and 91 explicit skips each), 91 actual service
+Latest complete hosted verification: [CI at `07e0212`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36649538817)
+passed both Python versions (2,946 tests and 91 explicit skips each), 91 actual service
 integration tests and secret scanning. This includes the [campaign journal](campaign-journal.md),
 [completed semantic reader](semantic-consumption.md) and [whole-attempt reader](completed-attempt-reporting.md).
 They reconstruct original outcomes, early failures and optional exact adjudication under
@@ -69,8 +69,8 @@ successful/failed scoring and exact adjudication. Three existing execution/consu
 also passed. It does not attest complete program-ledger coverage or supply numerical,
 statistical, operational or pilot promotion. The hosted result above includes this report.
 This hosted result includes the whole-ledger census, prospective phase statistics and
-requirement inventory, criterion judgments and prospective program budgets. Later reconciliation
-and required execution-entry enrollment changes need their own exact-head hosted verification.
+requirement inventory, criterion judgments, prospective program budgets and concrete program
+reconciliation. Later required execution-entry enrollment needs its own exact-head verification.
 
 Prospective [phase statistics](adr/ADR-019-prospective-phase-statistics.md) now pin the bootstrap
 method and campaign seed before execution. The version-2 completed-attempt reader exposes

@@ -8,6 +8,7 @@ from types import SimpleNamespace
 
 import pytest
 import test_semantic_adjudication_execution as third_tests
+from program_fixtures import discard_owned_fixture_allocation
 from sqlalchemy import delete, select
 from test_campaign_attempt import (
     allocation_case,
@@ -50,14 +51,7 @@ def dispatched_case(attempt_case, campaign_seed, tmp_path, request):
     f = attempt_case
     ledger = f.case.ledger
     account = f.c.allocated.attempt.account_id
-    assert ledger.account(account)["spent_microdollars"] == 0
-    with ledger.engine.begin() as connection:
-        assert (
-            connection.scalar(select(operations.c.id).where(operations.c.account_id == account))
-            is None
-        )
-        connection.execute(delete(checkpoints).where(checkpoints.c.account_id == account))
-        connection.execute(delete(accounts).where(accounts.c.id == account))
+    discard_owned_fixture_allocation(ledger, account)
     f.state["fresh_allocation"] = True
     tasks = tuple(
         f.case.task

@@ -1381,3 +1381,22 @@ producing 61 passes and two missing-method failures in 16.64 seconds. The correc
 pins PYTHONPATH and asserts the loaded module path before running; its 63-pass result above
 covers the changed source. Neither earlier invocation is substituted for a passing new-source
 result. No paid request or historical payload was involved.
+
+
+E158: [Hosted CI at `07e0212`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36649538817)
+passed all four jobs. Python 3.12 passed 2,946 tests and 91 explicit skips in 1,736.46 seconds;
+Python 3.13 passed the same counts in 1,230.02 seconds. Actual PostgreSQL/Temporal/Docker
+integration passed 91 tests in 301.28 seconds; secret scanning passed. This verifies concrete
+program accounting reconciliation, not subsequent mandatory execution-entry enrollment.
+
+Combining enrollment with the subsequent criterion-reporting work exposed four setup errors:
+older dispatch fixtures deleted an unused account without its new lifecycle row, correctly
+triggering a foreign-key refusal. The same first-allocation scaffold appears in the coordinator
+fixture. The owned fixture helper now checks zero spend/reservations/tokens, no operations,
+only the two expected allocation checkpoints, OPEN local state and an ACTIVE owned registry
+envelope before discarding that unused scaffold. It removes the corresponding lifecycle row
+and registry envelope as part of test construction. Production exposes no such deletion API;
+its missing-ACTIVE-account and retained-liability rules are unchanged. All seven focused
+coordinator/dispatch/report cases passed in 168.29 seconds (56 deselected). The initial
+composed scope retained eight passes and
+four setup errors in 45.44 seconds; those errors do not establish a passing integration.

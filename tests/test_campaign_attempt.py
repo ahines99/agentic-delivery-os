@@ -8,6 +8,7 @@ from types import SimpleNamespace
 
 import httpx
 import pytest
+from program_fixtures import discard_owned_fixture_allocation
 from sqlalchemy import delete, select, update
 from test_campaign_candidate import (
     allocation_case,
@@ -603,14 +604,7 @@ async def test_first_run_allocates_fresh_canonical_account_exactly_once(attempt_
     account = f.c.allocated.attempt.account_id
     # Remove only the unused, zero-operation fixture allocation so this case enters
     # the real first-allocation branch; the owned controller supplies fresh terms.
-    assert ledger.account(account)["spent_microdollars"] == 0
-    with ledger.engine.begin() as connection:
-        assert (
-            connection.scalar(select(operations.c.id).where(operations.c.account_id == account))
-            is None
-        )
-        connection.execute(delete(checkpoints).where(checkpoints.c.account_id == account))
-        connection.execute(delete(accounts).where(accounts.c.id == account))
+    discard_owned_fixture_allocation(ledger, account)
     f.state["fresh_allocation"] = True
     original = ledger.create_account
     calls = []
