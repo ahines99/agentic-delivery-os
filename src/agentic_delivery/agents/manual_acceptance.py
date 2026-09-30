@@ -6,7 +6,7 @@ from typing import Any, Literal
 from pydantic import Field
 
 from agentic_delivery.agents.evidence import Digest, validate_manifest
-from agentic_delivery.config import Settings
+from agentic_delivery.config import SYSTEM_ACTORS, Settings
 from agentic_delivery.domain.models import CommitSHA, Contract, NonEmpty
 from agentic_delivery.security import AccessDenied, authorize
 from agentic_delivery.storage.store import Store
@@ -84,7 +84,7 @@ def validate_manual_decision(
     actor_id: str,
     created_at: str | None = None,
 ) -> ManualDecision:
-    if actor_id in {"delivery-automation", "linear-monitor", "workflow"}:
+    if actor_id in SYSTEM_ACTORS:
         raise AccessDenied("Automation cannot supply a human acceptance decision")
     actor = next((operator for operator in settings.operators if operator.id == actor_id), None)
     if actor is None:
