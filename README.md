@@ -116,7 +116,7 @@ Publication remains disabled by default, and there is no personal-token fallback
 uv run --no-sync python -m ruff check .
 uv run --no-sync python -m ruff format --check .
 uv run --no-sync python -m mypy
-uv run --no-sync python -m pytest
+uv run --no-sync python -m pytest -n auto --dist worksteal
 ```
 
 `delivery-eval` provides offline schema export, structural validation, legacy record inspection

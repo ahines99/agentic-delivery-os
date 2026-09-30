@@ -11,7 +11,9 @@ and the ADRs. Distinguish working features from planned integrations.
 - Evidence and approval must bind to repository, base/head revisions, and policy version.
 - Add meaningful tests for policy, lifecycle, isolation, retries, and evidence changes.
 - Run `python -m ruff check .`, `python -m ruff format --check .`,
-  `python -m mypy`, and `python -m pytest` from the project virtual environment.
+  `python -m mypy`, and `python -m pytest -n 32 --dist worksteal` from the project virtual
+  environment. Run focused test files serially while iterating and the parallel suite before
+  committing; see docs/contributing.md for worker limits.
 - Do not publish benchmark numbers without a reproducible run and provenance.
 - Do not add placeholder provider implementations that silently report success.
 - Keep changes within the next milestone. Record material architecture changes in ADRs.

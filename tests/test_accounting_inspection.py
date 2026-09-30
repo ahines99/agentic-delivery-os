@@ -134,6 +134,7 @@ def test_current_guard_denial_returns_no_snapshot_and_restores_connection(ledger
         ("settled_at", datetime.now(UTC).isoformat()),
         ("created_at", (datetime.now(UTC) + timedelta(days=1)).isoformat()),
     ],
+    ids=["status", "actual", "reserved", "input-tokens", "settled-at", "future-created-at"],
 )
 def test_invalid_or_inconsistent_operation_metadata_is_refused(ledger, field, value):
     create(ledger)
