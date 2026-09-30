@@ -37,6 +37,15 @@ container exited without replacement-worker cleanup. Full local and
 are running. See [ADR-031](adr/ADR-031-container-lifetime.md) for limits.
 Neither development feature is installed in the live service yet.
 
+The [compromised-builder admission matrix](product-admission-controls.md) subsequently
+passed six actual Docker cases in 21.92 seconds on unchanged application source
+`430bc19`. Hostile ticket/README instructions reach a controlled model response;
+sensitive code, protected CI/tests, dynamic execution and credential-shaped output
+are then refused before candidate execution or review. The owned broker canary stays
+out of the model context and baseline container; real baseline receipts and fixture
+usage remain persisted. This is named-control evidence, not general injection resistance
+or live model behavior. Final-branch full regression inclusion remains pending.
+
 Distribution staging at `430bc19` passed in a fresh non-editable Python 3.12.10
 environment with 31 hash-locked runtime dependencies. All three CLI help entry points
 passed, and the manual acceptance, GitHub finalizer and Docker modules resolved only
