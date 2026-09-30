@@ -24,7 +24,7 @@ from agentic_delivery.storage.store import Conflict, Store
 
 
 @pytest.mark.integration
-@pytest.mark.parametrize("fault", ["cancel", "rate_limit", "outage", "response_loss"])
+@pytest.mark.parametrize("fault", ["cancel", "rate_limit", "outage", "response_loss", "billing"])
 async def test_planning_fault_retains_unknown_usage_without_reissuing(tmp_path, monkeypatch, fault):
     url, address = os.environ.get("TEST_DATABASE_URL", ""), os.environ.get("TEST_TEMPORAL_ADDRESS")
     if not url.startswith("postgresql") or not address:
@@ -88,6 +88,16 @@ async def test_planning_fault_retains_unknown_usage_without_reissuing(tmp_path, 
             raise
         if fault == "response_loss":
             raise httpx.ReadTimeout("Owned response-loss fixture", request=request)
+        if fault == "billing":
+            return httpx.Response(
+                400,
+                json={
+                    "error": {
+                        "type": "invalid_request_error",
+                        "message": "Credit balance too low: owned-private-canary",
+                    }
+                },
+            )
         if fault in {"rate_limit", "outage"}:
             return httpx.Response(429 if fault == "rate_limit" else 503)
         # Only used to release the controlled request if the regression fails.
@@ -192,11 +202,17 @@ async def test_planning_fault_retains_unknown_usage_without_reissuing(tmp_path, 
                             "response_loss": "TRANSPORT_ERROR",
                             "rate_limit": "HTTP_RESPONSE",
                             "outage": "HTTP_RESPONSE",
+                            "billing": "HTTP_RESPONSE",
                         }[fault]
                     )
-                    if fault in {"rate_limit", "outage"}:
-                        assert receipt["observation"]["http_status"] == (
-                            429 if fault == "rate_limit" else 503
+                    if fault in {"rate_limit", "outage", "billing"}:
+                        assert (
+                            receipt["observation"]["http_status"]
+                            == {
+                                "rate_limit": 429,
+                                "outage": 503,
+                                "billing": 400,
+                            }[fault]
                         )
                     assert "output" not in receipt["result"]
                     stopped = store.workflow(identity)
@@ -238,6 +254,20 @@ async def test_planning_fault_retains_unknown_usage_without_reissuing(tmp_path, 
         ]
         assert len(scheduled) == 1 and scheduled[0].retry_policy.maximum_attempts == 1
         assert scheduled[0].heartbeat_timeout.seconds == 20
+        if fault in {"rate_limit", "outage", "billing"}:
+            failures = [
+                event.activity_task_failed_event_attributes.failure
+                for event in history.events
+                if event.HasField("activity_task_failed_event_attributes")
+            ]
+            assert len(failures) == 1
+            category = {
+                "rate_limit": "rate_limit",
+                "outage": "provider_unavailable",
+                "billing": "billing_or_quota_hint",
+            }[fault]
+            assert f"category: {category}" in failures[0].message
+            assert "owned-private-canary" not in str(failures[0])
         replay = await Replayer(workflows=[DeliveryWorkflow]).replay_workflow(history)
         assert replay.replay_failure is None
     finally:

@@ -101,6 +101,46 @@ class ModelFailure(RuntimeError):
     """No secret-bearing upstream response text is included in this exception."""
 
 
+def provider_failure_category(response: httpx.Response, *, provider: str) -> str:
+    """Fixed diagnostic labels only; never billing evidence or retry permission."""
+    status = response.status_code
+    category = {
+        400: "invalid_request",
+        401: "authentication",
+        402: "billing",
+        403: "permission",
+        404: "not_found",
+        409: "conflict",
+        413: "request_too_large",
+        429: "rate_limit",
+    }.get(status, "provider_unavailable" if status >= 500 else "provider_error")
+    if provider != "anthropic" or status not in {400, 429}:
+        return category
+    try:
+        document = response.json()
+    except (ValueError, UnicodeError):
+        return category
+    error = document.get("error") if isinstance(document, dict) else None
+    if not isinstance(error, dict) or error.get("type") != (
+        "invalid_request_error" if status == 400 else "rate_limit_error"
+    ):
+        return category
+    details = error.get("details")
+    if isinstance(details, dict) and details.get("error_code") == "enforced_spend_limit_reached":
+        return "billing_or_quota_hint"
+    message = error.get("message")
+    if status == 400 and isinstance(message, str) and len(message) <= 4096:
+        lowered = message.casefold()
+        if "credit balance" in lowered or lowered.startswith(
+            (
+                "you have reached your specified api usage limits",
+                "you have reached your specified workspace api usage limits",
+            )
+        ):
+            return "billing_or_quota_hint"
+    return category
+
+
 @dataclass(frozen=True, slots=True)
 class ModelRequestForecast:
     """Immutable metadata, not an execution grant, token estimate or provider invoice."""
@@ -306,7 +346,11 @@ class StructuredModel:
                 provider_observation(binding, started_at, response=response),
             )
             if response.status_code != 200:
-                raise ModelFailure(f"Model provider returned HTTP {response.status_code}")
+                category = provider_failure_category(response, provider=self.config.provider)
+                raise ModelFailure(
+                    f"Model provider returned HTTP {response.status_code} "
+                    f"(category: {category}); reservation retained"
+                )
             data = response.json()
             if not isinstance(data, dict):
                 raise ModelFailure("Provider response must be a structured object")

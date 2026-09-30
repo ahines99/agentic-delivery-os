@@ -4,6 +4,20 @@ Updated 2026-09-30 UTC during continued controlled implementation. This is the c
 the original milestone documents remain the release targets. Source code alone is not a passed
 integration or production release gate.
 
+Model failure diagnostics now include fixed, sanitized HTTP error categories and a
+bounded Anthropic billing/quota hint. Existing provider observations, accounting and
+retry rules are unchanged. The focused model/receipt/reconciliation suite passed
+121 tests with one explicit PostgreSQL skip. Five actual PostgreSQL/Temporal fault
+cases passed in 21.19 seconds, including billing-response classification in retained
+workflow failure history, withheld provider-text canary, unchanged reservation,
+denied reissue and successful history replay. Full new-source verification is pending.
+
+Latest complete hosted verification: [CI at `e611917`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36724207546)
+passed Python 3.12/3.13 (3,165 tests and 119 explicit integration skips each), all
+119 service integration tests, and secret scanning. This covers planning cancellation
+and Linear status-response recovery. The later backup selection and diagnostic changes
+have their focused verification recorded here; they are not included in that CI SHA.
+
 Provider response-loss follow-up (2026-09-30): the Linear adapter now performs one
 read-back after an unavailable status-update response. It confirms only the requested
 review state with unchanged ticket text/team/assignment and current authorization;
@@ -17,7 +31,7 @@ The combined adapter/handoff suite passed 89 tests. These are controlled provide
 tests, not a new live provider fault drill. Source `e611917` was installed through an idle
 supervised restart; readiness returned and Linear polling advanced while both existing
 review handoffs remained persisted. [Full CI](https://github.com/ahines99/agentic-delivery-os/actions/runs/36724207546)
-for this change is in progress.
+for this change passed, as recorded above.
 
 Live backup follow-up (2026-09-30): the backup script now accepts an explicit local
 source database and artifact directory, so it can capture the installed `delivery_live`
@@ -51,7 +65,7 @@ Ruff, formatting and mypy passed. Source `0adc93d` was loaded by a supervised se
 restart after confirming that all live workflows were terminal. API/database readiness
 returned and the configured Linear cursor advanced; both completed review handoffs
 remained persisted. The private restart record retains the new launcher identity and
-observations. Full new-source verification remains pending.
+observations. Full CI at `e611917` subsequently passed this change.
 
 The SDK requirement is documented in Temporal's
 [heartbeating and cancellation guide](https://github.com/temporalio/sdk-python#heartbeating-and-cancellation).
@@ -63,7 +77,7 @@ starts no build/publication, performs one model invocation, refuses reissue thro
 fresh store, and replays its complete workflow history. This extends the earlier
 ledger-only provider-fault tests into the actual workflow without paid provider calls.
 
-Latest complete hosted verification: [CI at `81fd892`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36718387365)
+Earlier complete hosted verification: [CI at `81fd892`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36718387365)
 passed Python 3.12/3.13 (3,155 tests and 115 explicit skips each), actual service
 integration and secret scanning. The corresponding local package-profile suite passed
 3,143 tests with 125 explicit Windows/service skips. The subsequent chronology fix at

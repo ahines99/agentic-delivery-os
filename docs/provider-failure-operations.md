@@ -12,6 +12,16 @@ An observation is neither a parsed successful answer nor financial settlement.
 Missing usage is unknown, not zero. Inspect only scoped accounting and observation
 metadata; do not dump the operation's model output or private request context.
 
+HTTP failure exceptions now include a fixed diagnostic category, such as
+`authentication`, `permission`, `rate_limit` or `provider_unavailable`. For Anthropic,
+a recognized spend-limit code or bounded credit/spend-limit message produces
+`billing_or_quota_hint`; the upstream text is never copied into the exception.
+This follows the provider's [error categories](https://platform.claude.com/docs/en/api/errors)
+and [spend-limit distinctions](https://platform.claude.com/docs/en/api/rate-limits#spend-limits).
+Malformed or unsupported details retain the generic HTTP category. The hint is
+operational guidance only: observation schemas/digests, reservations and retry rules
+are unchanged. It cannot reconstruct causes for older observations or settle a charge.
+
 ## Classify before further effects
 
 1. Identify the original account, immutable plan, operation and grant. Preserve the
