@@ -1,5 +1,8 @@
 # Product Ops integration
 
+The [PER-7 validation record](per7-validation-record.md) contains the actual live result,
+verification boundary, replay evidence and reproduction commands.
+
 Product Ops accepts a prompt and repository name, produces requirements and proposed Linear
 tickets, obtains human approval, publishes them, and signs a v2 handoff. Delivery accepts approved
 work into its own database and owns execution. The services do not share persistence models.
