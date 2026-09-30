@@ -1469,3 +1469,13 @@ selection, legacy permission revocation and changed archive facts. Unique owned 
 databases were dropped and absence verified. Ruff/format (381 files), mypy (119 sources) and
 package builds passed. These overlapping counts are not summed. Exact-head full CI and
 independent review remain required; all live historical enrollment and release gates remain open.
+
+E162: [Hosted CI at `4d71ce3`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36653200572)
+passed all four jobs. Python 3.12 passed 2,973 tests with 91 explicit skips in 1,823.25 seconds;
+Python 3.13 passed the same counts in 1,574.87 seconds. Actual PostgreSQL/Temporal/Docker
+integration passed 91 tests in 254.35 seconds; secret scanning passed. This verifies mandatory
+execution-entry enrollment, the owned fixture corrections, and final-candidate criterion test
+reporting. It does not cover subsequent legacy archival or schema-2 historical-liability policy.
+The separate Windows full suite remains running at the unchanged `4d71ce3` checkout; no terminal
+result is inferred. Later changes are published from an isolated worktree after this hosted run
+finished, preserving the root test source and avoiding cancellation of its preceding hosted CI.

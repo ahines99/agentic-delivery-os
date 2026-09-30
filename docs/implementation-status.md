@@ -4,8 +4,8 @@ Updated 2026-09-30 UTC during continued controlled implementation. This is the c
 the original milestone documents remain the release targets. Source code alone is not a passed
 integration or production release gate.
 
-Latest complete hosted verification: [CI at `07e0212`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36649538817)
-passed both Python versions (2,946 tests and 91 explicit skips each), 91 actual service
+Latest complete hosted verification: [CI at `4d71ce3`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36653200572)
+passed both Python versions (2,973 tests and 91 explicit skips each), 91 actual service
 integration tests and secret scanning. This includes the [campaign journal](campaign-journal.md),
 [completed semantic reader](semantic-consumption.md) and [whole-attempt reader](completed-attempt-reporting.md).
 They reconstruct original outcomes, early failures and optional exact adjudication under
@@ -45,7 +45,8 @@ now require enrollment under [ADR-021](adr/ADR-021-required-evaluation-program-e
 including existing-account stages and resumed calibration. Legacy evidence inspection stays
 separate. Focused denial/resume checks and 63 registry/allocation tests with real PostgreSQL
 passed. The 13-module execution regression scope passed 453 tests with 12 explicit service
-skips; exact-head hosted verification and remaining Docker checks are still required.
+skips; the hosted result above subsequently passed the complete service suite, including
+the remaining Docker cases. Later legacy archival and registry incorporation need new-head CI.
 
 A [program accounting reader](program-accounting.md) now reconciles registry envelopes
 with complete concrete ledger snapshots and local lifecycle markers, under separate full-scope
@@ -70,7 +71,8 @@ also passed. It does not attest complete program-ledger coverage or supply numer
 statistical, operational or pilot promotion. The hosted result above includes this report.
 This hosted result includes the whole-ledger census, prospective phase statistics and
 requirement inventory, criterion judgments, prospective program budgets and concrete program
-reconciliation. Later required execution-entry enrollment needs its own exact-head verification.
+reconciliation, required execution-entry enrollment and final-candidate criterion test counts.
+Later legacy archival and schema-2 program policies need their own exact-head verification.
 
 Prospective [phase statistics](adr/ADR-019-prospective-phase-statistics.md) now pin the bootstrap
 method and campaign seed before execution. The version-2 completed-attempt reader exposes
