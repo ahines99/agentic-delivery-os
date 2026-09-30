@@ -384,8 +384,8 @@ async def test_automatic_approval_uses_durable_commands_and_current_authority(se
             "criteria": [
                 {
                     "id": "AC-1",
-                    "description": "Human decision",
-                    "verification_type": "manual_review",
+                    "description": "Benchmark decision",
+                    "verification_type": "benchmark",
                 }
             ]
         },
@@ -401,6 +401,23 @@ def test_local_fixture_does_not_receive_automatic_approval(setup):
     settings, store = setup
     planned(settings, store, source="local")
     assert approve_plans(settings, store) == 0
+
+
+def test_manual_criteria_may_start_build_but_do_not_receive_human_acceptance(setup):
+    settings, store = setup
+    identity, _ = planned(
+        settings,
+        store,
+        criteria=[
+            {
+                "id": "AC-M",
+                "description": "Owner checks presentation",
+                "verification_type": "manual_review",
+            }
+        ],
+    )
+    assert approve_plans(settings, store) == 1
+    assert store.applied_manual_review(identity) is None
 
 
 async def paused_ticket(settings, store, linear):

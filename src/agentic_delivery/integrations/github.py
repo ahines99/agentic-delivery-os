@@ -258,25 +258,41 @@ class GitHubPublisher:
         }
 
 
-def evidence_markdown(manifest: dict[str, Any], digest: str) -> str:
+def evidence_markdown(
+    manifest: dict[str, Any], digest: str, *, manual_acceptance: str | None = None
+) -> str:
     attempt = manifest["attempts"][-1]
     rows = ["| Criterion | Independent execution |", "| --- | --- |"]
     for criterion, evidence in attempt["criteria"].items():
         safe = str(criterion).replace("|", "\\|").replace("\n", " ").replace("<", "&lt;")
         rows.append(f"| {safe} | {'PASS' if evidence['passed'] else 'FAIL'} |")
     pending = manifest.get("pending_manual_criteria", ())
+    if manual_acceptance is not None and (
+        not pending or not re.fullmatch(r"[a-f0-9]{64}", manual_acceptance)
+    ):
+        raise ValueError("Manual acceptance requires pending criteria and a valid artifact digest")
     for criterion in pending:
         safe = str(criterion).replace("|", "\\|").replace("\n", " ").replace("<", "&lt;")
-        rows.append(f"| {safe} | PENDING — authorized human acceptance required |")
+        result = (
+            "PASS — authorized human decision"
+            if manual_acceptance
+            else "PENDING — authorized human acceptance required"
+        )
+        rows.append(f"| {safe} | {result} |")
     return (
-        ("## Manual acceptance pending\n\n" if pending else "## Verified candidate\n\n")
+        (
+            "## Manual acceptance pending\n\n"
+            if pending and not manual_acceptance
+            else "## Verified candidate\n\n"
+        )
         + f"Base: `{manifest['base_sha']}`\n\nEvidence manifest: `{digest}`\n\n"
         + "\n".join(rows)
         + (
             "\n\nPending manual criteria block review readiness and the Linear handoff."
-            if pending
+            if pending and not manual_acceptance
             else ""
         )
+        + (f"\n\nHuman acceptance artifact: `{manual_acceptance}`." if manual_acceptance else "")
         + "\n\nIndependent review and isolated checks are recorded in the manifest."
         + "\n\nHuman review and merge are required. No deployment has occurred."
         + "\n\nLimitations: controlled Python scope; static impact analysis is incomplete."

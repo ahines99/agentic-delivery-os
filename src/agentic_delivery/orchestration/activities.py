@@ -7,12 +7,14 @@ from typing import Any
 from temporalio import activity
 
 from agentic_delivery.agents.contracts import ImplementationPlan
+from agentic_delivery.agents.manual_acceptance import manual_readiness, validate_manual_decision
 from agentic_delivery.agents.pipeline import build_and_review
 from agentic_delivery.config import Settings
 from agentic_delivery.domain.models import VerificationType, WorkItem
 from agentic_delivery.execution.docker import DockerRunner
 from agentic_delivery.integrations.github import GitHubPublisher
 from agentic_delivery.integrations.github_ci import GitHubCI, GitHubCIWaiting
+from agentic_delivery.integrations.github_manual import confirm_manual_acceptance
 from agentic_delivery.integrations.linear import LinearClient
 from agentic_delivery.integrations.model import StructuredModel
 from agentic_delivery.policy.engine import evaluate_intake
@@ -135,7 +137,11 @@ class Activities:
             or any(proposed.get(key) != value for key, value in original.items())
             or any(
                 c.verification_type
-                not in {VerificationType.UNIT_TEST, VerificationType.INTEGRATION_TEST}
+                not in {
+                    VerificationType.UNIT_TEST,
+                    VerificationType.INTEGRATION_TEST,
+                    VerificationType.MANUAL_REVIEW,
+                }
                 for c in plan.criteria
             )
         ):
@@ -149,7 +155,7 @@ class Activities:
             return None
         if (
             command["workflow_id"] != request["workflow_id"]
-            or command["kind"] not in {"cancel", "clarify", "approve-plan"}
+            or command["kind"] not in {"cancel", "clarify", "approve-plan", "manual-review"}
             or command["status"] in {"APPLIED", "REJECTED"}
         ):
             return None
@@ -171,8 +177,22 @@ class Activities:
             authorize(
                 operator,
                 run["repository"],
-                "reviewer" if command["kind"] == "approve-plan" else "operator",
+                "reviewer" if command["kind"] in {"approve-plan", "manual-review"} else "operator",
             )
+            if command["kind"] == "manual-review":
+                try:
+                    validate_manual_decision(
+                        self.current_settings(),
+                        self.store,
+                        run["id"],
+                        command["payload"],
+                        actor_id=command["actor"],
+                        created_at=command["created_at"],
+                    )
+                except (ValueError, OSError):
+                    raise AccessDenied(
+                        "Human acceptance context or authorization changed"
+                    ) from None
         except AccessDenied:
             self.store.command_status(
                 command["command_id"], "REJECTED", "Operator authorization revoked"
@@ -404,6 +424,7 @@ class Activities:
                         repository,
                         approved_plan_digest=request["assessment"]["plan_digest"],
                         authorization_check=authorization_check,
+                        allow_manual=request.get("allow_manual", False),
                     )
                 )
                 done, _ = await asyncio.wait(
@@ -494,12 +515,126 @@ class Activities:
             request["workflow_id"],
             request["manifest_digest"],
             authorization_check=publication_authorization,
+            allow_pending_manual=request.get("allow_pending_manual", False),
         )
         self.store.save_publication(request["workflow_id"], repository.id, publication)
         # Preserve observed provider effects even if authorization changed in flight.
         self.validate_configuration(request["workflow_id"])
         self.validate_approval(request["workflow_id"], manifest["approved_plan_digest"])
         return {"status": "PUBLISHED", **publication}
+
+    @activity.defn(name="consume_manual_review")
+    async def consume_manual_review(self, request: dict[str, Any]) -> dict[str, Any]:
+        identity = request["workflow_id"]
+        command = self.store.command(request["command_id"])
+        if command["workflow_id"] != identity or command["kind"] != "manual-review":
+            raise AccessDenied("Human acceptance command identity changed")
+        if command["status"] == "REJECTED":
+            return {"accepted": False, "ready": False}
+        try:
+            self.validate_configuration(identity)
+            validate_manual_decision(
+                self.current_settings(),
+                self.store,
+                identity,
+                command["payload"],
+                actor_id=command["actor"],
+                created_at=command["created_at"],
+            )
+            previous = self.store.applied_manual_review(identity)
+            if previous is not None and previous["command_id"] != command["command_id"]:
+                raise AccessDenied("A different human acceptance command was already applied")
+        except (ValueError, OSError):
+            if command["status"] == "APPLIED":
+                return {
+                    "accepted": True,
+                    "ready": False,
+                    "reason": "Human acceptance is no longer current",
+                }
+            self.store.command_status(
+                command["command_id"],
+                "REJECTED",
+                "Human acceptance context or authorization changed",
+            )
+            return {"accepted": False, "ready": False}
+        self.store.command_status(command["command_id"], "APPLIED")
+        return {"accepted": True, **manual_readiness(self.current_settings(), self.store, identity)}
+
+    @activity.defn(name="finish_manual_acceptance")
+    async def finish_manual_acceptance(self, request: dict[str, Any]) -> dict[str, Any]:
+        async def heartbeat() -> None:
+            while True:
+                activity.heartbeat("confirming human acceptance evidence")
+                await asyncio.sleep(1)
+
+        task = asyncio.create_task(heartbeat())
+        try:
+            return await self._finish_manual_acceptance(request)
+        finally:
+            task.cancel()
+            await asyncio.gather(task, return_exceptions=True)
+
+    async def _finish_manual_acceptance(self, request: dict[str, Any]) -> dict[str, Any]:
+        identity = request["workflow_id"]
+        run = self.store.workflow(identity)
+        repository = self.settings.repository(run["repository"])
+        publication = self.store.publication(identity)
+        artifacts = ArtifactStore(self.settings.artifact_root)
+        manifest = json.loads(artifacts.get(publication["manifest_digest"]))
+
+        def guard() -> None:
+            self.validate_configuration(identity)
+            self.validate_approval(identity, manifest["approved_plan_digest"])
+            current = manual_readiness(self.current_settings(), self.store, identity)
+            if not current["ready"] or not repository.github_repository_id:
+                raise AccessDenied("Human acceptance is not ready")
+            ci = self.store.ci_readiness(
+                repository_id=repository.github_repository_id,
+                head_sha=publication["head_sha"],
+                required=repository.required_checks,
+                policy_digest=self.settings.execution_digest(repository.id),
+            )
+            if (
+                not ci["ready"]
+                or ci["generation"] != request["ci"]["generation"]
+                or ci["evidence_digest"] != request["ci"]["evidence_digest"]
+            ):
+                raise AccessDenied("Human acceptance CI evidence changed")
+
+        guard()
+        command = self.store.applied_manual_review(identity)
+        assert command is not None
+        acceptance = artifacts.put(
+            json.dumps(
+                {
+                    "workflow_id": identity,
+                    "command_id": command["command_id"],
+                    "actor": command["actor"],
+                    "created_at": command["created_at"],
+                    "decision": command["payload"],
+                },
+                sort_keys=True,
+            ).encode()
+        )
+        try:
+            result = await confirm_manual_acceptance(
+                self.settings,
+                repository,
+                identity,
+                publication,
+                acceptance,
+                authorization_check=guard,
+            )
+            guard()
+        except Exception as exc:
+            result = {
+                "status": "UNKNOWN",
+                "acceptance_artifact": acceptance,
+                "error_class": type(exc).__name__,
+            }
+        result["workflow_id"] = identity
+        result["result_artifact"] = artifacts.put(json.dumps(result, sort_keys=True).encode())
+        return result
 
     @activity.defn(name="reconcile_ci")
     async def reconcile_ci(self, request: dict[str, Any]) -> dict[str, Any]:
@@ -523,6 +658,11 @@ class Activities:
             ArtifactStore(self.settings.artifact_root).get(publication["manifest_digest"])
         )
         self.validate_approval(identity, manifest["approved_plan_digest"])
+        if (
+            manifest.get("schema_version") == 2
+            and not manual_readiness(self.current_settings(), self.store, identity)["ready"]
+        ):
+            return {"ready": False, "reasons": ["manual_acceptance_pending"]}
         run = self.store.workflow(identity)
         repository = self.settings.repository(run["repository"])
         if not repository.github_repository_id or not repository.required_checks:
@@ -598,6 +738,29 @@ class Activities:
         def gate() -> bool:
             self.validate_configuration(identity)
             self.validate_approval(identity, manifest["approved_plan_digest"])
+            if manifest.get("schema_version") == 2:
+                manual = manual_readiness(self.current_settings(), self.store, identity)
+                confirmation = request.get("manual_acceptance", {})
+                if not manual["ready"] or confirmation.get("status") != "CONFIRMED":
+                    return False
+                confirmed = json.loads(artifacts.get(confirmation.get("result_artifact", "")))
+                if (
+                    confirmed.get("workflow_id") != identity
+                    or confirmed.get("head_sha") != publication["head_sha"]
+                    or confirmed.get("manifest_digest") != publication["manifest_digest"]
+                    or confirmed.get("status") != "CONFIRMED"
+                ):
+                    return False
+                decision = json.loads(artifacts.get(confirmed["acceptance_artifact"]))
+                applied = self.store.command(manual["command_id"])
+                if decision != {
+                    "workflow_id": identity,
+                    "command_id": applied["command_id"],
+                    "actor": applied["actor"],
+                    "created_at": applied["created_at"],
+                    "decision": applied["payload"],
+                }:
+                    return False
             if (
                 not repository.github_repository_id
                 or self.store.publication(identity)["status"] != "DRAFT_HANDOFF"

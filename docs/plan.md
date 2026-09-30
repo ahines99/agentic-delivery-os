@@ -106,7 +106,7 @@ The five original research reviews and the full milestone plan remain retained a
 acceptance requirement: a verified automated portion may become a draft with explicit
 pending human criteria, but cannot pass final readiness without authorized revision-bound
 human decisions. The isolated candidate/manifest/publication portion is implemented;
-the human-command and workflow integration remains in progress. Existing automated
+the human-command and workflow integration is connected and under qualification. Existing automated
 and historical evaluation profiles retain their current meaning.
 The automated evaluation path now uses [ADR-011](adr/ADR-011-current-qualification-authority.md):
 executed v2 qualification with current consumption authority and separate metered scoring grants.

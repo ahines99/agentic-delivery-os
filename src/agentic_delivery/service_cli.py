@@ -52,6 +52,8 @@ async def serve(config: Path, mode: str, once: bool = False) -> None:
                 activities.publish,
                 activities.reconcile_ci,
                 activities.finish_handoff,
+                activities.consume_manual_review,
+                activities.finish_manual_acceptance,
             ],
         )
         await worker.run()

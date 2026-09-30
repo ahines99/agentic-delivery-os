@@ -37,10 +37,10 @@ must reflect confirmed acceptance before the Linear handoff. API, workflow,
 publication, revision-race and actual storage/orchestration tests are required
 before enabling this path in the installed service.
 
-The isolated candidate engine, pipeline, v2 manifest validator and optional draft
-publisher are implemented. The default product and historical callers do not enable
-the new profile. Focused checks passed 158 tests with six explicit Docker skips;
-the new manual pipeline case then separately passed using the installed pinned Docker
+The candidate engine, pipeline, v2 manifest validator and draft publisher are
+implemented. The product workflow opts into the new profile under its version marker;
+default engine calls and historical evaluation retain their existing behavior.
+The manual pipeline case separately passed using the installed pinned Docker
 image and controlled model responses. Its actual baseline, candidate and automated
 criterion receipts passed the v2 reference validator while the manual criterion
 remained pending. Controlled GitHub transport tests retain one draft PR across retry;
@@ -52,10 +52,25 @@ POST route. GET requires repository read access; POST requires operator and revi
 roles. A queued receipt is not an applied acceptance decision. Persisted decision
 consumption rechecks current reviewer scope, expiry and the complete bound evidence;
 automation identities, partial/duplicate criterion sets and conflicting applied
-decisions are refused. The focused manual-acceptance/control-plane suite passed 47
-tests, including restart, stale bindings, revocation, expiry and authenticated API
-idempotency. These are owned SQLite/artifact tests, not real human acceptance.
+decisions are refused. Owned SQLite/artifact tests cover restart, stale bindings,
+revocation, expiry and authenticated API idempotency, not real human acceptance.
 
-The durable wait, workflow command consumption, final handoff integration and
-confirmed-acceptance PR update remain to be connected and tested. The public feature
-has not been installed in the running service or represented as a completed release gate.
+The durable wait and workflow command consumption are now connected under a Temporal
+version marker. Eight actual PostgreSQL/Temporal cases passed: acceptance, rejection,
+cancellation, timeout, stale-then-current decision, revoked reviewer, worker restart
+while waiting and an uncertain final update. All eight histories replayed. Candidate,
+CI and publication responses in those cases are scripted; no real human is impersonated.
+
+The final evidence update preserves the draft and surrounding notes, checks current
+revisions and uses a repository-scoped Pull requests write token. One read-back can
+confirm a lost response without repeating PATCH. Current human/plan/CI checks run
+before and after the provider effect. The Linear handoff requires the confirmed
+acceptance artifact and revalidates the exact persisted decision. Unknown outcomes
+retain an acceptance/result artifact and block the handoff. See the
+[operator flow](../manual-acceptance.md) for the authenticated API and recovery limits.
+
+The combined product/manual regression selection passed 270 tests with six explicit
+Docker skips. The eight service cases separately passed in 32.09 seconds against a
+disposable PostgreSQL database and the local Temporal server; the live database was
+not used. Ruff, formatting and mypy passed. Full new-source regression/CI and
+installation remain pending. This is not a completed release or human pilot gate.

@@ -23,15 +23,28 @@ from agentic_delivery.storage.artifacts import ArtifactStore
 from agentic_delivery.storage.database import create_database
 from agentic_delivery.storage.migrate import upgrade
 from agentic_delivery.storage.schema import CommandRecord, PublicationRecord
-from agentic_delivery.storage.store import Conflict, Store
+from agentic_delivery.storage.store import Conflict, Store, digest_json
 
 TOKEN = "owned-human-review-token-" + "x" * 32
 
 
-@pytest.fixture
-def prepared(tmp_path):
+def prepare_manual(tmp_path, *, database_url=None, project=True, linear=False):
     settings, repository, manifest = manifest_fixture(tmp_path / "artifacts")
-    url = f"sqlite+pysqlite:///{tmp_path / 'manual.db'}"
+    if database_url is not None:
+        name = "manual-" + uuid4().hex
+        repository = repository.model_copy(update={"id": "test/" + name, "github_name": name})
+    if linear:
+        repository = repository.model_copy(
+            update={
+                "linear_team_id": "team",
+                "linear_assignee_id": "worker",
+                "linear_review_state_id": "review",
+            }
+        )
+    settings = settings.model_copy(update={"repositories": (repository,)})
+    manifest["repository"] = repository.id
+    manifest["configuration_digest"] = settings.execution_digest(repository.id)
+    url = database_url or f"sqlite+pysqlite:///{tmp_path / 'manual.db'}"
     settings = settings.model_copy(
         update={
             "database_url": url,
@@ -47,6 +60,18 @@ def prepared(tmp_path):
     )
     artifacts = ArtifactStore(settings.artifact_root)
     manifest = add_manual(artifacts, manifest)
+    owned_id = "manual-owned-" + uuid4().hex
+    for artifact_key, digest_key in (
+        ("input_spec_artifact", "input_spec_digest"),
+        ("assessed_item_artifact", "spec_digest"),
+    ):
+        item_data = json.loads(artifacts.get(manifest[artifact_key]))
+        item_data["id"] = owned_id
+        item_data["repository"] = repository.id
+        if linear:
+            item_data["source_system"] = "linear"
+        manifest[artifact_key] = put(artifacts, item_data)
+        manifest[digest_key] = digest_json(item_data)
     upgrade(url)
     store = Store(create_database(url))
     item = WorkItem.model_validate_json(artifacts.get(manifest["input_spec_artifact"]))
@@ -68,9 +93,10 @@ def prepared(tmp_path):
             receipt["workflow_id"] = identity
             command["artifact_digest"] = put(artifacts, receipt)
     digest = put(artifacts, manifest)
-    store.project(
-        identity, 1, "ACCEPTANCE_CHECK", actor="owned-fixture", reason="Pending manual fixture"
-    )
+    if project:
+        store.project(
+            identity, 1, "ACCEPTANCE_CHECK", actor="owned-fixture", reason="Pending manual fixture"
+        )
     store.save_publication(
         identity,
         repository.id,
@@ -80,11 +106,13 @@ def prepared(tmp_path):
             "head_sha": "c" * 40,
             "manifest_digest": digest,
             "repository_id": 777,
-            "repository_full_name": "test/repo",
+            "repository_full_name": f"{repository.github_owner}/{repository.github_name}",
             "head_ref": "agent/" + identity,
             "base_ref": "main",
         },
     )
+    if not project:
+        return settings, store, identity, None
     binding, criteria = manual_binding(settings, store, identity)
     assert criteria == ("AC-M",)
     payload = {
@@ -93,6 +121,12 @@ def prepared(tmp_path):
             {"criterion_id": "AC-M", "result": "PASS", "evidence": "Owned human decision fixture"}
         ],
     }
+    return settings, store, identity, payload
+
+
+@pytest.fixture
+def prepared(tmp_path):
+    settings, store, identity, payload = prepare_manual(tmp_path)
     yield settings, store, identity, payload
     store.engine.dispose()
 

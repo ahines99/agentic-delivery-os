@@ -107,6 +107,82 @@ class DeliveryWorkflow:
             {"command_id": command["command_id"], "status": status, "reason": reason},
         )
 
+    async def wait_manual_review(
+        self, identity: str, wait_seconds: int, evidence: dict[str, Any]
+    ) -> bool:
+        deadline = workflow.now() + timedelta(seconds=wait_seconds)
+        while True:
+            try:
+                remaining = deadline - workflow.now()
+                if remaining <= timedelta(0):
+                    raise TimeoutError
+                await workflow.wait_condition(lambda: bool(self.commands), timeout=remaining)
+            except TimeoutError:
+                await self.move(
+                    identity, "POLICY_BLOCKED", "Manual acceptance deadline expired", evidence
+                )
+                return False
+            command = self.commands.pop(0)
+            payload = command["payload"]
+            if (
+                payload.get("expected_sequence") != self.sequence
+                or payload.get("spec_digest") != self.spec_digest
+            ):
+                await self.disposition(command, "REJECTED", "Stale manual acceptance command")
+                continue
+            if command["kind"] == "cancel":
+                await self.move(
+                    identity,
+                    "CANCELLED",
+                    "Authenticated cancellation during manual acceptance",
+                    evidence,
+                    actor=command["actor"],
+                )
+                await self.disposition(command, "APPLIED")
+                return False
+            if command["kind"] != "manual-review":
+                await self.disposition(
+                    command, "REJECTED", "Command unavailable during manual acceptance"
+                )
+                continue
+            decision = await self.call(
+                "consume_manual_review",
+                {
+                    "workflow_id": identity,
+                    "command_id": command["command_id"],
+                },
+            )
+            if not decision["accepted"]:
+                continue
+            if decision["ready"]:
+                while self.commands:
+                    pending = self.commands.pop(0)
+                    if (
+                        pending["kind"] == "cancel"
+                        and pending["payload"].get("expected_sequence") == self.sequence
+                        and pending["payload"].get("spec_digest") == self.spec_digest
+                    ):
+                        await self.move(
+                            identity,
+                            "CANCELLED",
+                            "Cancellation queued during manual acceptance",
+                            evidence,
+                            actor=pending["actor"],
+                        )
+                        await self.disposition(pending, "APPLIED")
+                        return False
+                    await self.disposition(
+                        pending, "REJECTED", "Manual decision already applied or command stale"
+                    )
+                return True
+            await self.move(
+                identity,
+                "POLICY_BLOCKED",
+                "Manual acceptance failed or is no longer current",
+                {**evidence, "manual_decision": decision},
+            )
+            return False
+
     @workflow.run
     async def run(self, request: dict[str, Any]) -> dict[str, Any]:
         identity = request["workflow_id"]
@@ -203,10 +279,15 @@ class DeliveryWorkflow:
                             "Approved plan admitted to runner",
                             actor=command["actor"],
                         )
+                        manual_enabled = workflow.patched("manual-acceptance-v1")
                         self.active = asyncio.ensure_future(
                             workflow.execute_activity(
                                 "candidate",
-                                {"workflow_id": identity, "assessment": assessment},
+                                {
+                                    "workflow_id": identity,
+                                    "assessment": assessment,
+                                    **({"allow_manual": True} if manual_enabled else {}),
+                                },
                                 start_to_close_timeout=timedelta(
                                     seconds=request.get("wall_seconds", 1800) + 60
                                 ),
@@ -219,8 +300,16 @@ class DeliveryWorkflow:
                         )
                         candidate = await self.active
                         self.active = None
-                        if candidate["state"] != "LOCAL_REVIEW_READY":
-                            await self.move(identity, "FAILED", candidate["reason"], candidate)
+                        manual_pending = (
+                            manual_enabled and candidate["state"] == "LOCAL_MANUAL_REVIEW_PENDING"
+                        )
+                        if candidate["state"] != "LOCAL_REVIEW_READY" and not manual_pending:
+                            await self.move(
+                                identity,
+                                "FAILED",
+                                candidate.get("reason", "Candidate verification did not pass"),
+                                candidate,
+                            )
                             return self.status()
                         await self.move(
                             identity,
@@ -233,6 +322,7 @@ class DeliveryWorkflow:
                             {
                                 "workflow_id": identity,
                                 "manifest_digest": candidate["manifest_digest"],
+                                **({"allow_pending_manual": True} if manual_pending else {}),
                             },
                             model=True,
                         )
@@ -253,7 +343,19 @@ class DeliveryWorkflow:
                         await self.move(
                             identity, "REVIEWING", "Independent prepublication review verified"
                         )
-                        await self.move(identity, "ACCEPTANCE_CHECK", "Criterion evidence verified")
+                        await self.move(
+                            identity,
+                            "ACCEPTANCE_CHECK",
+                            "Automated evidence verified; human acceptance pending"
+                            if manual_pending
+                            else "Criterion evidence verified",
+                        )
+                        if manual_pending and not await self.wait_manual_review(
+                            identity,
+                            request["human_wait_seconds"],
+                            {**candidate, "publication": publication},
+                        ):
+                            return self.status()
                         if workflow.patched("reconciled-ci-handoff-v1"):
                             deadline = workflow.now() + timedelta(
                                 seconds=request.get("ci_wait_seconds", 900)
@@ -292,6 +394,33 @@ class DeliveryWorkflow:
                                         return self.status()
                                 remaining = deadline - workflow.now()
                                 if ci["ready"] and remaining > timedelta(0):
+                                    manual_acceptance: dict[str, Any] = {}
+                                    if manual_pending:
+                                        try:
+                                            manual_acceptance = await self.call(
+                                                "finish_manual_acceptance",
+                                                {"workflow_id": identity, "ci": ci},
+                                                model=True,
+                                                timeout=timedelta(seconds=90),
+                                                heartbeat_timeout=timedelta(seconds=5),
+                                            )
+                                        except ActivityError:
+                                            if self.cancel_request is not None:
+                                                raise
+                                            manual_acceptance = {"status": "UNKNOWN"}
+                                        if manual_acceptance.get("status") != "CONFIRMED":
+                                            await self.move(
+                                                identity,
+                                                "POLICY_BLOCKED",
+                                                "Manual acceptance update needs reconciliation",
+                                                {
+                                                    **candidate,
+                                                    "publication": publication,
+                                                    "ci": ci,
+                                                    "manual_acceptance": manual_acceptance,
+                                                },
+                                            )
+                                            return self.status()
                                     handoff: dict[str, Any] = {
                                         "ready": True,
                                         "tracker_status": "NOT_APPLICABLE",
@@ -300,7 +429,15 @@ class DeliveryWorkflow:
                                         try:
                                             handoff = await self.call(
                                                 "finish_handoff",
-                                                {"workflow_id": identity, "ci": ci},
+                                                {
+                                                    "workflow_id": identity,
+                                                    "ci": ci,
+                                                    **(
+                                                        {"manual_acceptance": manual_acceptance}
+                                                        if manual_pending
+                                                        else {}
+                                                    ),
+                                                },
                                                 model=True,
                                                 timeout=timedelta(seconds=90),
                                                 heartbeat_timeout=timedelta(seconds=5),
@@ -331,6 +468,11 @@ class DeliveryWorkflow:
                                             "publication": publication,
                                             "ci": ci,
                                             "handoff": handoff,
+                                            **(
+                                                {"manual_acceptance": manual_acceptance}
+                                                if manual_pending
+                                                else {}
+                                            ),
                                         },
                                     )
                                     return self.status()
@@ -372,6 +514,13 @@ class DeliveryWorkflow:
                                     await self.disposition(
                                         pending, "REJECTED", "Stale or unavailable CI wait command"
                                     )
+                        if manual_pending:
+                            await self.move(
+                                identity,
+                                "POLICY_BLOCKED",
+                                "Manual acceptance requires current CI workflow",
+                            )
+                            return self.status()
                         await self.move(
                             identity, "HUMAN_REVIEW", "Draft PR and evidence handed to human"
                         )
