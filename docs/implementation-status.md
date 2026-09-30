@@ -15,8 +15,11 @@ reservation/observation, one model invocation, denied reissue through a fresh da
 connection, and successful history replay. The test used a separate disposable database
 and made no provider call. This does not prove remote-provider cancellation or invoice
 reconciliation. Another 71 focused authorization/monitor/handoff/replay tests passed;
-Ruff, formatting and mypy passed. Full new-source verification and installed-service
-restart remain pending.
+Ruff, formatting and mypy passed. Source `0adc93d` was loaded by a supervised service
+restart after confirming that all live workflows were terminal. API/database readiness
+returned and the configured Linear cursor advanced; both completed review handoffs
+remained persisted. The private restart record retains the new launcher identity and
+observations. Full new-source verification remains pending.
 
 The SDK requirement is documented in Temporal's
 [heartbeating and cancellation guide](https://github.com/temporalio/sdk-python#heartbeating-and-cancellation).
