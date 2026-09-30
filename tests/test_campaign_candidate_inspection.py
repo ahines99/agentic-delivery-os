@@ -141,6 +141,13 @@ async def test_normal_failed_candidate_reconstructs_without_success(candidate_ca
     deny_effects(c, monkeypatch)
     result = await data.read()
     assert result.sealed.status == "FAILED" and result.sealed.candidate_artifact
+    counts = result.criterion_execution.counts
+    required = len(c.case.task.item.acceptance_criteria)
+    assert counts.total == required and counts.unavailable == 0
+    if c.arm["arm"] == "A":
+        assert counts.not_executed == required and counts.passed == 0
+    else:
+        assert counts.passed == required and counts.not_executed == 0
     await c.client.aclose()
 
 

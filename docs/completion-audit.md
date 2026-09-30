@@ -1406,3 +1406,22 @@ A final review of evaluation-store fixture construction found the separately der
 runtime fixture still using a legacy ledger. It now explicitly enrolls its owned ledger;
 all 19 derived-input/import/runtime checks passed in 19.95 seconds. This changes test setup,
 not the production admission rule. Historical data, grants and ledger schemas were unchanged.
+
+E159: [Final-candidate criterion test evidence](criterion-execution-evidence.md) is now
+derived after the concrete consumer replays and matches the original sealed candidate.
+Candidate consumption schema 2 and whole-attempt consumption schema 4 carry content-free
+counts and criterion identity/type bindings. Aggregate statistics verify the original frozen
+inventory and preserve all assigned requirements, including missing proof. Earlier repair
+rounds cannot supply passing evidence for a changed final snapshot; reviewer rejection does
+not rewrite actual passing test results. The mapping is authored by the builder, so these
+counts do not establish semantic correctness, human approval or complete required evidence.
+The required-evidence coverage gate remains unavailable; no promotion is granted.
+
+The reducer/statistics scope passed 25 tests in 0.91 seconds. Concrete candidate/whole-attempt
+readers passed eight tests (50 deselected) in 44.65 seconds; aggregate cases passed four tests
+(18 deselected) in 90.48 seconds. After enrollment composition, eight reader cases passed but
+four aggregate fixtures failed setup in 45.44 seconds. E158 records the fixture-only repair;
+the corrected combined aggregate scope passed all four cases in 102.06 seconds. Production
+constraints were unchanged. Ruff/format (373 files), mypy (117 sources), and package builds
+passed. These overlapping scopes are not summed. Exact-head full hosted CI and independent
+review remain required. No historical payload, paid request or live enrollment was used.

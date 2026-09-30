@@ -37,6 +37,8 @@ denominator from only the finished tasks. Per-attempt available judgments remain
 
 These fields describe calibrated automated judgments, not measured per-criterion test
 coverage or human approval. Manual-review type counts never supply an actual human decision.
+Separate [final-candidate criterion test evidence](criterion-execution-evidence.md) now records
+validated passing/failing tests, explicit non-execution and unavailable assignment proof.
 The numeric reducer is not an authority boundary: only the concrete protected consumer
 validates source evidence. Builder/model-supplied summaries are not accepted as completion
 proof. The report still rereads actual proof, accounts, inventory policy and current guards.

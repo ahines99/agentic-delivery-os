@@ -12,6 +12,7 @@ from agentic_delivery.evaluation.campaign import Split
 from agentic_delivery.evaluation.campaign_criterion_inventory import CampaignCriterionInventory
 from agentic_delivery.evaluation.campaign_reporting_policy import CampaignStatisticsPolicy
 from agentic_delivery.evaluation.comparison import _percentile
+from agentic_delivery.evaluation.criterion_execution_evidence import ExecutionEvidenceCounts
 from agentic_delivery.evaluation.criterion_judgments import JudgmentCounts
 from agentic_delivery.evaluation.harness import wilson
 
@@ -49,6 +50,11 @@ class ArmStatistics(Contract):
     required_criteria_by_verification_type: dict[VerificationType, int] | None
     semantic_criteria: JudgmentCounts | None
     semantic_criteria_by_verification_type: dict[VerificationType, JudgmentCounts] | None
+    candidate_criterion_tests: ExecutionEvidenceCounts | None
+    candidate_criterion_tests_by_verification_type: (
+        dict[VerificationType, ExecutionEvidenceCounts] | None
+    )
+    candidate_criterion_test_coverage: BinaryRate | None
     strict_success: BinaryRate
     functional_acceptance: BinaryRate
     regression: BinaryRate
@@ -141,6 +147,40 @@ def _criterion_counts(
     return {kind: JudgmentCounts(**counts) for kind, counts in result.items()}
 
 
+def _execution_counts(
+    rows: tuple["AssignmentReport", ...], inventory: CampaignCriterionInventory | None
+) -> dict[VerificationType, ExecutionEvidenceCounts] | None:
+    if inventory is None:
+        return None
+    tasks = {task.task_id: task for task in inventory.tasks}
+    raw = {
+        kind: dict.fromkeys(ExecutionEvidenceCounts.model_fields, 0) for kind in VerificationType
+    }
+    for row in rows:
+        expected = tasks[row.assignment.task_id]
+        proof = row.completed
+        counts = getattr(proof, "criterion_execution", None)
+        if proof is not None and proof.task_manifest_digest != expected.task_manifest_digest:
+            raise ValueError("Criterion inventory does not match completed task")
+        if counts is None:
+            for kind in VerificationType:
+                raw[kind]["unavailable"] += expected.by_verification_type[kind]
+            continue
+        if (
+            counts.criterion_identity_digest != expected.criterion_identity_digest
+            or counts.required != expected.required
+            or any(
+                counts.by_verification_type[kind].total != expected.by_verification_type[kind]
+                for kind in VerificationType
+            )
+        ):
+            raise ValueError("Criterion inventory does not match validated execution evidence")
+        for kind in VerificationType:
+            for field in ExecutionEvidenceCounts.model_fields:
+                raw[kind][field] += getattr(counts.by_verification_type[kind], field)
+    return {kind: ExecutionEvidenceCounts(**counts) for kind, counts in raw.items()}
+
+
 def _arm(
     rows: tuple["AssignmentReport", ...],
     accounting: AccountingSnapshot,
@@ -151,6 +191,17 @@ def _arm(
         raise ValueError("Unsupported statistics arm")
     assert arm in ("A", "B")
     judgments = _criterion_counts(rows, inventory)
+    executed = _execution_counts(rows, inventory)
+    execution_totals = (
+        ExecutionEvidenceCounts(
+            **{
+                field: sum(getattr(c, field) for c in executed.values())
+                for field in ExecutionEvidenceCounts.model_fields
+            }
+        )
+        if executed is not None
+        else None
+    )
     requirements = None
     if inventory is not None:
         by_task = {t.task_id: t for t in inventory.tasks}
@@ -213,6 +264,13 @@ def _arm(
             else None
         ),
         semantic_criteria_by_verification_type=judgments,
+        candidate_criterion_tests=execution_totals,
+        candidate_criterion_tests_by_verification_type=executed,
+        candidate_criterion_test_coverage=(
+            _rate(execution_totals.passed, execution_totals.total, intervals=False)
+            if execution_totals is not None
+            else None
+        ),
         strict_success=rate(successes, len(rows)),
         functional_acceptance=rate(sum(p.acceptance_passed is True for p in proofs), len(rows)),
         regression=rate(sum(p.regression_passed is False for p in regression), len(regression)),

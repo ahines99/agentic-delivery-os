@@ -420,6 +420,14 @@ async def test_concrete_semantic_success_and_adjudication_retain_original_outcom
         assert arm.semantic_criteria.unresolved == judgments.counts.unresolved
         assert arm.semantic_criteria.unscored == arm.required_criteria - judgments.required
         assert arm.semantic_criteria.total == arm.required_criteria
+        assert arm.candidate_criterion_tests.passed == judgments.required
+        assert (
+            arm.candidate_criterion_tests.unavailable == arm.required_criteria - judgments.required
+        )
+        assert arm.candidate_criterion_tests.total == arm.required_criteria
+        assert arm.candidate_criterion_test_coverage.numerator == judgments.required
+        assert arm.candidate_criterion_test_coverage.denominator == arm.required_criteria
+        assert arm.candidate_criterion_test_coverage.wilson_interval_95 is None
         assert phase.criterion_coverage_gate == "UNAVAILABLE"
         assert arm.functional_acceptance.numerator == 1
         assert arm.regression.denominator == 1 and arm.regression.numerator == 0

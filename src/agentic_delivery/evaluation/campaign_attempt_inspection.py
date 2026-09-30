@@ -16,6 +16,7 @@ from agentic_delivery.evaluation.campaign_allocation import (
 )
 from agentic_delivery.evaluation.campaign_candidate import BINDING_CHECKPOINT, RESULT_CHECKPOINT
 from agentic_delivery.evaluation.campaign_scoring import SCORING_CHECKPOINT
+from agentic_delivery.evaluation.criterion_execution_evidence import CriterionExecutionEvidence
 from agentic_delivery.evaluation.criterion_judgments import CriterionJudgments
 from agentic_delivery.evaluation.execution_store import INFRA_RECEIPT
 from agentic_delivery.evaluation.harness import HistoricalTask
@@ -77,7 +78,7 @@ class AttemptConsumptionAuthority:
 
 
 class ValidatedCompletedAttempt(Contract):
-    schema_version: Literal[3] = 3
+    schema_version: Literal[4] = 4
     kind: Literal["validated-completed-campaign-attempt"] = "validated-completed-campaign-attempt"
     consumption_authorization_digest: Digest
     outcome_artifact: Digest
@@ -91,6 +92,7 @@ class ValidatedCompletedAttempt(Contract):
     verdict: Literal["PASS", "FAIL", "UNRESOLVED"]
     strict_success: bool = Field(strict=True)
     criterion_judgments: CriterionJudgments | None
+    criterion_execution: CriterionExecutionEvidence
     acceptance_passed: bool | None = Field(strict=True)
     regression_passed: bool | None = Field(strict=True)
     execution_started_at: AwareDatetime
@@ -481,6 +483,7 @@ async def _validate(
         verdict=verdict,
         strict_success=semantic is not None and semantic.strict_success,
         criterion_judgments=semantic.criterion_judgments if semantic is not None else None,
+        criterion_execution=candidate.criterion_execution,
         acceptance_passed=scoring.acceptance_passed if scoring is not None else None,
         regression_passed=scoring.regression_passed if scoring is not None else None,
         execution_started_at=attempt.started_at,

@@ -107,6 +107,16 @@ crash recovery or live-provider reconciliation.
 
 ## Implemented and exercised
 
+The [final-candidate criterion test reader](criterion-execution-evidence.md) now exports
+execution counts only after concrete receipt replay reproduces the sealed candidate. It
+matches those counts to the frozen requirement inventory, retains missing assignments and
+failed or unexecuted tests, and rejects evidence from earlier repair snapshots. These are
+verified executions of builder-proposed tests, not complete criterion acceptance or human
+approval. The reducer/statistics scope passed 25 tests; eight concrete reader cases and four
+aggregate cases passed, including the final composition with mandatory program enrollment.
+The initial four aggregate fixture setup failures and corrected results are retained in E158
+and E159 of the completion audit. Full CI for the combined revision remains required.
+
 The [local correction-loop tests](correction-loop.md) now cover rejection, successful
 repair with fresh evidence and normal exhaustion. A [shared candidate engine](candidate-arms.md)
 adds a builder-only evaluation mode while keeping product delivery review-mandatory.

@@ -40,6 +40,10 @@ from agentic_delivery.evaluation.campaign_scoring import (
     _resolve_campaign,
     _timestamp,
 )
+from agentic_delivery.evaluation.criterion_execution_evidence import (
+    CriterionExecutionEvidence,
+    count_candidate_criterion_evidence,
+)
 from agentic_delivery.evaluation.execution_store import (
     INFRA_RECEIPT,
     INFRA_RESERVATION,
@@ -122,12 +126,13 @@ class CandidateConsumptionPolicy(Contract):
 
 
 class ValidatedSealedCandidate(Contract):
-    schema_version: Literal[1] = 1
+    schema_version: Literal[2] = 2
     kind: Literal["validated-sealed-candidate"] = "validated-sealed-candidate"
     sealed_candidate_artifact: Digest
     consumption_authorization_digest: Digest
     sealed: SealedCandidate
     operation_ids: tuple[str, ...]
+    criterion_execution: CriterionExecutionEvidence
     strict_success: Literal[False] = False
 
 
@@ -675,4 +680,7 @@ async def _validate(
         consumption_authorization_digest=digest_json(use.model_dump(mode="json")),
         sealed=sealed,
         operation_ids=tuple(rows),
+        criterion_execution=count_candidate_criterion_evidence(
+            task.item.acceptance_criteria, reconstructed
+        ),
     )

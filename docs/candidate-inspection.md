@@ -52,3 +52,8 @@ Storage administrators remain trusted: exact ledger-target identity is not a
 cryptographic identity of database contents, and read-before/read-after comparisons
 are not a transaction spanning all external authorization providers. No source is
 exported by this API, and no historical scoring or campaign result is implied.
+
+
+Version 2 of the consumption result includes [criterion execution counts](criterion-execution-evidence.md)
+from its locally reconstructed final engine result. It cannot carry an earlier repair round's
+passing tests to a different final snapshot. The original sealed candidate artifact is unchanged.

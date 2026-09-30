@@ -84,6 +84,8 @@ async def test_preserves_protocol_and_arm_identity(completed, request):
     assert result.original_outcome == c.outcome
     assert result.criterion_judgments is not None
     assert result.criterion_judgments.required == len(c.f.case.task.item.acceptance_criteria)
+    assert result.criterion_execution.counts.passed == result.criterion_judgments.required
+    assert result.criterion_execution.counts.not_executed == 0
     assert result.acceptance_passed is True and result.regression_passed is True
     assert result.execution_started_at == c.f.c.allocated.attempt.started_at
     assert result.final_completed_at == datetime.fromisoformat(
@@ -226,6 +228,13 @@ async def test_early_failure_remains_assigned_with_full_cost_and_no_semantic_cal
     result = await consume(c, authority)
     assert result.original_outcome == c.outcome and result.verdict == "FAIL"
     assert result.criterion_judgments is None
+    execution_counts = result.criterion_execution.counts
+    assert execution_counts.total == len(c.f.case.task.item.acceptance_criteria)
+    assert execution_counts.unavailable == 0
+    if c.outcome.status == "CANDIDATE_FAILED":
+        assert execution_counts.not_executed == execution_counts.total
+    else:
+        assert execution_counts.passed == execution_counts.total
     assert not result.strict_success and result.adjudication_result_artifact is None
     assert result.operation_receipts == c.outcome.operation_receipts
     assert result.model_microdollars == c.outcome.model_microdollars > 0

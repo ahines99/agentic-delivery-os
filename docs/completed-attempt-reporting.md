@@ -86,3 +86,8 @@ cannot acquire new statistical rules retrospectively.
 Owned tests compose actual coordinator, broker and SQLite receipts with controlled HTTP
 responses. Qualification, calibration, context admission and sandbox execution are explicit
 fixture boundaries. They make no paid calls and inspect no historical source or solutions.
+
+
+Version 4 additionally forwards [final-candidate criterion test evidence](criterion-execution-evidence.md)
+from the concrete candidate replay, including early failures. These execution observations
+remain distinct from semantic judgments, complete required evidence and human approval.
