@@ -14,6 +14,14 @@ subsequently passed Python 3.12/3.13 (3,304 tests and 136 explicit skips each), 
 136 service integration tests, package builds and secret scanning. The full Windows
 feature runs and later test-fixture correction remain separately tracked.
 
+The [Linear PR-link recovery](linear-attachment-recovery.md) follow-up adds one
+bounded confirming read after a lost attachment response, with current ticket and
+authorization checks before any status update. The expanded monitor, ingress,
+adapter and activity selection passed 163 tests; five actual PostgreSQL/Temporal
+fault scenarios passed and replayed. A
+read-only live query confirmed the existing PER-13/PR #6 attachment. Full regression
+verification and installation of this follow-up remain pending.
+
 Linear intake now rechecks eligibility after assignment. A concurrent completion,
 cancellation or start cannot be admitted from the earlier discovery record once
 observed on read-back. An unavailable assignment response triggers one confirming
@@ -37,8 +45,10 @@ and Linear handoff waits for those decisions plus current CI. The focused suite 
 passed, including restart, stale/revoked decisions, cancellation and unknown GitHub
 update outcome. [Hosted CI](https://github.com/ahines99/agentic-delivery-os/actions/runs/36735702473)
 passed Python 3.12 and 3.13 (3,294 tests and 129 explicit skips each), all 129 service
-integration tests, package builds and secret scanning. Its full local run is still
-pending and has reported four failures. These are owned scripted operator identities, not a human pilot
+integration tests, package builds and secret scanning. Its original full Windows run
+finished with 3,280 passed, 139 skipped and four failed in 5,019.52 seconds. All four
+failures are the calibration fixture's five-second startup wait described below;
+none is a manual-acceptance assertion failure. These are owned scripted operator identities, not a human pilot
 signoff. [Operator instructions](manual-acceptance.md) describe the API.
 
 The follow-on sandbox fix at `430bc19` replaces the two-hour keepalive with the approved
@@ -57,8 +67,9 @@ the mocked request to start, before the in-flight behavior under test. The fixtu
 now allows thirty seconds for startup, surfaces an earlier preparation failure, and
 always cancels/awaits its helper tasks. All four cases then passed in 31.83 seconds;
 Ruff, format and mypy passed. Production deadlines, cancellation assertions and
-retained-unknown-cost requirements are unchanged. The original full runs remain
-running on their original revisions; this targeted result does not erase their failures.
+retained-unknown-cost requirements are unchanged. The manual-feature full run ended
+with those four startup timeouts; the original container-lifetime run is still
+running on its original revision. The targeted result does not erase the failed run.
 
 The [compromised-builder admission matrix](product-admission-controls.md) subsequently
 passed six actual Docker cases in 21.92 seconds on unchanged application source
@@ -112,7 +123,8 @@ review state with unchanged ticket text/team/assignment and current authorizatio
 it never repeats the status mutation. The handoff activity still checks current CI
 afterward. Controlled transport and SQLite/artifact tests cover accepted updates,
 unapplied updates, changed requirements, revoked authorization, failed read-back and
-CI invalidation during reconciliation. Attachment-response uncertainty remains UNKNOWN.
+CI invalidation during reconciliation. At that revision, attachment-response uncertainty
+remained UNKNOWN; the subsequent bounded attachment read-back is recorded above.
 Three additional GitHub adapter cases lose acknowledgements after branch creation,
 PR creation or final read-back; fresh clients reconcile one branch and one draft PR.
 The combined adapter/handoff suite passed 89 tests. These are controlled provider

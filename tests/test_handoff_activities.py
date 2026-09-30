@@ -45,6 +45,7 @@ class Context:
     identity: str
     approval_id: str
     provider_calls: list[dict[str, Any]]
+    receipt: dict[str, Any]
 
     def expire_approval(self) -> None:
         with Session(self.store.engine) as session, session.begin():
@@ -100,8 +101,15 @@ class Context:
         self.store.observe_publication(self.identity, payload, self.inbox(payload))
 
 
-def context(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, mapping: bool = True) -> Context:
-    url = f"sqlite+pysqlite:///{tmp_path / 'handoff.db'}"
+def context(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    mapping: bool = True,
+    database_url: str | None = None,
+    approved: bool = True,
+) -> Context:
+    url = database_url or f"sqlite+pysqlite:///{tmp_path / 'handoff.db'}"
     upgrade(url)
     store = Store(create_database(url))
     repository = RepositoryConfig(
@@ -129,28 +137,30 @@ def context(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, mapping: bool = 
         github_installation_id=INSTALLATION_ID,
     )
     item = WorkItem(
-        id="linear-fixture",
+        id="linear-fixture" + ("-" + uuid4().hex if database_url else ""),
         source_system="linear",
         title="Controlled handoff",
         description="Exercise activity boundary races without a remote write.",
         repository=repository.id,
     )
-    identity = store.submit(
+    receipt = store.submit(
         item,
         actor="reviewer",
-        key="intake",
+        key="intake-" + uuid4().hex,
         budget=settings.budget,
         configuration_digest=settings.execution_digest(repository.id),
-    )["workflow_id"]
+    )
+    identity = receipt["workflow_id"]
     run = store.workflow(identity)
     approval = store.enqueue_command(
         identity,
         kind="approve-plan",
         actor="reviewer",
-        key="approval",
+        key="approval-" + uuid4().hex,
         payload={"spec_digest": run["spec_digest"], "plan_digest": "f" * 64},
     )
-    store.command_status(approval["command_id"], "APPLIED")
+    if approved:
+        store.command_status(approval["command_id"], "APPLIED")
     artifacts = ArtifactStore(settings.artifact_root)
     manifest = {
         "workflow_id": identity,
@@ -185,6 +195,7 @@ def context(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, mapping: bool = 
         identity,
         approval["command_id"],
         calls,
+        receipt,
     )
 
     class Linear:
@@ -241,7 +252,7 @@ def assert_retained_result(ctx: Context, result: dict[str, Any]) -> dict[str, An
     intent = json.loads(ctx.artifacts.get(result["intent_artifact"]))
     assert intent["operation_id"] == ctx.identity + ":linear-review"
     assert intent["workflow_id"] == ctx.identity
-    assert intent["issue_id"] == "linear-fixture"
+    assert intent["issue_id"] == ctx.store.workflow(ctx.identity)["work_item"]["id"]
     assert intent["review_state_id"] == "review-1"
     return intent
 

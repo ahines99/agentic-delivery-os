@@ -59,6 +59,46 @@ class LinearClient:
             raise ValueError("Linear issue not found")
         return dict(result["issue"])
 
+    async def _linked_issue(self, identity: str, url: str) -> dict[str, Any]:
+        """Reconcile an uncertain attachment write with one bounded provider read."""
+        result = await self.query(
+            "query DeliveryAttachment($id: String!, $url: String!) { "
+            "issue(id: $id) { id title description state { id } team { id } assignee { id } } "
+            "attachmentsForURL(url: $url, first: 100) { "
+            "nodes { id url archivedAt issue { id } } pageInfo { hasNextPage } } }",
+            {"id": identity, "url": url},
+        )
+        issue, connection = result.get("issue"), result.get("attachmentsForURL")
+        if not isinstance(issue, dict) or issue.get("id") != identity:
+            raise ValueError("Linear attachment issue was not confirmed")
+        if not isinstance(connection, dict):
+            raise ValueError("Linear pull request link was not confirmed")
+        nodes, page = connection.get("nodes"), connection.get("pageInfo")
+        if (
+            not isinstance(nodes, list)
+            or len(nodes) > 100
+            or not isinstance(page, dict)
+            or page.get("hasNextPage") is not False
+        ):
+            raise ValueError("Linear pull request link was not confirmed")
+        matches = 0
+        for node in nodes:
+            if (
+                not isinstance(node, dict)
+                or not isinstance(node.get("id"), str)
+                or not node["id"]
+                or node.get("url") != url
+                or "archivedAt" not in node
+                or not isinstance(node.get("issue"), dict)
+                or not isinstance(node["issue"].get("id"), str)
+            ):
+                raise ValueError("Linear pull request link was not confirmed")
+            if node["issue"]["id"] == identity and node["archivedAt"] is None:
+                matches += 1
+        if matches != 1:
+            raise ValueError("Linear pull request link was not confirmed")
+        return dict(issue)
+
     @staticmethod
     def validate_issue(
         issue: dict[str, Any],
@@ -119,20 +159,37 @@ class LinearClient:
             if authorization_check is not None:
                 authorization_check()
             # Linear upserts by (issueId, URL), including after a lost response.
-            attachment = await self.query(
-                "mutation DeliveryPullRequest($input: AttachmentCreateInput!) { "
-                "attachmentCreate(input: $input) { success } }",
-                {
-                    "input": {
-                        "issueId": identity,
-                        "url": pull_request_url,
-                        "title": "Delivery pull request",
-                        "subtitle": "Human review and merge required",
-                    }
-                },
-            )
-            if attachment.get("attachmentCreate", {}).get("success") is not True:
-                raise ValueError("Linear pull request link was not confirmed")
+            try:
+                attachment = await self.query(
+                    "mutation DeliveryPullRequest($input: AttachmentCreateInput!) { "
+                    "attachmentCreate(input: $input) { success } }",
+                    {
+                        "input": {
+                            "issueId": identity,
+                            "url": pull_request_url,
+                            "title": "Delivery pull request",
+                            "subtitle": "Human review and merge required",
+                        }
+                    },
+                )
+            except LinearUnavailable:
+                # Do not repeat the mutation. Require the exact issue/URL link and
+                # fresh ticket semantics before proceeding to the status update.
+                if authorization_check is not None:
+                    authorization_check()
+                issue = await self._linked_issue(identity, pull_request_url)
+                if authorization_check is not None:
+                    authorization_check()
+                self.validate_issue(
+                    issue,
+                    team_id=team_id,
+                    assignee_id=assignee_id,
+                    expected_title=expected_title,
+                    expected_description=expected_description,
+                )
+            else:
+                if attachment.get("attachmentCreate", {}).get("success") is not True:
+                    raise ValueError("Linear pull request link was not confirmed")
         if issue["state"]["id"] == state_id:
             return
         if authorization_check is not None:
