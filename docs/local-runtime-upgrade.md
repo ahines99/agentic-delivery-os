@@ -1,5 +1,30 @@
 # Local runtime upgrades
 
+## Operation logging and lifecycle metrics (2026-09-30)
+
+The service was upgraded from `f489947` to `4ae54e6` after
+[complete hosted CI](https://github.com/ahines99/agentic-delivery-os/actions/runs/36761138622)
+passed: 3,381 tests and 154 skips per Python version, all 157 service integration
+tests, package builds and secret scanning. This installs correlated operation
+events, optional lifecycle/cost metrics and the manual-review export correction.
+
+The first script launch was refused by PowerShell execution policy before it ran.
+The reviewed script then ran with a process-scoped execution-policy setting. Its
+two idle checks passed before/after stopping the verified supervisor and owned
+process tree. The clean source checkout fast-forwarded and the existing Windows
+task restarted with unchanged private configuration.
+
+At **19:20:40 UTC**, API/database readiness, fresh workflow/activity pollers and an
+advancing Linear cursor (**19:20:37.011053 UTC**) were confirmed. All nine workflow
+states and both exact handoff bindings were retained. Their digest remains
+`c3bccc33e891da90cb82329bbf6ac3cf410ea24a797448929d9e34809b176dd6`.
+No active run was interrupted, provider mutation used or PR merged.
+
+The later provider/cleanup diagnostic export and added wall-time/network tests are
+newer work with separate verification. They are not installed by this upgrade.
+The full Windows suites remain separately tracked; this restart is not a new live
+ticket result, human acceptance, or host-loss recovery drill.
+
 ## Automatic publication recovery (2026-09-30)
 
 The installed service was upgraded from `6b74944` to `f489947` after its

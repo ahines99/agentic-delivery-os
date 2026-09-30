@@ -24,8 +24,8 @@ adds an actual Ruff diagnostic containing hostile instructions, followed by a
 controlled compromised repair response. The production edit guard rejects replacement
 of an original test before further execution or review. All seven product admission
 cases passed on the pinned Docker image in 32.31 seconds; Ruff, format and mypy
-passed. This is an added test with no application change; hosted inclusion remains
-pending and no live-model injection quality is inferred.
+passed. The added case is included in complete hosted CI at `4ae54e6`; no live-model
+injection quality is inferred.
 
 [Lifecycle metrics in operational exports](operations-export.md#optional-lifecycle-metrics-schema-version-2)
 now derive state timing, clarification/cancellation counts, classified repair operations
@@ -36,7 +36,7 @@ read-only/repeatable-read verification. Read-only measurements also succeeded fo
 existing PER-13/14 handoffs. Ruff, formatting and mypy passed. Lifecycle/export source
 `d482c5b` subsequently passed complete hosted CI: 3,381 tests and 153 skips per Python
 version, all 156 service integration cases, builds and secret scanning. Its Windows
-run remains active and installation is pending. Human benefit and other unmeasured
+run remains active; lifecycle metrics are installed through `4ae54e6`. Human benefit and other unmeasured
 outcomes remain explicit in the report.
 
 [Correlated operation events](operation-events.md) now cover activity queue/active
@@ -46,19 +46,20 @@ passed, as did the broader 141-test model/service selection; Ruff, format and my
 passed. Logging source `bb56d76` subsequently passed
 [complete hosted CI](https://github.com/ahines99/agentic-delivery-os/actions/runs/36757550789):
 3,359 tests and 152 skips per Python version, all 155 service integration cases,
-builds and secret scanning. Its Windows run is still active; logging is not yet installed.
+builds and secret scanning. Its Windows run is still active; logging is installed through `4ae54e6`.
 Durable records remain authoritative, and the complete lifecycle/quality metrics
 requirement remains open.
 
-The local service is now running `f489947`, including automatic confirmation of an
+The local service is now running `4ae54e6`, including operation logging, lifecycle
+metrics, corrected manual-review exports and automatic confirmation of an
 existing publication after worker failure, attachment-response and terminal command
 redelivery recovery, manual acceptance and the
 worker-independent container lifetime. The [idle upgrade record](local-runtime-upgrade.md)
 confirms readiness, fresh Temporal pollers, advancing Linear detection, authenticated
 manual-review routing and preserved exact PR #6/#7 handoff bindings. Application source
-at this installed head passed [complete CI](https://github.com/ahines99/agentic-delivery-os/actions/runs/36754579549):
-Python 3.12/3.13 (3,349 tests and 151 explicit skips each), all
-154 service integration tests, package builds and secret scanning. The full Windows
+at this installed head passed [complete CI](https://github.com/ahines99/agentic-delivery-os/actions/runs/36761138622):
+Python 3.12/3.13 (3,381 tests and 154 explicit skips each), all
+157 service integration tests, package builds and secret scanning. The full Windows
 feature runs and later test-fixture correction remain separately tracked.
 
 The [publisher-process-loss drill](publication-process-loss.md) passed three real

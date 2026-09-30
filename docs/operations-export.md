@@ -104,6 +104,8 @@ private decisions, comments and evidence payloads remain excluded.
 
 ### Recorded provider and cleanup observations
 
+This extension is newer than installed `4ae54e6` and is not installed yet.
+
 Version 2 also derives `model_provider_observations` and
 `candidate_cleanup_observation` inside the same read-only transaction. The queries
 select fixed JSON scalars, without retrieving model output, provider response IDs,
@@ -176,13 +178,15 @@ measurement of the two existing live demonstration workflows produced:
 
 Both histories end at `HUMAN_REVIEW`, with complete role classification. These are
 two individual demonstrations, not benchmark averages or human acceptance evidence.
-The exporter was run separately against installed history; the metrics changes
-still require full-source CI and are not installed in the running service.
+The exporter was run separately against installed history; no new live delivery
+was created by that measurement.
 
 The lifecycle/export source at `d482c5b` subsequently passed
 [complete hosted CI](https://github.com/ahines99/agentic-delivery-os/actions/runs/36760353617):
 3,381 tests and 153 skips on each Python version, all 156 service integration tests,
-builds and secret scanning. The later diagnostic observation extension passed
+builds and secret scanning. Lifecycle metrics are now installed through `4ae54e6`
+after its own complete CI and [verified idle upgrade](local-runtime-upgrade.md).
+The later diagnostic observation extension passed
 **55 tests with one Windows symlink skip in 8.78 seconds**, including real
 PostgreSQL adapter success, HTTP failure, transport loss and cancellation. Those
 tests verify unchanged ledger state, retained unknown reservations, one HTTP

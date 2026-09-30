@@ -49,7 +49,10 @@ selection passed **16 tests in 31.96 seconds**, including real PostgreSQL fault 
 real worker interceptor execution and history replay. A broader model, receipt,
 reconciliation and service selection passed **141 tests with seven explicit missing
 service skips in 25.54 seconds**. Ruff, formatting and mypy passed. Counts overlap;
-they are not additive coverage. Full-source regression and installation are pending.
+they are not additive coverage. Source `bb56d76` subsequently passed complete hosted
+CI (3,359 tests per Python version, all 155 service integration cases, builds and
+secret scanning). Logging is now [installed through `4ae54e6`](local-runtime-upgrade.md),
+whose complete hosted CI also passed. The separate Windows regression remains active.
 
 Owned payload canaries remain absent from captured events on success, provider
 failure, cancellation and lost settlement acknowledgement. Tests retain the original
@@ -65,7 +68,9 @@ command and usage records for authoritative counts and uncertainty. Queue and ac
 durations describe the observed SDK activity attempt; they do not measure the whole
 ticket's wall time or human review latency.
 
-The complete plan still calls for consolidated lifecycle timing, correction,
-clarification, cancellation, cleanup, duplicate and provider-error metrics. False-ready
-rates and human review benefit require independent outcome observations and remain
-unmeasured. Nothing here replaces historical evaluation or human pilot signoff.
+The [operational export](operations-export.md) now derives lifecycle timing,
+classified repair operations, clarification/cancellation and settled/unknown costs.
+Later provider/cleanup observations have separate qualification. Complete duplicate
+and outcome metrics remain open. False-ready rates and human review benefit require
+independent outcome observations and remain unmeasured. Nothing here replaces
+historical evaluation or human pilot signoff.
