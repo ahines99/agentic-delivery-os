@@ -4,21 +4,29 @@ Updated 2026-09-30 UTC during continued controlled implementation. This is the c
 the original milestone documents remain the release targets. Source code alone is not a passed
 integration or production release gate.
 
-The local service is now running `f3bcbc6`, including manual acceptance and the
+The local service is now running `6b74944`, including attachment-response and terminal
+command redelivery recovery, manual acceptance and the
 worker-independent container lifetime. The [idle upgrade record](local-runtime-upgrade.md)
 confirms readiness, fresh Temporal pollers, advancing Linear detection, authenticated
-manual-review routing and preserved exact PR #6/#7 handoff bindings. Application
-source is identical to the fully passing `430bc19` CI below. The installed head's
-[combined CI](https://github.com/ahines99/agentic-delivery-os/actions/runs/36740262123)
-subsequently passed Python 3.12/3.13 (3,304 tests and 136 explicit skips each), all
-136 service integration tests, package builds and secret scanning. The full Windows
+manual-review routing and preserved exact PR #6/#7 handoff bindings. Application source
+at this installed head passed [complete CI](https://github.com/ahines99/agentic-delivery-os/actions/runs/36748606468):
+Python 3.12/3.13 (3,324 tests and 145 explicit skips each), all
+145 service integration tests, package builds and secret scanning. The full Windows
 feature runs and later test-fixture correction remain separately tracked.
 
 The [publisher-process-loss drill](publication-process-loss.md) passed three real
 abrupt-exit/reconstructed-process cases on application source `6b74944`, after
 controlled branch creation, PR creation and final read. Persistent provider fixtures
 retained one branch and one draft PR. This proves broker recovery across process
-loss, not automatic Temporal publishing-activity recovery; that gap remains open.
+loss at the broker boundary. The subsequent [workflow publication recovery](workflow-publication-recovery.md)
+adds a single confirmation activity after a publication heartbeat timeout or failure.
+Five real worker-exit/replacement cases passed against isolated PostgreSQL/Temporal;
+the final crash, CI and cancellation selection passed 13 tests in 163.82 seconds,
+including history replay. The broader publication/authority/manual/service/replay
+selection passed 168 tests with four explicit Docker-profile skips. Ruff, format and
+mypy passed. An existing valid draft resumes the normal gates; missing/conflicting
+effects remain blocked, and cancellation never schedules recovery. Full-branch CI,
+Windows regression and installation of this newer change remain pending.
 
 The [terminal outbox redelivery follow-up](postgres-faults.md#terminal-redelivery-follow-up-2026-09-30)
 passed the expanded 15-case PostgreSQL/Temporal fault suite in 8.43 seconds. All three
@@ -29,8 +37,9 @@ lost cancellation acknowledgement reproduced a pending-outbox bug after completi
 the dispatcher tried to reject an already APPLIED command. It now preserves the
 final decision and acknowledges the delivery. The expanded PostgreSQL/Temporal
 suite passed 16 cases, including the real closed-workflow signal response and replay;
-all 13 scoped dispatcher cases passed. Full regression and installation of this
-dispatcher change remain pending.
+all 13 scoped dispatcher cases passed. This dispatcher change passed complete hosted
+CI and was installed as recorded above; its full Windows
+regression is still running.
 
 The [Linear PR-link recovery](linear-attachment-recovery.md) follow-up adds one
 bounded confirming read after a lost attachment response, with current ticket and
@@ -40,8 +49,8 @@ fault scenarios passed and replayed. A
 read-only live query confirmed the existing PER-13/PR #6 attachment. Its [complete
 hosted CI at `79490f3`](https://github.com/ahines99/agentic-delivery-os/actions/runs/36746926634)
 passed Python 3.12/3.13 (3,321 tests and 141 skips each), all 141 service integration
-tests, package builds and secret scanning. The full Windows run and installation
-remain pending; the later dispatcher revision has its own verification in progress.
+tests, package builds and secret scanning. Installation through `6b74944` is recorded
+above; the full Windows run remains pending.
 
 Linear intake now rechecks eligibility after assignment. A concurrent completion,
 cancellation or start cannot be admitted from the earlier discovery record once

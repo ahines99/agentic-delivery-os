@@ -36,6 +36,7 @@ class GitHubPublisher:
         *,
         authorization_check: Callable[[], None] | None = None,
         allow_pending_manual: bool = False,
+        existing_only: bool = False,
     ) -> dict[str, Any]:
         def guard() -> None:
             if authorization_check is not None:
@@ -79,6 +80,26 @@ class GitHubPublisher:
             entries.append(entry)
         if not entries:
             raise GitHubFailure("Nothing to publish")
+        branch = "agent/" + workflow_id
+        marker = f"<!-- delivery-operation:{workflow_id} manifest:{manifest_digest} -->"
+        pulls_route = (
+            "/pulls?state=all&head="
+            + quote(self.repository.github_owner + ":" + branch, safe="")
+            + "&per_page=100"
+        )
+
+        def matching_pulls(value: Any) -> list[dict[str, Any]]:
+            if (
+                not isinstance(value, list)
+                or (existing_only and len(value) >= 100)
+                or any(
+                    not isinstance(pr, dict) or not isinstance(pr.get("body") or "", str)
+                    for pr in value
+                )
+            ):
+                raise GitHubFailure("Pull request listing is incomplete or malformed")
+            return [pr for pr in value if marker in (pr.get("body") or "")]
+
         client = self.client or httpx.AsyncClient(
             timeout=30, follow_redirects=False, trust_env=False
         )
@@ -115,6 +136,8 @@ class GitHubPublisher:
                 # Stop new mutations after revocation. Existing-token reads still
                 # reconcile already-issued effects; cleanup must remain possible.
                 if method not in {"GET", "HEAD"}:
+                    if existing_only and (method, route) != ("POST", "/git/trees"):
+                        raise GitHubFailure("Recovery cannot create or change a branch or PR")
                     guard()
                 response = await client.request(
                     method,
@@ -126,6 +149,20 @@ class GitHubPublisher:
                     raise GitHubFailure(f"GitHub operation returned HTTP {response.status_code}")
                 return response.json() if response.content else {}
 
+            if existing_only:
+                # Require an already-created branch and PR before reconstructing
+                # the expected content-addressed tree. No refs/commits/PR writes
+                # are permitted, including if either resource disappears later.
+                observed_ref = await request(
+                    "GET", "/git/ref/heads/" + quote(branch, safe=""), accepted=(200, 404)
+                )
+                observed_pulls = await request("GET", pulls_route)
+                if (
+                    not isinstance(observed_ref, dict)
+                    or "object" not in observed_ref
+                    or len(matching_pulls(observed_pulls)) != 1
+                ):
+                    raise GitHubFailure("Existing branch and PR are not confirmed")
             current = await request(
                 "GET", "/git/ref/heads/" + quote(self.repository.base_branch, safe="")
             )
@@ -135,8 +172,6 @@ class GitHubPublisher:
             tree = await request(
                 "POST", "/git/trees", {"base_tree": base["tree"]["sha"], "tree": entries}
             )
-            branch = "agent/" + workflow_id
-            marker = f"<!-- delivery-operation:{workflow_id} manifest:{manifest_digest} -->"
             ref = await request(
                 "GET", "/git/ref/heads/" + quote(branch, safe=""), accepted=(200, 404)
             )
@@ -160,13 +195,8 @@ class GitHubPublisher:
                 await request(
                     "POST", "/git/refs", {"ref": "refs/heads/" + branch, "sha": commit["sha"]}
                 )
-            pulls = await request(
-                "GET",
-                "/pulls?state=all&head="
-                + quote(self.repository.github_owner + ":" + branch, safe="")
-                + "&per_page=100",
-            )
-            existing = [pr for pr in pulls if marker in (pr.get("body") or "")]
+            pulls = await request("GET", pulls_route)
+            existing = matching_pulls(pulls)
             if len(existing) > 1:
                 raise GitHubFailure(
                     "Multiple matching pull requests; operator reconciliation required"

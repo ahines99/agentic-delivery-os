@@ -471,6 +471,50 @@ class Activities:
 
     @activity.defn(name="publish")
     async def publish(self, request: dict[str, Any]) -> dict[str, Any]:
+        return await self._publication_with_heartbeat(request)
+
+    @activity.defn(name="recover_publication")
+    async def recover_publication(self, request: dict[str, Any]) -> dict[str, Any]:
+        """Confirm an existing candidate/PR after uncertainty; never create another."""
+        try:
+            result = await self._publication_with_heartbeat(request, existing_only=True)
+        except Exception as exc:
+            result = {
+                "status": "UNKNOWN",
+                "reason": "Existing publication could not be confirmed",
+                "error_class": type(exc).__name__,
+            }
+        receipt = {
+            "workflow_id": request["workflow_id"],
+            "manifest_digest": request["manifest_digest"],
+            "observed_at": now_iso(),
+            "existing_only": True,
+            "outcome": result,
+        }
+        result["recovery_artifact"] = ArtifactStore(self.settings.artifact_root).put(
+            json.dumps(receipt, sort_keys=True).encode()
+        )
+        return result
+
+    async def _publication_with_heartbeat(
+        self, request: dict[str, Any], *, existing_only: bool = False
+    ) -> dict[str, Any]:
+        async def heartbeat() -> None:
+            while True:
+                activity.heartbeat("reconciling candidate publication")
+                await asyncio.sleep(1)
+
+        pulse = asyncio.create_task(heartbeat()) if activity.in_activity() else None
+        try:
+            return await self._publish(request, existing_only=existing_only)
+        finally:
+            if pulse is not None:
+                pulse.cancel()
+                await asyncio.gather(pulse, return_exceptions=True)
+
+    async def _publish(
+        self, request: dict[str, Any], *, existing_only: bool = False
+    ) -> dict[str, Any]:
         self.validate_configuration(request["workflow_id"])
         if not self.settings.publication_enabled:
             return {"status": "UNAVAILABLE", "reason": "GitHub App publication is disabled"}
@@ -516,6 +560,7 @@ class Activities:
             request["manifest_digest"],
             authorization_check=publication_authorization,
             allow_pending_manual=request.get("allow_pending_manual", False),
+            **({"existing_only": True} if existing_only else {}),
         )
         self.store.save_publication(request["workflow_id"], repository.id, publication)
         # Preserve observed provider effects even if authorization changed in flight.

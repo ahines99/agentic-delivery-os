@@ -1,4 +1,29 @@
-# Local runtime upgrade: manual acceptance and bounded container lifetime
+# Local runtime upgrades
+
+## Attachment and terminal-command recovery (2026-09-30)
+
+The installed service was upgraded from the `f3bcbc6` application to `6b74944` after
+its [complete hosted CI](https://github.com/ahines99/agentic-delivery-os/actions/runs/36748606468)
+passed: 3,324 tests and 145 skips on each of Python 3.12/3.13, all 145 service
+integration tests, package builds and secret scanning. The intervening `acd9a1d`
+checkout contained only documentation and a calibration-test fixture correction.
+
+The supervisor and its verified process tree were stopped only after the live
+database and Temporal queue showed no active work. A second idle check after stopping
+preceded the fast-forward. The existing Windows task then restarted with unchanged
+private settings. At **17:37:33 UTC**, readiness and fresh workflow/activity pollers
+were confirmed; the Linear cursor advanced to **17:37:29.702971 UTC**. All nine prior
+workflow states and both exact PER-13/14 publication bindings were retained. The
+before/after binding digest was identical. No new provider mutation was used to
+verify the upgrade.
+
+The installed changes reconcile a lost Linear PR-attachment acknowledgement and
+preserve an already applied cancellation when its closed-workflow redelivery receives
+NOT_FOUND. Full Windows runs remain separately tracked. ADR-032 publication recovery
+is newer work and is **not installed** by this upgrade. No reboot or host-loss recovery
+was exercised; the existing local hosting requirements still apply.
+
+## Manual acceptance and bounded container lifetime
 
 The local service was upgraded to `f3bcbc64131e29aaff8c96881b7a44df3773cbbd` on
 2026-09-30. Its application code, dependencies, scripts and infrastructure are

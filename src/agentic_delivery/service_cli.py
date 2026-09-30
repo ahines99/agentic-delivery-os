@@ -50,6 +50,7 @@ async def serve(config: Path, mode: str, once: bool = False) -> None:
                 activities.candidate,
                 activities.cleanup_candidate,
                 activities.publish,
+                activities.recover_publication,
                 activities.reconcile_ci,
                 activities.finish_handoff,
                 activities.consume_manual_review,

@@ -42,6 +42,15 @@ class SyntheticCI:
 
     @activity.defn(name="publish")
     async def publish(self, _: dict[str, Any]) -> dict[str, Any]:
+        if self.mode == "cancel-publication":
+            self.entered.set()
+            try:
+                while True:
+                    activity.heartbeat("owned pending publication")
+                    await asyncio.sleep(0.05)
+            except asyncio.CancelledError:
+                self.cancelled.set()
+                raise
         return {"status": "PUBLISHED", "head_sha": "c" * 40, "draft": True, "number": 1}
 
     @activity.defn(name="reconcile_ci")
@@ -176,6 +185,34 @@ async def replay(handle: Any) -> None:
     history = await handle.fetch_history()
     result = await Replayer(workflows=[DeliveryWorkflow]).replay_workflow(history)
     assert result.replay_failure is None
+
+
+@pytest.mark.integration
+async def test_cancelled_publication_does_not_schedule_recovery() -> None:
+    async with running("cancel-publication") as (store, handle, script, _):
+        run = await wait_state(store, handle.id, "VALIDATING")
+        command = store.enqueue_command(
+            handle.id,
+            kind="cancel",
+            actor="ci-test",
+            key=uuid4().hex,
+            payload={"expected_sequence": run["sequence"], "spec_digest": run["spec_digest"]},
+        )
+        await handle.signal("command", {"command_id": command["command_id"]})
+        # Temporal can throttle heartbeat delivery to 80% of the 20-second
+        # publication heartbeat timeout. Keep the assertion within the workflow's
+        # 35-second execution limit without imposing a shorter test-only SLA.
+        assert (await asyncio.wait_for(handle.result(), 25))["state"] == "CANCELLED"
+        assert script.cancelled.is_set()
+        assert store.command(command["command_id"])["status"] == "APPLIED"
+        names = [
+            event.activity_task_scheduled_event_attributes.activity_type.name
+            for event in (await handle.fetch_history()).events
+            if event.HasField("activity_task_scheduled_event_attributes")
+        ]
+        assert names.count("publish") == 1 and "recover_publication" not in names
+        assert "reconcile_ci" not in names
+    await replay(handle)
 
 
 @pytest.mark.integration

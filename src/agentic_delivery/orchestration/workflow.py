@@ -317,16 +317,35 @@ class DeliveryWorkflow:
                             "Independent candidate evidence recorded",
                             candidate,
                         )
-                        publication = await self.call(
-                            "publish",
-                            {
-                                "workflow_id": identity,
-                                "manifest_digest": candidate["manifest_digest"],
-                                **({"allow_pending_manual": True} if manual_pending else {}),
-                            },
-                            model=True,
-                        )
-                        if publication["status"] == "UNAVAILABLE":
+                        publication_request = {
+                            "workflow_id": identity,
+                            "manifest_digest": candidate["manifest_digest"],
+                            **({"allow_pending_manual": True} if manual_pending else {}),
+                        }
+                        publication_recovery = workflow.patched("publication-recovery-v1")
+                        try:
+                            publication = await self.call(
+                                "publish",
+                                publication_request,
+                                model=True,
+                                heartbeat_timeout=timedelta(seconds=20)
+                                if publication_recovery
+                                else None,
+                            )
+                        except ActivityError as exc:
+                            if (
+                                not publication_recovery
+                                or self.cancel_request is not None
+                                or is_cancelled_exception(exc)
+                            ):
+                                raise
+                            publication = await self.call(
+                                "recover_publication",
+                                publication_request,
+                                model=True,
+                                heartbeat_timeout=timedelta(seconds=20),
+                            )
+                        if publication["status"] != "PUBLISHED":
                             await self.move(
                                 identity,
                                 "POLICY_BLOCKED",

@@ -35,7 +35,9 @@ def put(artifacts: ArtifactStore, value: object) -> str:
     return artifacts.put(json.dumps(value, sort_keys=True).encode())
 
 
-def manifest_fixture(tmp_path: Path) -> tuple[Settings, RepositoryConfig, dict]:
+def manifest_fixture(
+    tmp_path: Path, *, workflow_id: str = "run-1", ticket_id: str = "fixture-ticket"
+) -> tuple[Settings, RepositoryConfig, dict]:
     """All receipts here are explicitly fabricated unit-test inputs, not run evidence."""
     command = CommandProfile(id="pytest", argv=("python", "-m", "pytest", "-q"))
     repository = RepositoryConfig(
@@ -75,7 +77,7 @@ def manifest_fixture(tmp_path: Path) -> tuple[Settings, RepositoryConfig, dict]:
         "tests/test_new.py": "from app import value\ndef test_new(): assert value() == 2\n",
     }
     item = WorkItem(
-        id="fixture-ticket",
+        id=ticket_id,
         title="Return two",
         description="Change value to return exactly two.",
         repository=repository.id,
@@ -143,7 +145,7 @@ def manifest_fixture(tmp_path: Path) -> tuple[Settings, RepositoryConfig, dict]:
             "snapshot_digest": digest_json(files),
             "verification_binding": binding,
             "collector_profile": "image-owned-pytest-v1",
-            "workflow_id": "run-1",
+            "workflow_id": workflow_id,
         }
         return {
             "passed": True,
@@ -181,7 +183,7 @@ def manifest_fixture(tmp_path: Path) -> tuple[Settings, RepositoryConfig, dict]:
         repository,
         {
             "schema_version": 1,
-            "workflow_id": "run-1",
+            "workflow_id": workflow_id,
             "repository": repository.id,
             "base_sha": "a" * 40,
             "candidate_digest": digest_json(candidate),

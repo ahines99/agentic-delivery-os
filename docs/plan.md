@@ -42,6 +42,11 @@ worker survival. The command budget plus a fixed lifecycle allowance replaces th
 two-hour keepalive; verification and installation are tracked separately from the
 existing process-loss evidence.
 
+[ADR-032](adr/ADR-032-workflow-publication-recovery.md) connects publication uncertainty
+to one workflow recovery activity. It may confirm an existing verified draft PR and
+resume the normal handoff gates; missing or conflicting provider effects remain
+blocked. Installation and test evidence are tracked separately from this decision.
+
 Build a single-tenant delivery control plane that takes a bounded Linear ticket for an
 onboarded Python repository, produces an isolated change and GitHub pull request, independently
 verifies the candidate, and gives a human a concise evidence package. All merges are human.

@@ -27,7 +27,7 @@ def fixture(
     return settings, repository, artifacts.put(json.dumps(manifest).encode())
 
 
-def mock_github_provider() -> tuple[object, dict, dict]:
+def mock_github_provider(workflow_id: str = "run-1") -> tuple[object, dict, dict]:
     state = {"ref": None, "pull": None, "message": ""}
     counts = {"pull_posts": 0, "revocations": 0, "final_reads": 0}
 
@@ -47,7 +47,7 @@ def mock_github_provider() -> tuple[object, dict, dict]:
             return httpx.Response(204)
         if path.endswith("/git/ref/heads/main"):
             return httpx.Response(200, json={"object": {"sha": "a" * 40}})
-        if path.endswith("/git/ref/heads/agent/run-1"):
+        if path.endswith("/git/ref/heads/agent/" + workflow_id):
             return httpx.Response(
                 200 if state["ref"] else 404,
                 json={"object": {"sha": state["ref"]}} if state["ref"] else {},
@@ -65,7 +65,7 @@ def mock_github_provider() -> tuple[object, dict, dict]:
             state["message"] = body["message"]
             return httpx.Response(201, json={"sha": "c" * 40})
         if path.endswith("/git/refs"):
-            assert body["ref"] == "refs/heads/agent/run-1"
+            assert body["ref"] == "refs/heads/agent/" + workflow_id
             state["ref"] = body["sha"]
             return httpx.Response(201, json={})
         if path.endswith("/pulls/1"):
@@ -84,7 +84,7 @@ def mock_github_provider() -> tuple[object, dict, dict]:
                 "merged": False,
                 "head": {
                     "sha": "c" * 40,
-                    "ref": "agent/run-1",
+                    "ref": "agent/" + workflow_id,
                     "repo": {"full_name": "test/repo", "id": 777},
                 },
                 "base": {

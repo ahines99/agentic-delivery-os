@@ -25,11 +25,13 @@ not actual GitHub writes, real installation credentials, a network outage or an
 invoice. The test generates its own signing key, and every HTTP request stays inside
 the mock transport. No model, historical task or live database is used.
 
-The recovery caller deliberately invokes the publisher again with the original
-operation identity and candidate. This is broker reconciliation evidence; it does
-not demonstrate automatic Temporal recovery after the publishing activity's worker
-dies. That workflow-level gap remains distinct from the actual killed-candidate
-worker recovery recorded in [worker-process-loss.md](worker-process-loss.md).
+In this original drill the caller deliberately invokes the publisher again with the
+original operation identity and candidate. It proves broker reconciliation only.
+The subsequent [workflow recovery](workflow-publication-recovery.md) adds and tests
+automatic reconciliation by a replacement Temporal worker, with a stricter rule:
+only an already-existing PR can be confirmed automatically. A branch-only outcome
+stays blocked. Both are distinct from the killed-candidate worker recovery recorded
+in [worker-process-loss.md](worker-process-loss.md).
 
 Run the focused test with the project environment:
 
