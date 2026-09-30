@@ -64,6 +64,44 @@ provider response IDs, secret values, database URLs and credential environment-v
 are excluded. CI check output and snapshot payloads are excluded. Repository identifiers and
 timestamps remain potentially private metadata, so sharing an export is still an operator decision.
 
+## Optional lifecycle metrics (schema version 2)
+
+Add `--include-metrics` to the same command to include a `metrics` object and emit
+schema version 2. The default remains version 1. This reads the same database
+snapshot; it adds no telemetry service, provider requests or model charges.
+
+The exporter checks contiguous legal transitions, projection agreement, timestamp
+ordering, command identities, model operation identities and accounting totals
+before deriving measurements. An inconsistent snapshot fails the export before
+creating its output file. Measurements include:
+
+- Milliseconds per workflow state, initial queue time, total lifecycle time, and
+  combined plan-review/clarification wait. These use projection commit timestamps,
+  with each interval rounded down to milliseconds. They are not exact worker CPU
+  or execution times. Active workflows age to the snapshot time; terminal workflows
+  stop at their terminal transition, including `HUMAN_REVIEW`.
+- Clarification entries and applied cancellation commands. An applied cancellation
+  request does not establish successful cancellation or sandbox cleanup.
+- Reserved repair model operations with known `build:N` identities where N is
+  greater than zero. This counts model operations, not successful corrections.
+  `model_role_counts_complete: false` identifies missing role classification; the
+  reported count then covers only recognized identities. Unclassified operations
+  still contribute their recorded costs and reservations.
+- Recorded settled model cost, unsettled reservations and unknown-operation count.
+  `cost_to_recorded_handoff_microdollars` is populated only for `HUMAN_REVIEW` with
+  all recorded operations settled. It is not cost per human-accepted change and
+  excludes infrastructure costs. Unknown costs remain unknown.
+
+The `unmeasured` list explicitly retains manual-acceptance wait, external human
+review latency/benefit, false-ready rate, duplicate suppression, cleanup failures,
+provider error counts and infrastructure cost. `ACCEPTANCE_CHECK` can include CI
+and manual review, so its total duration cannot identify the manual portion.
+These measurements describe recorded history, not current provider readiness or
+historical evaluation results.
+
+Manual-review command dispositions are supported in both report versions. Their
+private decisions, comments and evidence payloads remain excluded.
+
 ## Consistency and limits
 
 SQLite is opened in read-only mode inside an explicit read transaction. PostgreSQL uses a
@@ -81,6 +119,7 @@ For actual provider state, use reconciliation; for historical evaluation, use th
 
 ```sh
 uv run python -m pytest tests/test_operations_export.py -q
+uv run python -m pytest tests/test_operation_metrics.py -q
 ```
 
 SQLite tests seed secret canaries into ticket bodies, actors, idempotency keys, free-text reasons,
@@ -90,3 +129,23 @@ Tests also cover workflow isolation, exclusive creation, protected destinations 
 failure output. Symlink tests run where the operating system permits unprivileged link creation;
 otherwise that specific case reports an explicit skip. No real provider calls or paid model runs
 are involved.
+
+The metrics tests cover timing, unknown costs, unclassified operations, inconsistent
+history/accounting and private-output exclusion. The PostgreSQL integration test
+uses a disposable test database, checks actual read-only/repeatable-read transaction
+settings, and verifies export leaves the workflow unchanged. It requires
+`TEST_DATABASE_URL`; do not point this test at the live database.
+
+The 2026-09-30 focused run passed 34 tests with one Windows symlink skip, including
+the actual PostgreSQL case. Ruff, formatting and mypy passed. A separate read-only
+measurement of the two existing live demonstration workflows produced:
+
+| Ticket | Recorded lifecycle | Clarification entries | Recorded model cost | Unknown model operations |
+| --- | --- | --- | --- | --- |
+| PER-13 | 2,219,508 ms | 0 | 215,420 microdollars | 0 |
+| PER-14 | 1,764,290 ms | 1 | 259,145 microdollars | 0 |
+
+Both histories end at `HUMAN_REVIEW`, with complete role classification. These are
+two individual demonstrations, not benchmark averages or human acceptance evidence.
+The exporter was run separately against installed history; the metrics changes
+still require full-source CI and are not installed in the running service.

@@ -4,6 +4,16 @@ Updated 2026-09-30 UTC during continued controlled implementation. This is the c
 the original milestone documents remain the release targets. Source code alone is not a passed
 integration or production release gate.
 
+[Lifecycle metrics in operational exports](operations-export.md#optional-lifecycle-metrics-schema-version-2)
+now derive state timing, clarification/cancellation counts, classified repair operations
+and settled/unknown model costs from the existing read-only snapshot. The manual-review
+command allowlist defect is fixed without exporting decision payloads. The focused
+selection passed 34 tests with one Windows symlink skip, including actual PostgreSQL
+read-only/repeatable-read verification. Read-only measurements also succeeded for the
+existing PER-13/14 handoffs. Ruff, formatting and mypy passed. This change is not yet
+installed or fully regression-qualified; human benefit and other unmeasured outcomes
+remain explicit in the report.
+
 [Correlated operation events](operation-events.md) now cover activity queue/active
 timing and model reservation, settlement, cache recovery and uncertainty using
 allowlisted identifiers/numbers. Real Temporal/PostgreSQL and model-fault selections
@@ -48,8 +58,8 @@ the dispatcher tried to reject an already APPLIED command. It now preserves the
 final decision and acknowledges the delivery. The expanded PostgreSQL/Temporal
 suite passed 16 cases, including the real closed-workflow signal response and replay;
 all 13 scoped dispatcher cases passed. This dispatcher change passed complete hosted
-CI and was installed as recorded above; its full Windows
-regression is still running.
+CI and was installed as recorded above. Its full Windows regression at `6b74944`
+subsequently passed 3,314 tests with 155 explicit skips in 5,490.41 seconds.
 
 The [Linear PR-link recovery](linear-attachment-recovery.md) follow-up adds one
 bounded confirming read after a lost attachment response, with current ticket and

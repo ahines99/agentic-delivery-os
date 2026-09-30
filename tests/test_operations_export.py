@@ -152,6 +152,25 @@ def test_cli_exclusively_creates_and_never_overwrites(configured, tmp_path: Path
     )
 
 
+def test_manual_acceptance_command_exports_disposition_without_private_decision(configured) -> None:
+    settings, store, identity, _ = configured
+    receipt = store.enqueue_command(
+        identity,
+        kind="manual-review",
+        actor=CANARY,
+        key=uuid4().hex,
+        payload={"decision": "ACCEPT", "comment": CANARY, "evidence": CANARY},
+    )
+    store.command_status(receipt["command_id"], "APPLIED")
+    report = export_metadata(settings, identity)
+    command = next(
+        row for row in report["command_dispositions"] if row["command_id"] == receipt["command_id"]
+    )
+    assert command["kind"] == "manual-review" and command["status"] == "APPLIED"
+    assert CANARY not in json.dumps(report)
+    assert "payload" not in command and "comment" not in command
+
+
 @pytest.mark.parametrize("target", ["config", "artifact", "source", "private-name", "non-json"])
 def test_protected_destinations_rejected(configured, target: str, tmp_path: Path) -> None:
     settings, _, _, config = configured

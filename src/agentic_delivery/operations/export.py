@@ -110,7 +110,9 @@ def snapshot(connection: Connection, settings: Settings, identity: str) -> dict[
         .order_by(CommandRecord.created_at, CommandRecord.id),
     )
     for record in commands:
-        allowed(record["kind"], {"start", "cancel", "clarify", "approve-plan", "rerun"})
+        allowed(
+            record["kind"], {"start", "cancel", "clarify", "approve-plan", "manual-review", "rerun"}
+        )
         allowed(record["status"], {"RECEIVED", "APPLIED", "REJECTED"})
     usage = rows(
         connection,
@@ -275,11 +277,21 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--workflow-id", required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--include-metrics",
+        action="store_true",
+        help="Include derived lifecycle/accounting metrics in a version 2 report",
+    )
     args = parser.parse_args(argv)
     try:
         settings = load_settings(args.config)
         destination = safe_destination(args.output, args.config, settings)
         result = export_metadata(settings, args.workflow_id)
+        if args.include_metrics:
+            from agentic_delivery.operations.metrics import workflow_metrics
+
+            result["metrics"] = workflow_metrics(result)
+            result["schema_version"] = 2
         raw = (json.dumps(result, indent=2, sort_keys=True, allow_nan=False) + "\n").encode()
         descriptor = os.open(
             destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600
@@ -294,7 +306,11 @@ def main(argv: list[str] | None = None) -> int:
         )
     print(
         json.dumps(
-            {"status": "EXPORTED", "schema_version": 1, "sha256": hashlib.sha256(raw).hexdigest()}
+            {
+                "status": "EXPORTED",
+                "schema_version": result["schema_version"],
+                "sha256": hashlib.sha256(raw).hexdigest(),
+            }
         )
     )
     return 0
