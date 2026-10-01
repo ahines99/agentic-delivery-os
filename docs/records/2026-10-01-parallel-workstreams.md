@@ -24,5 +24,20 @@
 ## Not verified
 
 ADR-033 is not installed in the local service and has not run against live Linear tickets.
-The repository ruleset that replaces classic branch protection on `main` is recorded in the
-PR description, with the command used.
+
+## Repository rules on `main`
+
+Classic branch protection on `main` was replaced by two repository rulesets on 2026-10-01:
+
+- **`main: required checks and history`** (id 24284761). No bypass. It enforces:
+  - the four CI checks, with the branch up to date with `main`;
+  - linear history;
+  - no force pushes and no deletion.
+- **`main: human review (owner may bypass via PR)`** (id 24284762). It requires one approval,
+  and dismisses stale approvals. The repository admin role may bypass it, but only through a
+  pull request.
+
+The owner can now merge their own PRs once CI passes, without temporarily lowering protection.
+PRs from the delivery App, which is not a repository admin, still need a human approval.
+The App's draft-only publisher and the absence of any merge code path are unchanged. The
+protected `delivery-workbench-v2` delivery target keeps its classic protection.
