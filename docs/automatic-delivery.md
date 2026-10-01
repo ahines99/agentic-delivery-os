@@ -2,9 +2,10 @@
 
 Create a new issue in the configured Linear team after monitor enrollment. Describe
 the behavior and acceptance criteria clearly. Leave it unassigned or assign it to the
-configured worker. An optional `Repository: owner/name` or `Repository: name` line
-must match the onboarded GitHub repository. Tickets assigned to someone else and
-completed/cancelled tickets are skipped.
+configured worker. Under the [pickup contract](adr/ADR-036-linear-pickup-contract.md),
+the ticket must carry a `Repository:` line naming the onboarded repository (its configured
+id, GitHub name, or a configured alias) and the `delivery-ready` label. Tickets missing
+either, tickets assigned to someone else, and completed or cancelled tickets are skipped.
 
 Intake checks the latest issue before assignment and rechecks its state after
 assignment. A completed, cancelled or already-started issue is not admitted from
@@ -105,10 +106,18 @@ The installed service enables both Linear intake and read-only GitHub outcome po
 The current owner installation maps the Personal Project Portfolio team to
 `ahines99/agentic-delivery-os`, using the protected `delivery-workbench-v2` branch and
 the bounded `demos/sample_repo` Python source. New tickets can use
-`Repository: agentic-delivery-os`. This is the exercised target; installing the App
+`Repository: agentic-delivery-os` and the `delivery-ready` label. This is the exercised target; installing the App
 on all repositories does not automatically configure their source, dependencies,
 test commands or CI checks. Each additional target needs that onboarding.
 
 The implementation remains in [PR #1](https://github.com/ahines99/agentic-delivery-os/pull/1).
 Delivery to `main` requires its human merge and an explicit target-base configuration
 change. Existing attempts retain their original base and configuration.
+
+## Progress on the ticket
+
+When `linear_progress_start` is set, the monitor also reports progress on each Linear ticket
+([ADR-037](adr/ADR-037-linear-progress-reporting.md)). It posts one comment each for
+"in progress" and "done", and one for each block, with its reason. It can optionally move the
+ticket to configured In Progress and Done states. Comments carry a hidden marker, so they are
+never duplicated.

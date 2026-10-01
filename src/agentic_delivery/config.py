@@ -46,6 +46,16 @@ class CommandProfile(Contract):
     expected_tests: int = Field(default=1, ge=1, strict=True)
 
 
+INTAKE_ROUTING_FIELDS = frozenset(
+    {
+        "linear_pickup_label",
+        "linear_repository_names",
+        "linear_in_progress_state_id",
+        "linear_done_state_id",
+    }
+)
+
+
 class RepositoryConfig(Contract):
     id: NonEmpty
     github_owner: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9-]{0,38}$")
@@ -70,6 +80,13 @@ class RepositoryConfig(Contract):
     snapshot_prefix: str = ""
     sandbox_image: str | None = None
     local_repository: Path | None = None
+    # Tracker routing (pickup contract v1, progress reporting). Excluded from the
+    # execution digest, so changing them never invalidates an in-flight run.
+    linear_pickup_label: NonEmpty | None = "delivery-ready"
+    linear_repository_names: tuple[NonEmpty, ...] = ()
+    # Progress reporting (DO-4): optional Linear states for claimed work and merged PRs.
+    linear_in_progress_state_id: NonEmpty | None = None
+    linear_done_state_id: NonEmpty | None = None
 
     @model_validator(mode="after")
     def validate_refs(self) -> Self:
@@ -126,6 +143,8 @@ class Settings(Contract):
     github_private_key_env: str = "GITHUB_APP_PRIVATE_KEY"
     publication_enabled: bool = False
     linear_poll_start: AwareDatetime | None = None
+    # Progress reporting (DO-4) is opt-in: runs updated before this instant are not reported.
+    linear_progress_start: AwareDatetime | None = None
     linear_poll_seconds: int = Field(default=30, ge=10, le=300, strict=True)
     linear_monitor_state: Path = Path(".local/linear-monitor.json")
     github_poll_enabled: bool = False
@@ -159,7 +178,9 @@ class Settings(Contract):
     def execution_digest(self, identity: str) -> str:
         """Pin material execution settings without serializing secret values or operators."""
         material = {
-            "repository": self.repository(identity).model_dump(mode="json"),
+            "repository": self.repository(identity).model_dump(
+                mode="json", exclude=set(INTAKE_ROUTING_FIELDS)
+            ),
             "model": self.model.model_dump(mode="json") if self.model else None,
             "budget": self.budget.model_dump(mode="json"),
             "publication_enabled": self.publication_enabled,
