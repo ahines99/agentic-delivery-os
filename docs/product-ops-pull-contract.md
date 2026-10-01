@@ -4,7 +4,8 @@ Status: **accepted by both sides, 2026-10-01** (Product Ops records it as its AD
 Delivery OS's side of roadmap Phase 2 and 3: what DO-3, DO-5 and DO-6 need from Product Ops
 (PO-4, PO-5). PO-4 is live on the Product Ops side. Delivery OS's DO-3 is merged
 ([PR #16](https://github.com/ahines99/agentic-delivery-os/pull/16),
-[ADR-038](adr/ADR-038-product-ops-pull-intake.md)); DO-5 and DO-6 are not yet implemented. The
+[ADR-038](adr/ADR-038-product-ops-pull-intake.md)). DO-5 is implemented in
+[ADR-039](adr/ADR-039-product-ops-multi-item-handoffs.md). DO-6 is not yet implemented. The
 decisions Product Ops made are recorded at the end.
 
 ## Starting point

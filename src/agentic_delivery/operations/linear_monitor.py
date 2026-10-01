@@ -19,7 +19,7 @@ from agentic_delivery.orchestration.activities import Activities
 from agentic_delivery.repository.snapshot import git
 from agentic_delivery.security import AccessDenied
 from agentic_delivery.storage.database import create_database
-from agentic_delivery.storage.store import Conflict, Store, digest_json
+from agentic_delivery.storage.store import Conflict, NotFound, Store, digest_json
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +88,25 @@ async def claim(
 
 
 REVIEW_BRANCH = re.compile(r"[A-Za-z0-9._][A-Za-z0-9._/-]{0,199}")
+COMMIT = re.compile(r"[0-9a-f]{40}")
+MERGED = frozenset({"MERGED", "MERGED_UNVERIFIED"})
+
+
+async def head_merged(repository: RepositoryConfig, head: str) -> bool:
+    """True once a local review head is in the base branch; unreadable means not merged."""
+    if repository.local_repository is None:
+        return False
+    try:
+        await git(
+            "merge-base",
+            "--is-ancestor",
+            head,
+            f"refs/heads/{repository.base_branch}",
+            cwd=repository.local_repository,
+        )
+    except ValueError:
+        return False
+    return True
 
 
 async def documentation_review_open(
@@ -110,7 +129,7 @@ async def documentation_review_open(
             not isinstance(branch, str)
             or not REVIEW_BRANCH.fullmatch(branch)
             or not isinstance(head, str)
-            or not re.fullmatch(r"[0-9a-f]{40}", head)
+            or not COMMIT.fullmatch(head)
         ):
             return True
         cwd = repository.local_repository
@@ -118,11 +137,7 @@ async def documentation_review_open(
             await git("rev-parse", "--verify", "--quiet", f"refs/heads/{branch}", cwd=cwd)
         except ValueError:
             continue  # Branch deleted: the review is closed.
-        try:
-            await git(
-                "merge-base", "--is-ancestor", head, f"refs/heads/{repository.base_branch}", cwd=cwd
-            )
-        except ValueError:
+        if not await head_merged(repository, head):
             return True  # Not merged yet, or unreadable.
     return False
 
@@ -136,43 +151,101 @@ async def repository_busy(
     ) or await documentation_review_open(store, repository, exclude=exclude)
 
 
+async def prerequisite_merged(settings: Settings, store: Store, identity: str) -> bool:
+    """DO-5: a prerequisite counts once it reached HUMAN_REVIEW and its change merged."""
+    run = store.workflow(identity)
+    if run["state"] != "HUMAN_REVIEW":
+        return False
+    try:
+        return store.publication(identity)["status"] in MERGED
+    except NotFound:
+        pass
+    head = (run.get("result") or {}).get("head_sha")
+    if (
+        run["work_item"].get("work_type") != "documentation_addition"
+        or not isinstance(head, str)
+        or not COMMIT.fullmatch(head)
+    ):
+        return False
+    try:
+        repository = settings.repository(run["repository"])
+    except ValueError:
+        return False
+    return await head_merged(repository, head)
+
+
+async def release_ready(settings: Settings, store: Store) -> int:
+    """DO-5: queue held handoff starts whose prerequisites merged, one per free repository."""
+    released = 0
+    for waiting in store.waiting_starts():
+        run = store.workflow(waiting["workflow_id"])
+        try:
+            repository = settings.repository(run["repository"])
+        except ValueError:
+            continue
+        if run["state"] != "NEW" or not repository.automatic_execution:
+            continue
+        ready = True
+        for prerequisite in waiting["depends_on"]:
+            if not await prerequisite_merged(settings, store, prerequisite):
+                ready = False
+                break
+        # ADR-033: a release makes the repository busy, so the next item waits its turn.
+        if ready and not await repository_busy(store, repository):
+            released += store.release_start(run["id"])
+    return released
+
+
 async def pull_handoff(
     settings: Settings,
     store: Store,
     linear: LinearClient,
     repository: RepositoryConfig,
     digest: str,
+    issue_id: str,
 ) -> Literal["admitted", "hold", "stop"]:
-    """Fetch, verify and admit a referenced Product Ops handoff (ADR-038).
+    """Fetch, verify and admit a referenced Product Ops handoff (ADR-038, ADR-039).
 
+    "admitted" means this ticket's own work item has been released and it may be claimed.
     "hold" retries on a later scan without claiming; "stop" never claims this version.
     """
     trust = settings.product_ops
     if not digest or trust is None or trust.handoff_base_url is None:
         return "stop"
-    if store.inbox_workflow("product_ops", digest) is not None:
-        return "admitted"
-    if await repository_busy(store, repository):
-        return "hold"
-    fetched = await fetch_handoff(trust, digest)
-    if fetched.status == "unavailable":
-        return "hold"
-    if fetched.status == "stopped":
-        logger.info("Product Ops handoff stopped (%s); ticket not claimed", fetched.reason)
+    if not store.handoff_runs("product_ops", digest):
+        if await repository_busy(store, repository):
+            return "hold"
+        fetched = await fetch_handoff(trust, digest)
+        if fetched.status == "unavailable":
+            return "hold"
+        if fetched.status == "stopped":
+            logger.info("Product Ops handoff stopped (%s); ticket not claimed", fetched.reason)
+            return "stop"
+        try:
+            await admit_product_ops(
+                fetched.raw,
+                expected_digest=digest,
+                actor=None,
+                settings=settings,
+                store=store,
+                linear=linear,
+            )
+        except (AccessDenied, ValueError, KeyError) as exc:
+            logger.warning(
+                "Product Ops handoff refused (%s); ticket not claimed", type(exc).__name__
+            )
+            return "stop"
+        await release_ready(settings, store)
+    own = [
+        run
+        for run in store.handoff_runs("product_ops", digest)
+        if run["linear_issue_id"] == issue_id
+    ]
+    if not own:
+        # The ticket quotes the reference but is not one of the handoff's published tickets.
         return "stop"
-    try:
-        await admit_product_ops(
-            fetched.raw,
-            expected_digest=digest,
-            actor=None,
-            settings=settings,
-            store=store,
-            linear=linear,
-        )
-    except (AccessDenied, ValueError, KeyError) as exc:
-        logger.warning("Product Ops handoff refused (%s); ticket not claimed", type(exc).__name__)
-        return "stop"
-    return "admitted"
+    # Product Ops: never claim a ticket only to hold it. Wait for its prerequisites.
+    return "admitted" if own[0]["released"] else "hold"
 
 
 async def poll_once(settings: Settings, store: Store, linear: LinearClient) -> int:
@@ -276,7 +349,9 @@ async def poll_once(settings: Settings, store: Store, linear: LinearClient) -> i
         reference = handoff_reference(current.get("description") or "")
         if reference is not None:
             # Product Ops work (DO-3): never normal intake; claim only after admission.
-            outcome = await pull_handoff(settings, store, linear, repository, reference)
+            outcome = await pull_handoff(
+                settings, store, linear, repository, reference, issue["id"]
+            )
             if outcome == "hold":
                 defer(issue["id"], issue["updatedAt"])
             elif outcome == "admitted" and (current.get("assignee") or {}).get("id") in {
@@ -405,6 +480,10 @@ async def monitor(config: Path) -> None:
                 await poll_once(settings, store, LinearClient())
             except Exception as exc:
                 logger.error("Linear polling failed; cursor retained (%s)", type(exc).__name__)
+            try:
+                await release_ready(settings, store)
+            except Exception as exc:
+                logger.error("Handoff release failed; retrying (%s)", type(exc).__name__)
             try:
                 approve_plans(settings, store)
             except Exception as exc:

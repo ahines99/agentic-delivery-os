@@ -38,11 +38,12 @@ change request. HUMAN_REVIEW is its final state, reached through legal lifecycle
 merge remains human. Progress reporting comments "work in progress" and then "in review" on the
 generated ticket. See [ADR-034](adr/ADR-034-product-ops-documentation-handoff.md).
 
-The initial consumer accepts one work item and refuses multi-item dependencies or replacement
-revisions. Generic software work, including pull-admitted Product Ops software work, retains the
-existing Temporal planning and human approval gates. A general prompt-to-many-ticket execution
-service needs atomic batch admission, dependency scheduling, supersession and cancellation
-propagation before it can be described as autonomous.
+The consumer admits a multi-item specification all or none and starts each item once its
+prerequisites have merged ([ADR-039](adr/ADR-039-product-ops-multi-item-handoffs.md)). It still
+refuses replacement revisions. Generic software work, including pull-admitted Product Ops
+software work, retains the existing Temporal planning and human approval gates. A general
+prompt-to-many-ticket execution service still needs supersession and cancellation propagation
+(DO-6) before it can be described as autonomous.
 
 The PER-7 pilot (2026-09-30, before pull intake) used a separate private Delivery profile with a
 $3 model ceiling, no model configured, a local SQLite database and a pinned documentation

@@ -90,12 +90,14 @@ async def report_progress(
     if since is None:
         return 0
     posted = 0
+    # A handoff run held for its prerequisites (DO-5) has an unclaimed ticket: no report yet.
+    held = {waiting["workflow_id"] for waiting in store.waiting_starts()}
     for repository in filter(_reporting, settings.repositories):
         latest: dict[str, dict[str, Any]] = {}
         for run in store.list_workflows((repository.id,), limit=200):
             latest.setdefault(run["work_item"]["id"], run)  # newest run per ticket
         for run in latest.values():
-            if datetime.fromisoformat(run["updated_at"]) < since:
+            if run["id"] in held or datetime.fromisoformat(run["updated_at"]) < since:
                 continue
             try:
                 publication = store.publication(run["id"])["status"]

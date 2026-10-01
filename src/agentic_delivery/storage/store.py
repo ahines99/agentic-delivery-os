@@ -666,6 +666,191 @@ class Store:
                         return {"workflow_id": run.id, "duplicate": True}
             raise Conflict("Concurrent conflicting intake") from None
 
+    def submit_handoff(
+        self, items: list[dict[str, Any]], *, actor: str, budget: Budget
+    ) -> dict[str, Any]:
+        """Admit every work item of one signed handoff in one transaction, or none (DO-5).
+
+        Each entry has `local_id`, `item`, `key`, `inbox`, `depends_on` (local IDs) and
+        `configuration_digest`. Nothing is queued here: `release_start` queues an item once
+        its prerequisites have merged and its repository is free.
+        """
+        deliveries = {entry["inbox"]["delivery_id"]: entry for entry in items}
+        provider, integration = items[0]["inbox"]["provider"], items[0]["inbox"]["integration_id"]
+        try:
+            with Session(self.engine) as session, session.begin():
+                prior = self._handoff_receipt(session, provider, integration, deliveries)
+                if prior is not None:
+                    return prior
+                runs = {entry["local_id"]: str(uuid4()) for entry in items}
+                for order, entry in enumerate(items):
+                    item: WorkItem = entry["item"]
+                    payload = item.model_dump(mode="json")
+                    digest = digest_json(payload)
+                    source_key = digest_json([item.source_system, item.repository, item.id])
+                    if session.scalar(
+                        select(WorkRecord.id).where(WorkRecord.source_key == source_key)
+                    ):
+                        raise Conflict("Ticket content changed; explicit revision review required")
+                    work_id, run_id = str(uuid4()), runs[entry["local_id"]]
+                    session.add(
+                        WorkRecord(
+                            id=work_id,
+                            source_key=source_key,
+                            repository=item.repository,
+                            payload=payload,
+                            digest=digest,
+                            created_at=now_iso(),
+                        )
+                    )
+                    session.flush()
+                    session.add(
+                        RunRecord(
+                            id=run_id,
+                            work_item_id=work_id,
+                            spec_digest=digest,
+                            configuration_digest=entry["configuration_digest"],
+                            budget=budget.model_dump(mode="json"),
+                            created_at=now_iso(),
+                            updated_at=now_iso(),
+                        )
+                    )
+                    session.flush()
+                    session.add(
+                        CommandRecord(
+                            id=str(uuid4()),
+                            workflow_id=run_id,
+                            actor=actor,
+                            idempotency_key=entry["key"],
+                            kind="start",
+                            digest=digest,
+                            payload=payload,
+                            created_at=now_iso(),
+                        )
+                    )
+                    inbox = entry["inbox"]
+                    session.add(
+                        InboxRecord(
+                            id=str(uuid4()),
+                            workflow_id=run_id,
+                            created_at=now_iso(),
+                            **{
+                                **inbox,
+                                "payload": {
+                                    **inbox["payload"],
+                                    "order": order,
+                                    "depends_on": [runs[local] for local in entry["depends_on"]],
+                                },
+                            },
+                        )
+                    )
+                    session.flush()
+                return {"workflows": runs, "duplicate": False}
+        except IntegrityError:
+            # A competing admission can win the uniqueness race. Re-read committed truth.
+            with Session(self.engine) as session:
+                prior = self._handoff_receipt(session, provider, integration, deliveries)
+                if prior is not None:
+                    return prior
+            raise Conflict("Concurrent conflicting intake") from None
+
+    @staticmethod
+    def _handoff_receipt(
+        session: Session, provider: str, integration: str, deliveries: dict[str, dict[str, Any]]
+    ) -> dict[str, Any] | None:
+        found = session.scalars(
+            select(InboxRecord).where(
+                InboxRecord.provider == provider,
+                InboxRecord.integration_id == integration,
+                InboxRecord.delivery_id.in_(deliveries),
+            )
+        ).all()
+        if not found:
+            return None
+        if len(found) != len(deliveries) or any(
+            record.digest != deliveries[record.delivery_id]["inbox"]["digest"] for record in found
+        ):
+            raise Conflict("Handoff was only partly admitted or changed")
+        return {
+            "workflows": {
+                deliveries[record.delivery_id]["local_id"]: record.workflow_id for record in found
+            },
+            "duplicate": True,
+        }
+
+    @staticmethod
+    def _queued_starts() -> Any:
+        return (
+            select(OutboxRecord.workflow_id)
+            .join(CommandRecord, CommandRecord.id == OutboxRecord.command_id)
+            .where(CommandRecord.kind == "start")
+        )
+
+    def handoff_runs(self, provider: str, digest: str) -> list[dict[str, Any]]:
+        """Runs admitted from one handoff (inbox deliveries `{digest}:{work item}`)."""
+        with Session(self.engine) as session:
+            rows = session.execute(
+                select(InboxRecord.workflow_id, InboxRecord.payload).where(
+                    InboxRecord.provider == provider,
+                    InboxRecord.delivery_id.startswith(f"{digest}:", autoescape=True),
+                )
+            ).all()
+            queued = set(
+                session.scalars(
+                    self._queued_starts().where(
+                        OutboxRecord.workflow_id.in_([row.workflow_id for row in rows])
+                    )
+                )
+            )
+        return [
+            {
+                "workflow_id": row.workflow_id,
+                "linear_issue_id": row.payload.get("linear_issue_id"),
+                "released": row.workflow_id in queued,
+            }
+            for row in rows
+        ]
+
+    def waiting_starts(self) -> list[dict[str, Any]]:
+        """Admitted handoff runs whose start is not yet queued, in admission order."""
+        with Session(self.engine) as session:
+            rows = session.execute(
+                select(CommandRecord.workflow_id, RunRecord.created_at, InboxRecord.payload)
+                .join(RunRecord, RunRecord.id == CommandRecord.workflow_id)
+                .join(InboxRecord, InboxRecord.workflow_id == CommandRecord.workflow_id)
+                .where(
+                    CommandRecord.kind == "start",
+                    CommandRecord.workflow_id.not_in(self._queued_starts()),
+                )
+            ).all()
+        ordered = sorted(rows, key=lambda row: (row.created_at, row.payload.get("order", 0)))
+        return [
+            {"workflow_id": row.workflow_id, "depends_on": list(row.payload.get("depends_on", []))}
+            for row in ordered
+        ]
+
+    def release_start(self, workflow_id: str) -> bool:
+        """Queue a held handoff start exactly once. False if it was already queued."""
+        try:
+            with Session(self.engine) as session, session.begin():
+                command = session.scalar(
+                    select(CommandRecord).where(
+                        CommandRecord.workflow_id == workflow_id, CommandRecord.kind == "start"
+                    )
+                )
+                if command is None:
+                    raise NotFound("Workflow not found")
+                if session.scalar(
+                    select(OutboxRecord.id).where(OutboxRecord.command_id == command.id)
+                ):
+                    return False
+                session.add(
+                    OutboxRecord(id=str(uuid4()), command_id=command.id, workflow_id=workflow_id)
+                )
+                return True
+        except IntegrityError:
+            return False
+
     @staticmethod
     def _find_inbox(session: Session, inbox: dict[str, Any]) -> InboxRecord | None:
         return session.scalar(
@@ -734,7 +919,8 @@ class Store:
         """True while another run may still produce or hold an unmerged change (ADR-033).
 
         Active runs (other than those paused for clarification) count, as does any
-        publication not yet observed as merged or closed, even after its run ended.
+        publication not yet observed as merged or closed, even after its run ended. A
+        handoff run whose start is still held for its prerequisites (DO-5) does not count.
         """
         with Session(self.engine) as session:
             active = (
@@ -743,6 +929,7 @@ class Store:
                 .where(
                     WorkRecord.repository == repository,
                     RunRecord.state.not_in(DELIVERY_IDLE_STATES),
+                    or_(RunRecord.state != "NEW", RunRecord.id.in_(self._queued_starts())),
                 )
             )
             published = select(PublicationRecord.workflow_id).where(
@@ -755,15 +942,6 @@ class Store:
             return (
                 session.scalar(active.limit(1)) is not None
                 or session.scalar(published.limit(1)) is not None
-            )
-
-    def inbox_workflow(self, provider: str, digest: str) -> str | None:
-        """Workflow admitted from an inbox message with this payload digest, if any."""
-        with Session(self.engine) as session:
-            return session.scalar(
-                select(InboxRecord.workflow_id)
-                .where(InboxRecord.provider == provider, InboxRecord.digest == digest)
-                .limit(1)
             )
 
     def inbox_payload(self, workflow_id: str, provider: str) -> dict[str, Any] | None:

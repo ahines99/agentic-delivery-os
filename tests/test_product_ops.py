@@ -99,14 +99,17 @@ async def submit(context, *, expected=None, now=None):
         )
 
 
-async def test_verified_handoff_queues_once_in_delivery_store(context):
+async def test_verified_handoff_is_admitted_once_and_held_for_release(context):
     first = await submit(context)
     second = await submit(context)
     assert first["workflow_id"] == second["workflow_id"]
+    assert not first["duplicate"] and second["duplicate"]
     store = context[4]
+    # Admission queues nothing; the monitor releases the start (DO-5, ADR-039).
+    assert store.waiting_starts() == [{"workflow_id": first["workflow_id"], "depends_on": []}]
     with Session(store.engine) as session:
         assert session.scalar(select(func.count()).select_from(RunRecord)) == 1
-        assert session.scalar(select(func.count()).select_from(OutboxRecord)) == 1
+        assert session.scalar(select(func.count()).select_from(OutboxRecord)) == 0
         record = session.scalar(select(InboxRecord))
         assert json.loads(record.payload["envelope_utf8"])["payload"] == context[0]
     assert store.workflow(first["workflow_id"])["work_item"]["source_system"] == "product_ops"
