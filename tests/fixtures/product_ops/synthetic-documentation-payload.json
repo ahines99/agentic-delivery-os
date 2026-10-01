@@ -1,0 +1,179 @@
+{
+  "schema_version": "2",
+  "issuer": "product-ops-test",
+  "audience": "agentic-delivery-os",
+  "key_id": "key-1",
+  "issued_at": "2026-09-30T01:47:02.324686Z",
+  "expires_at": "2026-09-30T02:02:02.324686Z",
+  "mode": "mock_transport",
+  "specification": {
+    "schema_version": "1",
+    "specification_id": "271a0689-1015-4f5f-b081-5ff352f65d7c",
+    "revision": 2,
+    "source_digest": "dc13e9c508853b1329143b6b21cc88e357f475726e96b2a298311754a8fff896",
+    "title": "Add documentation",
+    "objective": "Create one inert documentation page for human review.",
+    "source_statements": [
+      {
+        "id": "S0",
+        "text": "Add docs/success.md with these exact bytes, and submit an unmerged local review branch:\n# Success\n\nExact approved content.\n"
+      }
+    ],
+    "requirements": [
+      {
+        "id": "R1",
+        "text": "Add docs/success.md with these exact bytes, and submit an unmerged local review branch:\n# Success\n\nExact approved content.\n",
+        "kind": "functional",
+        "provenance": "explicit_source",
+        "source_refs": [
+          "S0"
+        ],
+        "confidence": "1",
+        "needs_human_decision": false
+      }
+    ],
+    "unresolved_questions": [],
+    "assumptions": [],
+    "repository_context": {
+      "repository_id": "sample-reporting",
+      "snapshot_id": "synthetic:one",
+      "snapshot_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+      "evidence": [],
+      "relevant_tests": [],
+      "unknown_edges": [],
+      "confidence": "1"
+    },
+    "risk": {
+      "tier": 1,
+      "reasons": [
+        "Execution limited to the exact inert Markdown addition, pinned repository base, local review branch and mandatory human merge; no general agent or repository commands."
+      ],
+      "policy_version": "doc-add-v1-fde06620a2db097edc2618bfa2f01806338973764b91d3ea363f9b53997d1f5c"
+    },
+    "dependencies": [],
+    "work_items": [
+      {
+        "local_id": "W1",
+        "title": "Add documentation",
+        "description": "Add docs/success.md with these exact bytes, and submit an unmerged local review branch:\n# Success\n\nExact approved content.\n",
+        "type": "task",
+        "requirement_ids": [
+          "R1"
+        ],
+        "acceptance_criteria": [
+          {
+            "id": "AC1",
+            "text": "Exactly one Markdown addition matching the requested bytes, on an unmerged review branch.",
+            "requirement_ids": [
+              "R1"
+            ],
+            "provenance": "directly_stated",
+            "verification_kind": "documentation",
+            "evidence_required": "Exact blob and Git tree diff; review branch reference.",
+            "blocking": true
+          }
+        ],
+        "dependencies": [],
+        "risk_tier": 1,
+        "repository_id": "sample-reporting",
+        "proposed_team_id": "product",
+        "proposed_project_id": null,
+        "proposed_labels": []
+      }
+    ],
+    "approval_policy": {
+      "policy_version": "doc-add-v1-fde06620a2db097edc2618bfa2f01806338973764b91d3ea363f9b53997d1f5c",
+      "workspace_id": "offline-workspace",
+      "max_age_seconds": 3600,
+      "required_role": "product_approver"
+    },
+    "provenance": {
+      "mode": "authored_fixture",
+      "created_at": "2026-09-30T01:47:01.214771Z",
+      "producer": "foundation-author",
+      "source_kind": "prompt",
+      "policy_refs": [],
+      "clarification_refs": []
+    },
+    "content_digest": "31db7fe047de0da8dc99df4c1546200dd67858df4edca4b51044fb9974258e38"
+  },
+  "approval": {
+    "approval_id": "cda0c01e-1996-4e13-b275-ead75dbe7e9a",
+    "specification_id": "271a0689-1015-4f5f-b081-5ff352f65d7c",
+    "revision": 2,
+    "content_digest": "31db7fe047de0da8dc99df4c1546200dd67858df4edca4b51044fb9974258e38",
+    "actor_id": "offline-reviewer",
+    "decision": "approve",
+    "scope": {
+      "workspace_id": "offline-workspace",
+      "team_ids": [
+        "product"
+      ],
+      "repository_ids": [
+        "sample-reporting"
+      ],
+      "plan_digest": "9e4c829d6a1e52de42f5a16d2ec95c0191f7c676351ac22da354934ba80b8ffa",
+      "operation_keys": [
+        "559c63be968fa8140f6b66c95f6330e62e518f038e49a84ea571d12863faa761"
+      ],
+      "allowed_mutation_count": 1
+    },
+    "issued_at": "2026-09-30T01:47:01.324686Z",
+    "expires_at": "2026-09-30T02:17:01.324686Z",
+    "policy_version": "doc-add-v1-fde06620a2db097edc2618bfa2f01806338973764b91d3ea363f9b53997d1f5c"
+  },
+  "plan": {
+    "schema_version": "2",
+    "specification_digest": "31db7fe047de0da8dc99df4c1546200dd67858df4edca4b51044fb9974258e38",
+    "workspace_id": "offline-workspace",
+    "scope": {
+      "organization_id": "cfb71d14-0e8e-4121-8f6f-61ce768ced92",
+      "actor_id": "b2cd9b9c-e7da-4bca-9c28-682c1d997895",
+      "teams": [
+        {
+          "local_id": "product",
+          "provider_id": "0ee2b015-c460-4273-93e2-ced3a8c7830e"
+        }
+      ],
+      "projects": [],
+      "labels": []
+    },
+    "publication_generation": 1,
+    "operations": [
+      {
+        "kind": "issue_create",
+        "operation_key": "559c63be968fa8140f6b66c95f6330e62e518f038e49a84ea571d12863faa761",
+        "target_id": "559c63be-968f-4814-8f6b-66c95f6330e6",
+        "work_item_id": "W1",
+        "team_id": "product",
+        "payload": "{\"description\":\"## Objective\\nCreate one inert documentation page for human review\\\\.\\n\\n## Context\\nAdd docs/success\\\\.md with these exact bytes, and submit an unmerged local review branch:\\n\\\\# Success\\n\\nExact approved content\\\\.\\n\\n\\n## Requirements\\n- R1 Add docs/success\\\\.md with these exact bytes, and submit an unmerged local review branch:\\n\\\\# Success\\n\\nExact approved content\\\\.\\n\\n\\n## Acceptance criteria\\n- [ ] AC1 Exactly one Markdown addition matching the requested bytes, on an unmerged review branch\\\\. [directly_stated]\\n  Evidence: Exact blob and Git tree diff; review branch reference\\\\.\\n\\n## Dependencies\\nNone\\n\\n## Risks / constraints\\nExecution limited to the exact inert Markdown addition, pinned repository base, local review branch and mandatory human merge; no general agent or repository commands\\\\.\\n\\n## Repository context\\n\\nUnknown edges: \\n\\n## Open questions\\nNone\\n\\nGenerated by Agentic Product Ops\\nSpecification: 271a0689-1015-4f5f-b081-5ff352f65d7c\\nRevision: 2\\nDigest: 31db7fe047de0da8dc99df4c1546200dd67858df4edca4b51044fb9974258e38\\nOperation: 559c63be968fa8140f6b66c95f6330e62e518f038e49a84ea571d12863faa761\",\"id\":\"559c63be-968f-4814-8f6b-66c95f6330e6\",\"labelIds\":[],\"teamId\":\"0ee2b015-c460-4273-93e2-ced3a8c7830e\",\"title\":\"Add documentation\",\"useDefaultTemplate\":false}",
+        "prerequisite_keys": [],
+        "request_digest": "e323f69f612c2273228b2201452cbda7343e6fc753918f1732e55d68ab43aed6"
+      }
+    ],
+    "content_digest": "9e4c829d6a1e52de42f5a16d2ec95c0191f7c676351ac22da354934ba80b8ffa"
+  },
+  "publications": [
+    {
+      "operation_key": "559c63be968fa8140f6b66c95f6330e62e518f038e49a84ea571d12863faa761",
+      "request_digest": "e323f69f612c2273228b2201452cbda7343e6fc753918f1732e55d68ab43aed6",
+      "attempt": 1,
+      "status": "SUCCEEDED",
+      "provider_id": "559c63be-968f-4814-8f6b-66c95f6330e6",
+      "provider_request_id": "request-3",
+      "observed_at": "2026-09-30T01:47:01.324686Z"
+    }
+  ],
+  "dispatches": [
+    {
+      "operation_key": "559c63be968fa8140f6b66c95f6330e62e518f038e49a84ea571d12863faa761",
+      "mode": "mock_transport",
+      "approval_id": "cda0c01e-1996-4e13-b275-ead75dbe7e9a",
+      "specification_digest": "31db7fe047de0da8dc99df4c1546200dd67858df4edca4b51044fb9974258e38",
+      "plan_digest": "9e4c829d6a1e52de42f5a16d2ec95c0191f7c676351ac22da354934ba80b8ffa",
+      "request_digest": "e323f69f612c2273228b2201452cbda7343e6fc753918f1732e55d68ab43aed6",
+      "dispatch_at": "2026-09-30T01:47:01.324686Z"
+    }
+  ],
+  "clarifications": []
+}
