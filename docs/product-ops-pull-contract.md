@@ -1,9 +1,9 @@
-# Product Ops handoff contract, pull model (proposal)
+# Product Ops handoff contract, pull model
 
-Status: **proposed, 2026-10-01.** This is Delivery OS's side of roadmap Phase 2 and 3. It states
-what DO-3, DO-5 and DO-6 need from Product Ops (PO-4, PO-5), so both teams can agree on it
-before either builds. Nothing here is implemented. When both sides accept it, each item
-becomes an ADR.
+Status: **accepted by both sides, 2026-10-01** (Product Ops records it as its ADR-028). This is
+Delivery OS's side of roadmap Phase 2 and 3: what DO-3, DO-5 and DO-6 need from Product Ops
+(PO-4, PO-5). PO-4 is live on the Product Ops side. Delivery OS's DO-3, DO-5 and DO-6 are not
+yet implemented. The decisions Product Ops made are recorded at the end.
 
 ## Starting point
 
@@ -102,10 +102,32 @@ blocked comments with hidden `delivery-progress` markers. PO-5 can read those, o
 can expose a read-only status endpoint. Either way, Product Ops' own records stay
 authoritative.
 
-## Decisions requested from Product Ops
+## Decisions (agreed 2026-10-01)
 
-1. Accept the `Handoff: sha256:…` line and the configured-base-URL retrieval.
-2. Choose how Delivery OS authenticates (proposed: a read-only bearer token).
-3. Choose the `410` reason values, and whether held tickets get a visible reason.
-4. Confirm the repository name Product Ops writes. This repo's GitHub name is
-   `agentic-delivery-os`; its directory name is `agentic-delivery-engineer`.
+1. **Ticket line and retrieval: accepted as proposed.** Tickets cleared for delivery carry
+   `Handoff: sha256:<digest>`; the ticket never contains a URL. Delivery OS fetches
+   `GET {base_url}/handoffs/{digest}` (the `sha256:` prefix is accepted). The local base URL is
+   `http://127.0.0.1:18013`.
+2. **Authentication: a read-only bearer token**, held by the owner and loaded by Delivery OS
+   from an environment variable. It can only fetch handoffs.
+3. **Responses:**
+   - `200`: a freshly signed envelope.
+   - `404`: unknown, or not yet available.
+   - `410` with `Reason: superseded` or `Reason: revoked`: stop.
+
+   `expired` is never returned. Held tickets get **no** visible reason, and Delivery OS
+   must not claim a ticket only to hold it.
+4. **Repository name: the directory name.** Product Ops writes `agentic-delivery-engineer`.
+   Delivery OS maps it with `linear_repository_names` (ADR-036).
+
+Further facts from Product Ops:
+
+- **Pinned trust:**
+  - issuer `product-ops-local`;
+  - key ID `pilot-v1`;
+  - Ed25519 public key `oyALVzWx7MA84c7/jhml+Fc+GlvQaghqg9+1Lm1Y5fo=` (raw key, base64).
+- **DO-5 needs no Product Ops change.** The envelope already lists every work item, its
+  dependencies, and (through the plan) each item's Linear issue ID. All tickets of one
+  specification share the `Handoff:` digest.
+- **PO-5** reads Delivery OS's `delivery-progress` comment markers (ADR-037). Nothing on the
+  Product Ops side treats them as authority.
