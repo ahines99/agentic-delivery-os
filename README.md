@@ -104,8 +104,8 @@ state, spending and dispatch. Model-backed runs spend tokens and require explici
 Publication remains disabled by default, and there is no personal-token fallback.
 
 To exercise the installed local service, create a new Backlog ticket in the Personal Project
-Portfolio team, leave it unassigned, include `Repository: agentic-delivery-os`, and
-state clear acceptance criteria for a change within `demos/sample_repo`. Detection
+Portfolio team, leave it unassigned, include `Repository: agentic-delivery-os`, add the
+`delivery-ready` label, and state clear acceptance criteria for a change within `demos/sample_repo`. Detection
 runs every 30 seconds; keep the machine awake and Docker Desktop running. Additional
 repositories require [onboarding](docs/provider-onboarding.md). The
 [webhook gateway](docs/linear-ingress.md) supports both providers when public callbacks

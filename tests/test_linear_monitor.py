@@ -55,12 +55,13 @@ def issue():
     return {
         "id": "owned-issue",
         "title": "Filter customers",
-        "description": "Preserve order.",
+        "description": "Repository: project\nPreserve order.",
         "createdAt": instant,
         "updatedAt": instant,
         "team": {"id": "team"},
         "assignee": {"id": "worker"},
         "state": {"id": "todo", "type": "unstarted"},
+        "labels": {"nodes": [{"name": "delivery-ready"}]},
     }
 
 
@@ -114,7 +115,7 @@ async def test_changed_ticket_is_held_without_creating_another_budget(setup):
     settings, store = setup
     linear = OwnedLinear()
     await poll_once(settings, store, linear)
-    linear.nodes[0]["description"] = "Different required behavior"
+    linear.nodes[0]["description"] = "Repository: project\nDifferent required behavior"
     await poll_once(settings, store, linear)
     state = MonitorState.model_validate_json(settings.linear_monitor_state.read_text())
     assert state.held == ("owned-issue",)
@@ -219,7 +220,7 @@ async def test_assignment_readback_controls_intake_and_restart(
         elif outcome == "reassigned":
             live["assignee"] = {"id": "another-person"}
         elif outcome == "changed_text":
-            live["description"] = "Owned changed requirement"
+            live["description"] = "Repository: project\nOwned changed requirement"
         elif outcome == "changed_team":
             live["team"] = {"id": "another-team"}
         elif outcome == "changed_identity":
@@ -428,7 +429,7 @@ async def paused_ticket(settings, store, linear):
     await poll_once(settings, store, linear)
     run = store.list_workflows(("owned/project",))[0]
     advance(store, run["id"], "NEEDS_CLARIFICATION", actor="owned-test", reason="Missing choice")
-    linear.nodes[0]["description"] = "Use ascending customer IDs."
+    linear.nodes[0]["description"] = "Repository: project\nUse ascending customer IDs."
     await poll_once(settings, store, linear)
     with Session(store.engine) as session:
         command = session.scalar(select(CommandRecord).where(CommandRecord.kind == "clarify"))
@@ -492,7 +493,7 @@ async def test_stale_or_unauthorized_linear_clarification_is_rejected(setup, mon
     linear = OwnedLinear()
     identity, command_id = await paused_ticket(settings, store, linear)
     if change == "text":
-        linear.nodes[0]["description"] = "A newer unqueued answer"
+        linear.nodes[0]["description"] = "Repository: project\nA newer unqueued answer"
     elif change == "assignee":
         linear.nodes[0]["assignee"] = {"id": "other"}
     elif change == "team":
@@ -664,7 +665,7 @@ async def test_clarification_edit_waits_for_another_delivery(setup):
     linear.nodes.append(second_issue())
     await poll_once(settings, store, linear)
     other = submitted(store)["owned-issue-2"]["id"]
-    linear.nodes[0]["description"] = "Use ascending customer IDs."
+    linear.nodes[0]["description"] = "Repository: project\nUse ascending customer IDs."
     linear.nodes[0]["updatedAt"] = datetime.now(UTC).isoformat()
     await poll_once(settings, store, linear)
     with Session(store.engine) as session:
@@ -710,3 +711,100 @@ async def test_delivery_in_progress_counts_active_runs_and_unmerged_publications
     assert store.delivery_in_progress("owned/project") is busy
     assert store.delivery_in_progress("owned/project", exclude=identity) is False
     assert store.delivery_in_progress("other/project") is False
+
+
+def per16_ticket():
+    """PER-16 as Product Ops published it: no repository line, no opt-in label."""
+    node = issue()
+    node.update(
+        assignee=None,
+        description="Approval-gated Markdown export in the prompt console.",
+        state={"id": "backlog", "type": "backlog"},
+        labels={"nodes": []},
+    )
+    return node
+
+
+@pytest.mark.parametrize(
+    "description,labels",
+    [
+        ("Approval-gated Markdown export in the prompt console.", []),
+        ("Repository: project\nExport.", []),
+        ("Export without a repository line.", ["delivery-ready"]),
+        ("Repository: product-ops\nExport.", ["delivery-ready"]),
+        ("Repository: project\nRepository: product-ops\nExport.", ["delivery-ready"]),
+        ("Repository: project\nExport.", ["ready-for-delivery"]),
+    ],
+)
+async def test_tickets_outside_pickup_contract_are_never_claimed(setup, description, labels):
+    settings, store = setup
+    node = per16_ticket()
+    node["description"] = description
+    node["labels"] = {"nodes": [{"name": name} for name in labels]}
+    linear = OwnedLinear([node])
+    await poll_once(settings, store, linear)
+    assert node["assignee"] is None
+    assert not any("DeliveryAssign" in query for query, _ in linear.calls)
+    assert store.list_workflows(("owned/project",)) == []
+
+
+async def test_per16_regression_shows_no_claim(setup):
+    settings, store = setup
+    linear = OwnedLinear([per16_ticket()])
+    await poll_once(settings, store, linear)
+    assert linear.nodes[0]["assignee"] is None
+    assert store.list_workflows(("owned/project",)) == []
+
+
+async def test_contract_ticket_is_claimed_and_admitted(setup):
+    settings, store = setup
+    node = per16_ticket()
+    node["description"] = "Repository: project\nExport."
+    node["labels"] = {"nodes": [{"name": "delivery-ready"}]}
+    await poll_once(settings, store, OwnedLinear([node]))
+    assert node["assignee"] == {"id": "worker"}
+    assert len(store.list_workflows(("owned/project",))) == 1
+
+
+async def test_configured_repository_alias_and_label_are_honoured(setup):
+    settings, store = setup
+    repository = settings.repositories[0].model_copy(
+        update={
+            "linear_repository_names": ("owned-project-checkout",),
+            "linear_pickup_label": "ship-it",
+        }
+    )
+    settings = settings.model_copy(update={"repositories": (repository,)})
+    node = per16_ticket()
+    node["description"] = "Repository: owned-project-checkout\nExport."
+    node["labels"] = {"nodes": [{"name": "ship-it"}]}
+    await poll_once(settings, store, OwnedLinear([node]))
+    assert len(store.list_workflows(("owned/project",))) == 1
+
+
+async def test_disabled_label_still_requires_repository_line(setup):
+    settings, store = setup
+    repository = settings.repositories[0].model_copy(update={"linear_pickup_label": None})
+    settings = settings.model_copy(update={"repositories": (repository,)})
+    unlabelled = per16_ticket()
+    named = {**per16_ticket(), "id": "owned-issue-2", "description": "Repository: project\nX"}
+    await poll_once(settings, store, OwnedLinear([unlabelled, named]))
+    assert [run["work_item"]["id"] for run in store.list_workflows(("owned/project",))] == [
+        "owned-issue-2"
+    ]
+
+
+def test_pickup_routing_settings_do_not_change_execution_digest(setup):
+    settings, _ = setup
+    before = settings.execution_digest("owned/project")
+    repository = settings.repositories[0].model_copy(
+        update={"linear_pickup_label": None, "linear_repository_names": ("alias",)}
+    )
+    changed = settings.model_copy(update={"repositories": (repository,)})
+    assert changed.execution_digest("owned/project") == before
+    executing = settings.model_copy(
+        update={
+            "repositories": (settings.repositories[0].model_copy(update={"base_branch": "other"}),)
+        }
+    )
+    assert executing.execution_digest("owned/project") != before

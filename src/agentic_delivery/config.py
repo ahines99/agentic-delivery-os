@@ -46,6 +46,9 @@ class CommandProfile(Contract):
     expected_tests: int = Field(default=1, ge=1, strict=True)
 
 
+INTAKE_ROUTING_FIELDS = frozenset({"linear_pickup_label", "linear_repository_names"})
+
+
 class RepositoryConfig(Contract):
     id: NonEmpty
     github_owner: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9-]{0,38}$")
@@ -70,6 +73,10 @@ class RepositoryConfig(Contract):
     snapshot_prefix: str = ""
     sandbox_image: str | None = None
     local_repository: Path | None = None
+    # Pickup contract v1: routing for automatic Linear intake only. Excluded from the
+    # execution digest, so changing them never invalidates an in-flight run.
+    linear_pickup_label: NonEmpty | None = "delivery-ready"
+    linear_repository_names: tuple[NonEmpty, ...] = ()
 
     @model_validator(mode="after")
     def validate_refs(self) -> Self:
@@ -159,7 +166,9 @@ class Settings(Contract):
     def execution_digest(self, identity: str) -> str:
         """Pin material execution settings without serializing secret values or operators."""
         material = {
-            "repository": self.repository(identity).model_dump(mode="json"),
+            "repository": self.repository(identity).model_dump(
+                mode="json", exclude=set(INTAKE_ROUTING_FIELDS)
+            ),
             "model": self.model.model_dump(mode="json") if self.model else None,
             "budget": self.budget.model_dump(mode="json"),
             "publication_enabled": self.publication_enabled,
