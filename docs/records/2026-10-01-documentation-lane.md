@@ -49,7 +49,7 @@ command is marked APPLIED. Every other start command still starts `DeliveryWorkf
 Windows 11, Python 3.12.10, from the worktree virtual environment after
 `uv sync --locked --extra dev`, at `9d719a8` plus these documentation changes:
 
-- `ruff check .`: all checks passed. `ruff format --check .`: 473 files already formatted.
+- `ruff check .`: all checks passed. `ruff format --check .`: 474 files already formatted (this record included).
 - `mypy`: no issues in 139 source files.
 - `pytest -n 16 --dist worksteal -q -p no:cacheprovider -rf`: 3,524 passed, 170 skipped, 0 failed.
 - `uv build` then `uv run --no-sync python scripts/product_ops_wheel_smoke.py`: passed. The clean
