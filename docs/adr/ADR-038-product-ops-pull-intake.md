@@ -54,3 +54,6 @@ The retrieval URL and token variable are excluded from the execution digest.
   `Handoff:` lines at plan time, inside that signed text.
 - **Single item only.** Multi-item specifications are still refused by `admit`. DO-5 adds
   all-or-none admission.
+  - Update (2026-10-01): DO-5 admits multi-item specifications all or none, and releases each
+    item once its prerequisites merge. A ticket is claimed only once its own item is released
+    ([ADR-039](ADR-039-product-ops-multi-item-handoffs.md)).

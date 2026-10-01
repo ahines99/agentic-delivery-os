@@ -15,7 +15,9 @@ repository scope, the expected specification digest from the ticket, a valid sig
 envelope, and complete publication/dispatch evidence. The generated Linear issue is read and
 compared before transactional inbox/work/start/outbox creation. Duplicate admission queues only
 one start. Changed revisions conflict until explicit downstream revision invalidation exists.
-The initial adapter rejects multi-item DAGs atomically.
+The initial adapter rejected multi-item DAGs atomically; since DO-5
+([ADR-039](ADR-039-product-ops-multi-item-handoffs.md)) it admits them all or none, while the
+documentation capability still binds exactly one work item.
 
 `admit` keeps its optional `actor` parameter: an authenticated caller is still authorized as an
 operator for the repository. No HTTP route passes one today. PR #9's
