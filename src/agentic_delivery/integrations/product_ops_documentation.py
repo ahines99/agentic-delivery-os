@@ -72,7 +72,8 @@ async def execute_documentation(
         if receipt is None:
             raise AccessDenied("Signed intake receipt missing")
         raw = receipt.payload["envelope_utf8"].encode()
-        expected = receipt.digest
+        # Per-item receipts (DO-5) carry the specification digest; older ones keyed by it.
+        expected = receipt.payload.get("specification_digest", receipt.digest)
 
     async def check() -> dict[str, Any]:
         settings = settings_provider()

@@ -95,7 +95,11 @@ async def test_pull_admitted_documentation_reaches_human_review_through_the_lane
             "product_ops": settings.product_ops.model_copy(update={"handoff_base_url": PULL_URL}),
             "repositories": (
                 settings.repositories[0].model_copy(
-                    update={"linear_team_id": issue["team"]["id"], "linear_assignee_id": "worker"}
+                    update={
+                        "linear_team_id": issue["team"]["id"],
+                        "linear_assignee_id": "worker",
+                        "automatic_execution": True,
+                    }
                 ),
             ),
         }
@@ -107,11 +111,12 @@ async def test_pull_admitted_documentation_reaches_human_review_through_the_lane
 
     # Pull intake (ADR-038) admits with actor=None; the pinned signature is the authority.
     outcome = await linear_monitor.pull_handoff(
-        settings, store, linear, settings.repositories[0], expected
+        settings, store, linear, settings.repositories[0], expected, issue["id"]
     )
     assert outcome == "admitted"
-    run = store.inbox_workflow("product_ops", expected)
-    assert run is not None
+    [admitted] = store.handoff_runs("product_ops", expected)
+    run = admitted["workflow_id"]
+    assert admitted["released"]
     receipt = store.inbox_payload(run, "product_ops")
     assert receipt["admitted_by"] == PRODUCT_OPS_MONITOR
     assert receipt["authenticated_operator"] is None
@@ -146,7 +151,10 @@ async def test_pull_admitted_software_work_still_starts_the_temporal_workflow(co
     payload, signing, settings, _, store, issue = context
     settings = settings.model_copy(
         update={
-            "product_ops": settings.product_ops.model_copy(update={"handoff_base_url": PULL_URL})
+            "product_ops": settings.product_ops.model_copy(update={"handoff_base_url": PULL_URL}),
+            "repositories": (
+                settings.repositories[0].model_copy(update={"automatic_execution": True}),
+            ),
         }
     )
     expected = payload["specification"]["content_digest"]
@@ -159,10 +167,11 @@ async def test_pull_admitted_software_work_still_starts_the_temporal_workflow(co
         partial(admit, now=datetime.fromisoformat(payload["issued_at"])),
     )
     outcome = await linear_monitor.pull_handoff(
-        settings, store, LinearClient(), settings.repositories[0], expected
+        settings, store, LinearClient(), settings.repositories[0], expected, issue["id"]
     )
     assert outcome == "admitted"
-    run = store.inbox_workflow("product_ops", expected)
+    [admitted] = store.handoff_runs("product_ops", expected)
+    run = admitted["workflow_id"]
     assert store.workflow(run)["work_item"]["work_type"] == "software_engineering"
 
     started = []

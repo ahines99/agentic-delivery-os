@@ -1,5 +1,6 @@
 """DO-3: the Linear monitor's pull intake for Product Ops tickets (ADR-038)."""
 
+import hashlib
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
@@ -17,6 +18,33 @@ from agentic_delivery.storage.migrate import upgrade
 from agentic_delivery.storage.store import Store
 
 DIGEST = "d" * 64
+
+
+def seed(store, digest=DIGEST, issue_id="owned-issue"):
+    """Admit a one-item handoff the way `admit` stores it, without a signed envelope."""
+    item = WorkItem(
+        id=f"spec:{uuid4().hex}",
+        source_system="product_ops",
+        title="Add a page",
+        description="Add a page",
+        repository="owned/project",
+    )
+    entry = {
+        "local_id": "W1",
+        "item": item,
+        "key": uuid4().hex,
+        "depends_on": (),
+        "configuration_digest": "",
+        "inbox": {
+            "provider": "product_ops",
+            "integration_id": "product-ops-local",
+            "delivery_id": f"{digest}:W1",
+            "semantic_key": f"{item.id}:1:W1",
+            "digest": hashlib.sha256(f"{digest}:W1".encode()).hexdigest(),
+            "payload": {"linear_issue_id": issue_id},
+        },
+    }
+    return store.submit_handoff([entry], actor="product-ops:test", budget=Budget())
 
 
 @pytest.fixture
@@ -63,7 +91,7 @@ def setup(tmp_path, monkeypatch):
         calls["admit"].append((raw, kwargs))
         if outcome["admit"] is not None:
             raise outcome["admit"]
-        return {"workflow_id": "admitted"}
+        return seed(kwargs["store"], kwargs["expected_digest"])
 
     monkeypatch.setattr(linear_monitor, "fetch_handoff", fake_fetch)
     monkeypatch.setattr(linear_monitor, "admit_product_ops", fake_admit)
@@ -90,7 +118,8 @@ async def test_verified_handoff_is_admitted_then_claimed_without_normal_intake(s
     assert raw == b"signed-envelope"
     assert kwargs["expected_digest"] == DIGEST and kwargs["actor"] is None
     assert linear.nodes[0]["assignee"] == {"id": "worker"}
-    assert store.list_workflows(("owned/project",)) == []  # no Linear-source run
+    [run] = store.list_workflows(("owned/project",))  # no Linear-source run
+    assert run["work_item"]["source_system"] == "product_ops"
 
 
 @pytest.mark.parametrize(
@@ -121,9 +150,10 @@ async def test_refused_envelope_is_never_claimed(setup, error):
     assert linear.nodes[0]["assignee"] is None
 
 
-async def test_already_admitted_handoff_is_claimed_without_refetching(setup, monkeypatch):
+async def test_already_admitted_handoff_is_claimed_without_refetching(setup):
     settings, store, calls, _ = setup
-    monkeypatch.setattr(store, "inbox_workflow", lambda provider, digest: "admitted")
+    seed(store)
+    assert await linear_monitor.release_ready(settings, store) == 1
     linear = OwnedLinear([product_ops_ticket()])
     await poll_once(settings, store, linear)
     assert calls["fetch"] == [] and calls["admit"] == []
@@ -287,7 +317,8 @@ async def test_real_verifier_admits_a_signed_ticket_then_claims_it(tmp_path, mon
     assert fetched == [specification]
     [run] = store.list_workflows(("sample-reporting",))
     assert run["work_item"]["source_system"] == "product_ops"
-    assert store.inbox_workflow("product_ops", specification) == run["id"]
+    [admitted] = store.handoff_runs("product_ops", specification)
+    assert admitted["workflow_id"] == run["id"] and admitted["released"]
     assert store.inbox_payload(run["id"], "product_ops")["admitted_by"] == "product-ops-monitor"
     assert linear.nodes[0]["assignee"] == {"id": "worker"}
     store.engine.dispose()
