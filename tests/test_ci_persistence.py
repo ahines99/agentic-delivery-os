@@ -131,10 +131,13 @@ def settings(tmp_path: Path) -> Settings:
     )
 
 
-def workflow(store: Store, settings: Settings, *, publish: bool = True) -> str:
+def workflow(
+    store: Store, settings: Settings, *, publish: bool = True, source_system: str = "local"
+) -> str:
     identity = store.submit(
         WorkItem(
             id="CI-1",
+            source_system=source_system,
             title="CI fixture",
             description="Read independent checks",
             repository="example/project",
@@ -528,15 +531,24 @@ async def test_missing_publication_and_cross_repository_reader_fail_closed(
         ).status_code == 403
 
 
+@pytest.mark.parametrize("approver", ["reader", "delivery-automation"])
 async def test_handoff_readiness_checks_current_approval_and_artifact_context(
-    store: Store, settings: Settings
+    store: Store, settings: Settings, approver: str
 ) -> None:
-    identity = workflow(store, settings, publish=False)
+    automatic = approver == "delivery-automation"
+    if automatic:
+        enabled = settings.repositories[0].model_copy(
+            update={"automatic_execution": True, "model_data_authorized": True}
+        )
+        settings = settings.model_copy(update={"repositories": (enabled,)})
+    identity = workflow(
+        store, settings, publish=False, source_system="linear" if automatic else "local"
+    )
     run = store.workflow(identity)
     approval = store.enqueue_command(
         identity,
         kind="approve-plan",
-        actor="reader",
+        actor=approver,
         key="approval",
         payload={
             "plan_digest": "f" * 64,
@@ -578,6 +590,16 @@ async def test_handoff_readiness_checks_current_approval_and_artifact_context(
     ) as client:
         headers = {"Authorization": f"Bearer {TOKEN}"}
         assert (await client.get(f"/workflows/{identity}/checks", headers=headers)).json()["ready"]
+    if automatic:
+        revoked = settings.model_copy(update={"admissions_enabled": False})
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=create_app(revoked, store)), base_url="http://test"
+        ) as client:
+            result = (await client.get(f"/workflows/{identity}/checks", headers=headers)).json()
+            assert result["ci_ready"] and not result["ready"]
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=create_app(settings, store)), base_url="http://test"
+    ) as client:
         with Session(store.engine) as session, session.begin():
             command = session.get(CommandRecord, approval["command_id"])
             command.created_at = (datetime.now(UTC) - timedelta(days=8)).isoformat()

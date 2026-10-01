@@ -18,12 +18,10 @@ below stay open.
 **Code review follow-ups (2026-09-30).** A read-only review found these
 items outside the enforced invariants. Fixed in the same pass: lifecycle-edge enforcement
 on projection, reserved system actor ids, monitor survival after approval failures,
-422 for malformed signed Linear payloads, and a state-filtered automatic-approval scan.
-Still open, recorded rather than changed because each alters a live publication path:
+422 for malformed signed Linear payloads, a state-filtered automatic-approval scan, and
+`/checks` readiness for runs approved under ADR-025 automatic authority.
+Still open, recorded rather than changed because each alters the live publication path:
 
-- `/workflows/{id}/checks` recomputes approval authority from configured operators, so
-  runs approved by `delivery-automation` (ADR-025) report `ready: false` there even after
-  a completed handoff. The worker's own handoff gate is correct; the endpoint is advisory.
 - Publication does not verify base-branch protection itself. On 2026-09-30 the configured
   `delivery-workbench-v2` and `main` both required one approving review, stale-review
   dismissal, the four CI checks with strict status, admin enforcement, and no force pushes

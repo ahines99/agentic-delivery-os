@@ -14,7 +14,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from agentic_delivery import __version__
 from agentic_delivery.agents.manual_acceptance import manual_readiness, validate_manual_decision
-from agentic_delivery.config import Operator, Settings, load_settings, secret
+from agentic_delivery.config import AUTOMATION_ACTOR, Operator, Settings, load_settings, secret
 from agentic_delivery.domain.models import WorkItem
 from agentic_delivery.integrations.checks import parse_check_run
 from agentic_delivery.security import AccessDenied, authenticate, authorize, verified_payload
@@ -324,16 +324,29 @@ def create_app(settings: Settings | None = None, store: Store | None = None) -> 
                     raise ValueError("Manifest context changed")
                 approval = store.approved_plan(identity, manifest["approved_plan_digest"])
                 approved_at = datetime.fromisoformat(approval["created_at"])
-                actor = next((op for op in settings.operators if op.id == approval["actor"]), None)
                 if (
-                    actor is None
-                    or approved_at.tzinfo is None
+                    approved_at.tzinfo is None
                     or datetime.now(UTC)
                     >= approved_at + timedelta(seconds=settings.approval_validity_seconds)
                     or approval["payload"].get("spec_digest") != run["spec_digest"]
                 ):
                     raise ValueError("Approval is no longer current")
-                authorize(actor, repository.id, "reviewer")
+                if approval["actor"] == AUTOMATION_ACTOR:
+                    # ADR-025 authority must still be enabled for this Linear repository.
+                    if not (
+                        settings.admissions_enabled
+                        and repository.automatic_execution
+                        and repository.model_data_authorized
+                        and run["work_item"].get("source_system") == "linear"
+                    ):
+                        raise ValueError("Automatic approval authority is not current")
+                else:
+                    actor = next(
+                        (op for op in settings.operators if op.id == approval["actor"]), None
+                    )
+                    if actor is None:
+                        raise ValueError("Approval is no longer current")
+                    authorize(actor, repository.id, "reviewer")
                 ci_evidence = json.loads(artifacts.get(result["evidence_digest"]))
                 context = ci_evidence.get("publication", {})
                 if (
