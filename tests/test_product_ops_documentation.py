@@ -6,9 +6,17 @@ from pathlib import Path
 
 import pytest
 
+from agentic_delivery.domain.lifecycle import allowed_transitions
+from agentic_delivery.domain.models import WorkState
 from agentic_delivery.integrations.product_ops_contract.documentation import DocumentationCapability
 from agentic_delivery.integrations.product_ops_contract.verifier import digest
-from agentic_delivery.integrations.product_ops_documentation import execute_documentation
+from agentic_delivery.integrations.product_ops_documentation import (
+    ACTOR,
+    PREPARATION,
+    VERIFICATION,
+    execute_documentation,
+)
+from agentic_delivery.storage.store import Conflict
 from tests.test_documentation_execution import git
 from tests.test_documentation_execution import repository as repository
 from tests.test_product_ops import context as context
@@ -130,6 +138,72 @@ async def test_changed_authority_or_ticket_never_creates_branch(
             payload={"expected_sequence": 0, "spec_digest": current["spec_digest"]},
         )
     with pytest.raises(ValueError):
+        await execute_documentation(
+            run, store, lambda: settings, linear_factory=lambda: ReadOnlyLinear(issue)
+        )
+    assert git(repository, "for-each-ref", "--format=%(refname)", "refs/heads/delivery/") == b""
+
+
+async def test_documentation_lane_records_only_legal_lifecycle_edges(document_context):
+    receipt = await submit(document_context)
+    _, _, settings, _, store, issue = document_context
+    run = receipt["workflow_id"]
+    await execute_documentation(
+        run, store, lambda: settings, linear_factory=lambda: ReadOnlyLinear(issue)
+    )
+    events = store.events(run)
+    assert [e["next_state"] for e in events] == [
+        "INGESTED",
+        "ANALYZING",
+        "READY",
+        "PLANNING",
+        "IMPLEMENTING",
+        "VALIDATING",
+        "PR_OPEN",
+        "REVIEWING",
+        "ACCEPTANCE_CHECK",
+        "HUMAN_REVIEW",
+    ]
+    assert [e["sequence"] for e in events] == list(range(1, 11))
+    for event in events:
+        previous = WorkState(event["previous_state"])
+        assert WorkState(event["next_state"]) in allowed_transitions(previous)
+        assert event["actor"] == ACTOR
+
+
+@pytest.mark.parametrize("recorded", [3, 5, 7, 9])
+async def test_documentation_lane_resumes_after_interrupted_projection(
+    document_context, repository, recorded
+):
+    receipt = await submit(document_context)
+    _, _, settings, _, store, issue = document_context
+    run = receipt["workflow_id"]
+    for sequence, state, reason in (PREPARATION + VERIFICATION)[:recorded]:
+        store.project(run, sequence, state, actor=ACTOR, reason=reason)
+    result = await execute_documentation(
+        run, store, lambda: settings, linear_factory=lambda: ReadOnlyLinear(issue)
+    )
+    assert store.workflow(run)["state"] == "HUMAN_REVIEW"
+    assert len(store.events(run)) == 10
+    assert git(repository, "rev-parse", result["branch"]).decode() == result["head_sha"]
+
+
+async def test_documentation_lane_never_bypasses_the_lifecycle_graph(document_context):
+    receipt = await submit(document_context)
+    _, _, _, _, store, _ = document_context
+    run = receipt["workflow_id"]
+    for state in ("IMPLEMENTING", "HUMAN_REVIEW"):
+        with pytest.raises(Conflict, match="Illegal lifecycle transition"):
+            store.project(run, 1, state, actor=ACTOR, reason="Shortcut")
+    assert store.workflow(run)["state"] == "NEW"
+
+
+async def test_documentation_lane_refuses_runs_outside_its_own_path(document_context, repository):
+    receipt = await submit(document_context)
+    _, _, settings, _, store, issue = document_context
+    run = receipt["workflow_id"]
+    store.project(run, 1, "POLICY_BLOCKED", actor="operator", reason="Held by operator")
+    with pytest.raises(ValueError, match="authority or configuration changed"):
         await execute_documentation(
             run, store, lambda: settings, linear_factory=lambda: ReadOnlyLinear(issue)
         )

@@ -21,6 +21,26 @@ from agentic_delivery.storage.artifacts import ArtifactStore
 from agentic_delivery.storage.schema import CommandRecord, InboxRecord
 from agentic_delivery.storage.store import Store
 
+ACTOR = "documentation-worker"
+# The lane walks only legal lifecycle edges (domain.lifecycle); Store.project rejects others.
+# There is no model planner, builder or GitHub PR here: each state names the deterministic
+# check or human approval that satisfied it. Fixed sequences make replay after a crash exact.
+PREPARATION = (
+    (1, "INGESTED", "Signed Product Ops handoff durably received"),
+    (2, "ANALYZING", "Verify signed capability, approval and generated ticket"),
+    (3, "READY", "Signed capability, trusted approver and generated ticket are current"),
+    (4, "PLANNING", "Exact constrained plan bound by the documentation capability"),
+    (5, "IMPLEMENTING", "Exact constrained plan approved by trusted Product Ops reviewer"),
+)
+VERIFICATION = (
+    (6, "VALIDATING", "Review commit adds exactly the approved bytes on the pinned base"),
+    (7, "PR_OPEN", "Local change request opened OPEN/UNMERGED; not a GitHub pull request"),
+    (8, "REVIEWING", "Deterministic review: tree diff is exactly the approved one-file addition"),
+    (9, "ACCEPTANCE_CHECK", "Approved blob bytes match the signed documentation capability"),
+)
+HANDOFF = (10, "HUMAN_REVIEW", "Exact bytes and one-file addition verified; human merge required")
+RESUMABLE = frozenset({"NEW"} | {state for _, state, _ in PREPARATION + VERIFICATION})
+
 
 async def execute_documentation(
     identity: str,
@@ -58,7 +78,7 @@ async def execute_documentation(
             or not settings.admissions_enabled
             or current["configuration_digest"] != settings.execution_digest(current["repository"])
             or current["spec_digest"] != run["spec_digest"]
-            or current["state"] not in {"NEW", "IMPLEMENTING"}
+            or current["state"] not in RESUMABLE
         ):
             raise AccessDenied("Documentation authority or configuration changed")
         with Session(store.engine) as session:
@@ -116,14 +136,9 @@ async def execute_documentation(
     repository = settings.repository(run["repository"])
     if repository.local_repository is None:
         raise AccessDenied("Documentation lane needs an onboarded local repository")
-    if run["state"] == "NEW":
-        store.project(
-            identity,
-            1,
-            "IMPLEMENTING",
-            actor="documentation-worker",
-            reason="Exact constrained plan approved by trusted Product Ops reviewer",
-        )
+    # Replaying an already-recorded step is a no-op; a different event conflicts.
+    for sequence, state, reason in PREPARATION:
+        store.project(identity, sequence, state, actor=ACTOR, reason=reason)
 
     def recheck() -> None:
         asyncio.run(check())
@@ -136,6 +151,9 @@ async def execute_documentation(
         specification_digest=expected,
         approved_at=payload["approval"]["issued_at"],
         authorize=recheck,
+    )
+    store.project(
+        identity, VERIFICATION[0][0], VERIFICATION[0][1], actor=ACTOR, reason=VERIFICATION[0][2]
     )
     change_request = DocumentationChangeRequest(
         workflow_id=identity,
@@ -155,12 +173,8 @@ async def execute_documentation(
     result["change_request_reference"] = str(
         settings.artifact_root.resolve() / artifact[:2] / artifact
     )
-    store.project(
-        identity,
-        2,
-        "HUMAN_REVIEW",
-        actor="documentation-worker",
-        reason="Exact bytes and one-file addition verified; human merge required",
-        result=result,
-    )
+    for sequence, state, reason in VERIFICATION[1:]:
+        store.project(identity, sequence, state, actor=ACTOR, reason=reason)
+    sequence, state, reason = HANDOFF
+    store.project(identity, sequence, state, actor=ACTOR, reason=reason, result=result)
     return result
