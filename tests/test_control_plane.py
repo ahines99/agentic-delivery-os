@@ -129,6 +129,19 @@ def test_projection_cannot_rewind_or_skip_sequence(store: Store) -> None:
         assert session.scalar(select(func.count()).select_from(AuditRecord)) == 1
 
 
+def test_projection_enforces_lifecycle_edges(store: Store) -> None:
+    identity = submit(store)
+    for state in ("HUMAN_REVIEW", "PR_OPEN", "INVENTED", "new"):
+        with pytest.raises(Conflict, match="Illegal lifecycle transition"):
+            store.project(identity, 1, state, actor="workflow", reason="skip")
+    store.project(identity, 1, "INGESTED", actor="workflow", reason="ingestion")
+    store.project(identity, 2, "CANCELLED", actor="workflow", reason="stop")
+    with pytest.raises(Conflict, match="Illegal lifecycle transition"):
+        store.project(identity, 3, "FAILED", actor="workflow", reason="after terminal")
+    assert store.workflow(identity)["state"] == "CANCELLED"
+    assert len(store.events(identity)) == 2
+
+
 def test_budget_reservation_survives_failure_and_settlement_is_idempotent(store: Store) -> None:
     identity = submit(store)
     assert store.reserve(identity, "operation1", 4_000_000, 1000, 1000) is None
@@ -232,6 +245,37 @@ async def test_linear_changed_unsigned_delivery_id_is_deduplicated(
         assert first.status_code == second.status_code == 200
         assert first.json()["workflow_id"] == second.json()["workflow_id"]
         assert second.json()["duplicate"]
+
+
+@pytest.mark.parametrize(
+    "data", [None, [], "issue1", {"title": "Add filter"}, {"id": "issue1", "title": 7}]
+)
+async def test_malformed_signed_linear_issue_is_rejected_not_crashed(
+    store: Store,
+    settings: Settings,
+    monkeypatch: pytest.MonkeyPatch,
+    data: object,
+) -> None:
+    monkeypatch.setenv("LINEAR_WEBHOOK_SECRET", SIGNING_SECRET)
+    payload = {
+        "type": "Issue",
+        "action": "create",
+        "organizationId": "org1",
+        "webhookTimestamp": int(time.time() * 1000),
+        "data": data,
+    }
+    raw = json.dumps(payload).encode()
+    signature = hmac.new(SIGNING_SECRET.encode(), raw, hashlib.sha256).hexdigest()
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=create_app(settings, store)), base_url="http://test"
+    ) as client:
+        response = await client.post(
+            "/webhooks/linear",
+            content=raw,
+            headers={"Linear-Signature": signature, "Linear-Delivery": "delivery1"},
+        )
+    assert response.status_code == 422
+    assert store.list_workflows(("example/project",)) == []
 
 
 def test_artifact_corruption_and_traversal_are_rejected(tmp_path: Path) -> None:
@@ -455,3 +499,23 @@ def test_applied_approval_expires_and_revocation_is_checked_at_use(
     with pytest.raises(AccessDenied, match="expired"):
         Activities(settings, store).validate_approval(identity, "a" * 64)
     assert store.command(receipt["command_id"])["status"] == "APPLIED"
+
+
+def test_workflow_listing_filters_by_state_before_limit(store: Store) -> None:
+    identities = [
+        store.submit(
+            item().model_copy(update={"id": f"item-{index}"}),
+            actor="human",
+            key=str(uuid4()),
+            budget=Budget(),
+        )["workflow_id"]
+        for index in range(3)
+    ]
+    store.project(identities[0], 1, "INGESTED", actor="workflow", reason="oldest ingested")
+    repositories = (item().repository,)
+    assert [run["id"] for run in store.list_workflows(repositories, 1, state="INGESTED")] == [
+        identities[0]
+    ]
+    assert {run["id"] for run in store.list_workflows(repositories, state="NEW")} == set(
+        identities[1:]
+    )

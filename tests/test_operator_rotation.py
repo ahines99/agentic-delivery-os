@@ -211,3 +211,14 @@ async def test_real_http_operator_rotation_requires_restart_and_preserves_cancel
             }
         )
     )
+
+
+@pytest.mark.parametrize("reserved", ["delivery-automation", "linear-monitor", "workflow"])
+def test_operator_cannot_claim_system_actor_identity(reserved: str) -> None:
+    with pytest.raises(ValueError, match="reserved for system actors"):
+        Operator(
+            id=reserved,
+            token_sha256=token_digest("owned-fixture-token"),
+            repositories=("example/project",),
+            roles=("operator", "reviewer"),
+        )

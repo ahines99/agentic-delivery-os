@@ -82,7 +82,9 @@ The five reviews are [product](research/01-product-review.md),
 [architecture](research/02-architecture-review.md), [security](research/03-security-review.md),
 [evaluation](research/04-evaluation-review.md), and [delivery](research/05-delivery-review.md).
 They link primary sources, distinguish factual findings from project choices, and identify
-limitations. See the [ADRs](adr/) for durable decisions.
+limitations. A later sixth study, [automated curation feasibility](research/06-automated-curation-feasibility.md),
+records rights and executable-environment findings for the historical candidates.
+See the [ADRs](adr/) for durable decisions.
 
 ## Implemented baseline and honest boundaries
 
@@ -116,7 +118,8 @@ The five original research reviews and the full milestone plan remain retained a
 acceptance requirement: a verified automated portion may become a draft with explicit
 pending human criteria, but cannot pass final readiness without authorized revision-bound
 human decisions. The isolated candidate/manifest/publication portion is implemented;
-the human-command and workflow integration is connected and under qualification. Existing automated
+the human-command and workflow integration is connected and installed; a real human
+decision has not yet been exercised. Existing automated
 and historical evaluation profiles retain their current meaning.
 The automated evaluation path now uses [ADR-011](adr/ADR-011-current-qualification-authority.md):
 executed v2 qualification with current consumption authority and separate metered scoring grants.

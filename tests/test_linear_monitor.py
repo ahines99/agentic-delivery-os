@@ -1,9 +1,11 @@
+import asyncio
 import json
 from copy import deepcopy
 from datetime import UTC, datetime, timedelta
 
 import httpx
 import pytest
+from lifecycle_fixtures import advance
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -11,6 +13,7 @@ from agentic_delivery.agents.contracts import ImplementationPlan
 from agentic_delivery.config import RepositoryConfig, Settings
 from agentic_delivery.domain.models import AcceptanceCriterion, WorkItem
 from agentic_delivery.integrations.linear import LinearClient
+from agentic_delivery.operations import linear_monitor
 from agentic_delivery.operations.linear_monitor import MonitorState, approve_plans, poll_once
 from agentic_delivery.orchestration.activities import Activities
 from agentic_delivery.storage.artifacts import ArtifactStore
@@ -327,9 +330,9 @@ def planned(settings, store, *, source="linear", **changes):
             }
         ).encode()
     )
-    store.project(
+    advance(
+        store,
         identity,
-        1,
         "PLAN_REVIEW",
         actor="owned-test",
         reason="Owned plan fixture",
@@ -423,7 +426,7 @@ def test_manual_criteria_may_start_build_but_do_not_receive_human_acceptance(set
 async def paused_ticket(settings, store, linear):
     await poll_once(settings, store, linear)
     run = store.list_workflows(("owned/project",))[0]
-    store.project(run["id"], 1, "NEEDS_CLARIFICATION", actor="owned-test", reason="Missing choice")
+    advance(store, run["id"], "NEEDS_CLARIFICATION", actor="owned-test", reason="Missing choice")
     linear.nodes[0]["description"] = "Use ascending customer IDs."
     await poll_once(settings, store, linear)
     with Session(store.engine) as session:
@@ -464,9 +467,9 @@ async def test_ticket_edit_clarifies_once_with_same_workflow_budget_and_source(s
     assert revision["digest"] != before["spec_digest"]
     assert revision["item"]["description"] == linear.nodes[0]["description"]
     assert revision["item"]["id"] == before["work_item"]["id"]
-    store.project(
+    advance(
+        store,
         identity,
-        2,
         "ANALYZING",
         actor="owned-test",
         reason="Replan",
@@ -540,14 +543,8 @@ async def test_clarification_can_return_to_original_ticket_text(setup):
     identity, command_id = await paused_ticket(settings, store, linear)
     item = WorkItem.model_validate(store.command(command_id)["payload"]["item"])
     digest = store.record_specification(identity, item)
-    store.project(
-        identity,
-        2,
-        "NEEDS_CLARIFICATION",
-        actor="owned-test",
-        reason="Still ambiguous",
-        spec_digest=digest,
-    )
+    advance(store, identity, "ANALYZING", actor="owned-test", reason="Replan", spec_digest=digest)
+    advance(store, identity, "NEEDS_CLARIFICATION", actor="owned-test", reason="Still ambiguous")
     linear.nodes[0]["description"] = original
     await poll_once(settings, store, linear)
     with Session(store.engine) as session:
@@ -571,3 +568,28 @@ async def test_automation_cannot_change_nontext_fields(setup, field, value):
         await Activities(settings, store).validate_linear_clarification(
             store.workflow(identity), command
         )
+
+
+async def test_monitor_loop_survives_automatic_approval_failure(setup, monkeypatch, tmp_path):
+    settings, _ = setup
+    approvals = []
+
+    def failing_approval(*_):
+        approvals.append(1)
+        raise OSError("owned transient database failure")
+
+    async def no_poll(*_):
+        return 0
+
+    async def stop_after_two(_):
+        if len(approvals) == 2:
+            raise asyncio.CancelledError
+
+    monkeypatch.setattr(linear_monitor, "load_settings", lambda _: settings)
+    monkeypatch.setattr(linear_monitor, "LinearClient", lambda: None)
+    monkeypatch.setattr(linear_monitor, "poll_once", no_poll)
+    monkeypatch.setattr(linear_monitor, "approve_plans", failing_approval)
+    monkeypatch.setattr(linear_monitor.asyncio, "sleep", stop_after_two)
+    with pytest.raises(asyncio.CancelledError):
+        await linear_monitor.monitor(tmp_path / "config.json")
+    assert len(approvals) == 2

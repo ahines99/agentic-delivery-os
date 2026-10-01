@@ -1,6 +1,8 @@
 # ADR-030: Draft publication with pending manual acceptance
 
-Status: implementation in progress, 2026-09-30. Completes the manual-criterion
+Status: Accepted; implemented and installed, 2026-09-30 (see [manual acceptance](../manual-acceptance.md)
+and the [upgrade record](../local-runtime-upgrade.md#manual-acceptance-and-bounded-container-lifetime)).
+No real human manual-acceptance decision has yet been exercised. Completes the manual-criterion
 requirement in M3-03/M3-04 and refines ADR-006's prepublication evidence gate.
 
 Explicit manual criteria must not be replaced by pytest or a model's approval.
@@ -73,4 +75,5 @@ The combined product/manual regression selection passed 270 tests with six expli
 Docker skips. The eight service cases separately passed in 32.09 seconds against a
 disposable PostgreSQL database and the local Temporal server; the live database was
 not used. Ruff, formatting and mypy passed. Full new-source regression/CI and
-installation remain pending. This is not a completed release or human pilot gate.
+installation were pending when this paragraph was written; both have since completed
+(see the upgrade record linked above). This is not a completed release or human pilot gate.

@@ -7,89 +7,79 @@ into tested, independently reviewed pull requests, with evidence and human contr
 The accepted implementation plan is [docs/plan.md](docs/plan.md). The project retains the
 local directory name `agentic-delivery-engineer`; the product/package name is Agentic Delivery OS.
 
-**Verified automatic delivery:** [PER-13](https://linear.app/personal-portfolio-project/issue/PER-13/add-ordered-customer-id-helper)
-produced [PR #6](https://github.com/ahines99/agentic-delivery-os/pull/6), passed all required
-GitHub checks, and moved to Linear In Review with its PR attached. A second ticket,
+## What works today
+
+**Verified automatic delivery.** [PER-13](https://linear.app/personal-portfolio-project/issue/PER-13/add-ordered-customer-id-helper)
+was detected in Linear, planned, built, independently reviewed and published as
+[PR #6](https://github.com/ahines99/agentic-delivery-os/pull/6). The PR passed all required
+GitHub checks, and the ticket moved to Linear In Review with its PR attached. A second ticket,
 [PER-14](https://linear.app/personal-portfolio-project/issue/PER-14/add-customer-sorting-with-an-explicit-direction),
 paused for clarification, resumed after a ticket edit, and completed the same handoff
 with [PR #7](https://github.com/ahines99/agentic-delivery-os/pull/7). The delivery-proof source
 at `8413dc4` passed [full CI](https://github.com/ahines99/agentic-delivery-os/actions/runs/36668888799).
-The installed service subsequently received cancellation, response-recovery, intake,
-manual-acceptance, bounded-container-lifetime, attachment-response and terminal-command
-recovery changes, automatic existing-publication recovery, operation logging and
-lifecycle metrics and provider/cleanup diagnostic exports through `63f25f2`;
-the [verification status](docs/implementation-status.md) distinguishes later changes and checks. See the
-[live evidence and recovery record](docs/live-automatic-delivery.md). The [webhook gateway](docs/linear-ingress.md)
-supports both providers, and the outbound monitor provides automatic intake without a tunnel.
-Use [App onboarding](docs/provider-onboarding.md) to configure another installation.
-The [latest local upgrade record](docs/local-runtime-upgrade.md) separates installed
-features, completed checks and pending release qualification.
+See the [live evidence and recovery record](docs/live-automatic-delivery.md).
+
+Core guarantees, each backed by tests and recorded evidence:
+
+- **Human-only merges.** No agent, publisher or workflow has a merge capability; PRs stay
+  draft for human review ([ADR-002](docs/adr/ADR-002-separation-of-duties.md)).
+- **Separation of duties.** The builder cannot approve its own work. A fresh reviewer
+  context sees the ticket, approved plan, diff and permitted evidence, not the builder's
+  conversation. The publisher holds narrow GitHub App credentials that models never see.
+- **Revision-bound evidence.** Plan approval, test evidence, review, manual acceptance and CI
+  bind to the repository, base/head revisions and policy version; stale or missing evidence
+  blocks the handoff.
+- **Isolated execution.** Candidates run in a pinned, credential-free Docker image with
+  network, resource and filesystem controls ([security model](docs/security-model.md)).
+- **Finite budgets.** Every workflow has token, cost, wall-time and repair-round ceilings;
+  cost is reserved before each model call, and uncertain usage stays recorded rather than dropped.
 
 The [automatic delivery mode](docs/automatic-delivery.md) adds outbound Linear detection
-and owner-configured low-risk plan approval. Start the API, worker, dispatcher and enabled
-monitor with `delivery-service run`; merges remain human-controlled.
+and owner-configured low-risk plan approval ([ADR-025](docs/adr/ADR-025-automatic-linear-delivery.md)).
+Other work retains authenticated human plan approval. Explicit manual criteria wait for an
+authenticated human decision ([manual acceptance](docs/manual-acceptance.md)).
 
-For the installed local service, create a new Backlog ticket in the Personal Project
-Portfolio team, leave it unassigned, include `Repository: agentic-delivery-os`, and
-state clear acceptance criteria for a change within `demos/sample_repo`. Detection
-runs every 30 seconds. Keep this machine awake and Docker Desktop running. The
-current target is protected `delivery-workbench-v2`; additional repositories require
-[onboarding](docs/provider-onboarding.md). The Windows login task is installed and running.
+## Architecture
 
 ```text
 Linear -> Requirements -> Risk policy -> Plan -> Isolated build
        -> Independent verification -> Evidence -> Human-reviewed GitHub PR
 ```
 
-Implemented and exercised locally: authenticated intake and plan approval, PostgreSQL
-inbox/outbox and audit storage, Temporal workflows, real Anthropic planning/build/review,
-bounded Docker execution, independent test runs, and digest-verified candidate artifacts.
-The recorded local suite at `3956b29` passed 1997 tests with actual PostgreSQL, Temporal and Docker, including
-structured test-evidence validation, CI races, projection recovery, resource exhaustion and
-hostile dependency hooks; ten POSIX/symlink cases explicitly skipped on Windows.
-[A recorded hosted CI run passed](https://github.com/ahines99/agentic-delivery-os/actions/runs/36502328714)
-on Python 3.12/3.13, real service integration and secret scanning.
-A synthetic customer task reached `LOCAL_REVIEW_READY`; its durable workflow stopped at
-`POLICY_BLOCKED` because publication was disabled. No PR, merge, or deployment is implied.
+**Stack:** Python 3.12, FastAPI, Pydantic 2, SQLAlchemy/Alembic, PostgreSQL, Temporal,
+Docker, GitHub App, Linear, Anthropic.
 
-GitHub App publication and Linear adapters exist and have contract/fixture tests. The authorized
-Linear key now passes live workspace/team discovery, and a controlled real ticket passed signed
-webhook intake, a non-content update and exact signed replay through a temporary HTTPS gateway.
-One workflow/start command was retained. Two real test tickets subsequently reached persisted
-`NEEDS_CLARIFICATION` and `PLAN_REVIEW` states through metered planning. The subsequent [automatic run](docs/live-automatic-delivery.md) verified actual App publication,
-exact-head CI, a PR link and the Linear review-state handoff. GitHub App credentials
-are installed and repository-scoped authentication is verified. Complete
-recovery/security qualification and the independently scored 30+ historical-task evaluation
-remain release gates. The Docker checks establish named controls, not safety against arbitrary
-hostile code. See [implementation status](docs/implementation-status.md) for recorded runs,
-verification boundaries, and outstanding work. The original proposal remains preserved in
-[docs/reference/original-handoff.md](docs/reference/original-handoff.md).
+PostgreSQL holds the inbox/outbox, command ledger, audit records and model usage ledger.
+Temporal runs durable planning, approval, build, review, publication and handoff workflows.
+See [architecture](docs/architecture.md) and the [ADRs](docs/adr/).
 
-The [full completion audit](docs/completion-audit.md) tracks every M0–M5 backlog item,
-product gate and research recommendation. The [historical candidate catalog](docs/evaluation-curation.md)
-contains 36 real metadata-only candidates; none is represented as a qualified or scored task.
-Benchmark qualification and scoring now follow the user's hands-off preference through
-[independent agent reviews and executable checks](docs/adr/ADR-007-automated-benchmark-qualification.md).
-The worker and scorer require current authority over executed v2 qualification records; scoring
-also requires its own metered spending grant. Legacy records allow inspection only. Absent human observations remain
-unmeasured. This does not change the configured plan-approval authority, human merges or pilot signoff.
+## Known limitations and open gates
 
-An owned development fixture has now passed the complete synthetic qualification path:
-13 actual Docker operations, two independent model reviews and reconstructed authority
-validation. Cached recovery added no calls or charges. Synthetic fixtures remain barred
-from historical admission, worker export, scoring and campaign use. See the
-[recorded qualification](docs/evaluation-calibration.md#completed-synthetic-qualification).
+- **Merge control relies on GitHub branch protection.** No component can merge, but the
+  publisher's App token can write branches; the owner must keep the base branch protected
+  with required reviews and checks. The service does not verify that configuration.
+- **No human merge has been exercised yet.** PRs #6 and #7 were handed off as drafts for
+  human review, and no real human manual-acceptance decision has been recorded; tests use
+  scripted operator identities.
+- **One onboarded sample repository.** The verified target is `demos/sample_repo` on the
+  protected `delivery-workbench-v2` base branch. The installed source profile
+  rejects common `pyproject.toml`, lockfile and `conftest.py` files, and there is no
+  dependency preparation yet, so typical projects are not supported
+  ([provider onboarding](docs/provider-onboarding.md)).
+- **Local, Windows-hosted service.** Intake and CI observation use outbound polling;
+  persistent HTTPS hosting and live signed post-merge callbacks are not configured.
+- **Named controls, not a hostile-code guarantee.** The Docker checks establish named
+  controls, not safety against arbitrary hostile code. Complete recovery, security and
+  product acceptance qualification remain release gates.
+- **Historical benchmark not run.** Five separately acquired development tasks have passed
+  qualification; the 30+ task corpus is not qualified, and the 36 catalog candidates remain
+  unqualified. No task has been scored and no campaign has run, so there are no benchmark results.
+- **One live model provider.** The recorded live runs used Anthropic; the OpenAI adapter is
+  contract-tested only.
 
-Protected acquisition and v2 import have now reached actual execution for seven historical
-development candidates. The [recorded attempts](docs/historical-development-attempts.md)
-retain a deterministic rejection and a truncated model review whose cost was reconciled.
-After calibrated reviews, five candidates passed all deterministic checks,
-two independent model reviews each and authority validation. Five development tasks
-have completed qualification; no historical task has been scored or used in a campaign. A separately
-frozen final-scorer configuration passed all five owned development anchors; this is
-[calibration evidence](docs/semantic-calibration.md), not historical accuracy.
-A separate [owned adjudicator calibration](docs/semantic-adjudication-calibration.md#recorded-live-owned-calibration)
-also passed all five dispute anchors; historical adjudication and campaign execution remain open.
+See [implementation status](docs/implementation-status.md) for recorded runs, verification
+boundaries and outstanding work, and the [full completion audit](docs/completion-audit.md)
+for every M0–M5 backlog item, product gate and research recommendation.
 
 ## Local quickstart
 
@@ -107,23 +97,77 @@ The samples produce `READY`, `NEEDS_CLARIFICATION`, and `POLICY_BLOCKED`. `READY
 that supplied fixture metadata passed intake checks; no model, code execution, or PR occurs.
 For the actual control plane, follow the [local runbook](docs/runbook.md) to configure
 PostgreSQL, Temporal, a fixed sandbox image, operator authentication, and an authorized model.
+Start the API, worker, dispatcher and enabled monitor with `delivery-service run`.
 The API includes authenticated work-item, workflow, rerun and command endpoints; `/healthz` is
 liveness only, `/readyz` checks the database, and authenticated `/operations` summarizes scoped
 state, spending and dispatch. Model-backed runs spend tokens and require explicit data authorization.
 Publication remains disabled by default, and there is no personal-token fallback.
 
+To exercise the installed local service, create a new Backlog ticket in the Personal Project
+Portfolio team, leave it unassigned, include `Repository: agentic-delivery-os`, and
+state clear acceptance criteria for a change within `demos/sample_repo`. Detection
+runs every 30 seconds; keep the machine awake and Docker Desktop running. Additional
+repositories require [onboarding](docs/provider-onboarding.md). The
+[webhook gateway](docs/linear-ingress.md) supports both providers when public callbacks
+are wanted.
+
+### Quality checks
+
 ```sh
 uv run --no-sync python -m ruff check .
 uv run --no-sync python -m ruff format --check .
 uv run --no-sync python -m mypy
-uv run --no-sync python -m pytest
+uv run --no-sync python -m pytest -n auto --dist worksteal
 ```
 
+Integration tests explicitly skip without the runbook's service variables.
 `delivery-eval` provides offline schema export, structural validation, legacy record inspection
 and paired trial reporting; see [the evaluation workspace](evals/README.md). Current qualification
 and campaign APIs require a trusted authority; the offline CLI cannot supply it.
-These commands do not execute a benchmark or authorize spending. Integration tests explicitly
-skip without the runbook's service variables.
+These commands do not execute a benchmark or authorize spending.
+
+## Evaluation status
+
+The [historical candidate catalog](docs/evaluation-curation.md) contains 36 real
+metadata-only candidates; none is represented as a qualified or scored task. Benchmark
+qualification and scoring follow the owner's hands-off preference through
+[independent agent reviews and executable checks](docs/adr/ADR-007-automated-benchmark-qualification.md).
+The worker and scorer require current authority over executed v2 qualification records; scoring
+also requires its own metered spending grant. Legacy records allow inspection only. Absent
+human observations remain unmeasured. This does not change the configured plan-approval
+authority, human merges or pilot signoff.
+
+- An owned development fixture passed the complete synthetic qualification path: 13 actual
+  Docker operations, two independent model reviews and reconstructed authority validation.
+  Synthetic fixtures remain barred from historical admission, worker export, scoring and
+  campaign use ([recorded qualification](docs/evaluation-calibration.md#completed-synthetic-qualification)).
+- Protected acquisition and v2 import reached actual execution for seven historical
+  development candidates. Five passed all deterministic checks, two independent model
+  reviews each and authority validation; rejections and a truncated review whose cost was
+  reconciled are retained ([recorded attempts](docs/historical-development-attempts.md)).
+- A separately frozen final-scorer configuration passed all five owned development anchors
+  ([calibration evidence](docs/semantic-calibration.md), not historical accuracy), and a
+  separate [owned adjudicator calibration](docs/semantic-adjudication-calibration.md#recorded-live-owned-calibration)
+  passed all five dispute anchors. Historical adjudication and campaign execution remain open.
+
+## Verification history
+
+The installed service received cancellation, response-recovery, intake, manual-acceptance,
+bounded-container-lifetime, attachment-response and terminal-command recovery changes,
+automatic existing-publication recovery, operation logging and lifecycle metrics and
+provider/cleanup diagnostic exports through `63f25f2`. The
+[latest local upgrade record](docs/local-runtime-upgrade.md) separates installed features,
+completed checks and pending release qualification.
+
+Before live publication was enabled, the recorded local suite at `3956b29` passed 1997 tests
+with actual PostgreSQL, Temporal and Docker, and
+[a recorded hosted CI run passed](https://github.com/ahines99/agentic-delivery-os/actions/runs/36502328714)
+on Python 3.12/3.13, real service integration and secret scanning. A synthetic customer task
+then reached `LOCAL_REVIEW_READY` and stopped at `POLICY_BLOCKED` because publication was
+disabled. Controlled real Linear tickets subsequently passed signed webhook intake, exact
+signed replay and persisted `NEEDS_CLARIFICATION`/`PLAN_REVIEW` states before the automatic
+runs above. The original proposal remains preserved in
+[docs/reference/original-handoff.md](docs/reference/original-handoff.md).
 
 ## Project map
 
@@ -204,7 +248,7 @@ skip without the runbook's service variables.
 | [docs/model-operation-receipts.md](docs/model-operation-receipts.md) | Bound model provenance and retained uncertain outcomes |
 | [docs/versioned-replay.md](docs/versioned-replay.md) | Saved prior-commit Temporal histories and replay limits |
 | [docs/backlog.md](docs/backlog.md) | Dependency-ordered implementation issues |
-| [docs/research/](docs/research/) | Five independent research reviews |
+| [docs/research/](docs/research/) | Five independent research reviews and an automated-curation feasibility study |
 | [docs/adr/](docs/adr/) | Architecture decision records |
 | `src/agentic_delivery/` | Control plane, provider adapters, candidate pipeline, runner, and evaluation harness |
 | `demos/sample_tickets/` | Credential-free intake fixtures |

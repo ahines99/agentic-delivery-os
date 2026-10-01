@@ -14,8 +14,13 @@ uv sync --locked --extra dev
 uv run --no-sync python -m ruff check .
 uv run --no-sync python -m ruff format --check .
 uv run --no-sync python -m mypy
-uv run --no-sync python -m pytest
+uv run --no-sync python -m pytest -n auto --dist worksteal
 ```
+
+Tests run in parallel with pytest-xdist. On machines with more than 32 logical CPUs, use
+`-n 32` instead of `-n auto`: heavier oversubscription starves the deliberate short waits
+and deadlines in concurrency tests. Plain `python -m pytest` still runs serially. Keep
+`-m integration` runs serial because those tests share one configured database and Temporal server.
 
 `uv` creates the project `.venv`; activation is optional. If a Windows policy prevents activation scripts, invoke `.venv\Scripts\python.exe -m pytest` directly (and the same form for ruff/mypy). On Unix use `.venv/bin/python -m pytest`. Do not weaken the machine's execution policy to activate a virtual environment. First-time synchronization downloads dependencies; offline intake fixtures need no external service credentials or Docker.
 

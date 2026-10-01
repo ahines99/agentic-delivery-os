@@ -28,6 +28,13 @@ TRANSITIONS: dict[WorkState, frozenset[WorkState]] = {
 TERMINAL = frozenset({S.HUMAN_REVIEW, S.FAILED, S.CANCELLED, S.POLICY_BLOCKED})
 
 
+def allowed_transitions(previous: WorkState) -> frozenset[WorkState]:
+    """Graph edges plus the stop states every non-terminal state may enter."""
+    if previous in TERMINAL:
+        return frozenset()
+    return TRANSITIONS[previous] | {S.FAILED, S.CANCELLED, S.POLICY_BLOCKED}
+
+
 @dataclass(frozen=True)
 class TransitionEvent:
     previous_state: WorkState
@@ -43,9 +50,6 @@ def transition(
     """Validate graph edges only; this is not a policy or authorization gate."""
     if not actor.strip() or not reason.strip():
         raise ValueError("An actor and reason are required")
-    allowed = TRANSITIONS[previous]
-    if previous not in TERMINAL:
-        allowed = allowed | {S.FAILED, S.CANCELLED, S.POLICY_BLOCKED}
-    if next_state not in allowed:
+    if next_state not in allowed_transitions(previous):
         raise ValueError(f"Illegal transition: {previous} -> {next_state}")
     return TransitionEvent(previous, next_state, actor, reason, datetime.now(UTC))

@@ -9,8 +9,30 @@ completed automatic Linear detection, App publication, required CI and the corre
 review-state handoff. Outbound observation of PR closure/merge is also installed
 under [ADR-027](adr/ADR-027-outbound-publication-observation.md), without a public
 tunnel. Planning cancellation, provider response recovery and an actual live
-backup/restore drill have subsequent verification records. Remaining qualification,
-manual-criterion handoff and portfolio release targets below stay open.
+backup/restore drill have subsequent verification records. The manual-criterion
+handoff is implemented and installed under [ADR-030](adr/ADR-030-pending-manual-acceptance.md);
+only scripted operator decisions have exercised it, so a real human manual-acceptance
+decision remains unexercised. Remaining qualification and portfolio release targets
+below stay open.
+
+**Code review follow-ups (2026-09-30).** A read-only review found these
+items outside the enforced invariants. Fixed in the same pass: lifecycle-edge enforcement
+on projection, reserved system actor ids, monitor survival after approval failures,
+422 for malformed signed Linear payloads, a state-filtered automatic-approval scan, and
+`/checks` readiness for runs approved under ADR-025 automatic authority.
+Still open, recorded rather than changed because each alters the live publication path:
+
+- Publication does not verify base-branch protection itself. On 2026-09-30 the configured
+  `delivery-workbench-v2` and `main` both required one approving review, stale-review
+  dismissal, the four CI checks with strict status, admin enforcement, and no force pushes
+  or deletions.
+- A local-clone snapshot uses the clone's `HEAD` rather than the configured base branch;
+  a mismatch is caught at publication ("Base branch advanced"), after model spend.
+- Published blobs use mode `100644`; the pipeline does not carry file modes, so a modified
+  executable file would lose its executable bit. The onboarded sample has none.
+
+The CI wait deliberately keeps polling a failed required check until `ci_wait_seconds`,
+so an authorized rerun can still succeed within the window ([CI evidence](ci-evidence.md)).
 
 Refer to [implementation status](implementation-status.md) for recorded evidence and remaining gates. Code presence, mock-provider tests and one synthetic live run do not close an entire backlog item.
 

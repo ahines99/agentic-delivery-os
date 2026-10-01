@@ -23,11 +23,21 @@ class Budget(Contract):
     repair_rounds: int = Field(default=2, ge=0, le=5, strict=True)
 
 
+AUTOMATION_ACTOR = "delivery-automation"
+SYSTEM_ACTORS = frozenset({AUTOMATION_ACTOR, "linear-monitor", "workflow"})
+
+
 class Operator(Contract):
     id: NonEmpty
     token_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     repositories: tuple[NonEmpty, ...]
     roles: tuple[Literal["reader", "operator", "reviewer"], ...] = ("reader",)
+
+    @model_validator(mode="after")
+    def human_identity(self) -> "Operator":
+        if self.id in SYSTEM_ACTORS:
+            raise ValueError("Operator id is reserved for system actors")
+        return self
 
 
 class CommandProfile(Contract):

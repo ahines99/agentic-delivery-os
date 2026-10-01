@@ -7,7 +7,7 @@ from uuid import UUID
 
 from pydantic import AwareDatetime, Field, TypeAdapter
 
-from agentic_delivery.domain.lifecycle import TERMINAL, TRANSITIONS
+from agentic_delivery.domain.lifecycle import TERMINAL, allowed_transitions
 from agentic_delivery.domain.models import Contract, WorkState
 
 Count = Annotated[int, Field(ge=0, le=2**63 - 1, strict=True)]
@@ -70,11 +70,7 @@ def workflow_metrics(report: dict[str, Any]) -> dict[str, Any]:
     for sequence, row in enumerate(audits, 1):
         if row.sequence != sequence or row.previous_state != state or state in TERMINAL:
             raise ValueError("Operational transition history is inconsistent")
-        if row.next_state not in TRANSITIONS[state] | {
-            WorkState.FAILED,
-            WorkState.CANCELLED,
-            WorkState.POLICY_BLOCKED,
-        }:
+        if row.next_state not in allowed_transitions(state):
             raise ValueError("Operational transition history has an invalid edge")
         if row.created_at > observed_at:
             raise ValueError("Operational transition occurs after observation")

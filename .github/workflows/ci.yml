@@ -41,7 +41,7 @@ jobs:
       - name: Type check
         run: uv run --no-sync python -m mypy
       - name: Test
-        run: uv run --no-sync python -m pytest
+        run: uv run --no-sync python -m pytest -n auto --dist worksteal
       - name: Build distributable package
         run: uv build
 
