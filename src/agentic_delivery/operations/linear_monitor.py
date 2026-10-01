@@ -25,6 +25,7 @@ class MonitorState(Contract):
     cursor: AwareDatetime
     observed: int = 0
     held: tuple[str, ...] = ()
+    deferred: tuple[str, ...] = ()
 
 
 async def poll_once(settings: Settings, store: Store, linear: LinearClient) -> int:
@@ -96,6 +97,14 @@ async def poll_once(settings: Settings, store: Store, linear: LinearClient) -> i
     else:
         raise ValueError("Linear scan exceeded its page limit; cursor retained")
     held: list[str] = []
+    deferred: dict[str, datetime] = {}
+
+    def defer(identity: str, updated: str) -> None:
+        # ADR-033: one delivery per repository at a time. Keep the cursor at or before
+        # this version so the next scan reads the ticket again once the repository is free.
+        deferred[identity] = datetime.fromisoformat(updated.replace("Z", "+00:00"))
+        logger.info("Linear ticket deferred; repository has a delivery in progress")
+
     for issue in issues:
         repository = repositories[issue["team"]["id"]]
         if issue["state"]["type"] not in {"backlog", "unstarted"}:
@@ -118,6 +127,20 @@ async def poll_once(settings: Settings, store: Store, linear: LinearClient) -> i
             continue
         assignee = current.get("assignee") or {}
         if assignee.get("id") not in {None, repository.linear_assignee_id}:
+            continue
+        probe = WorkItem(
+            id=issue["id"],
+            source_system="linear",
+            title=issue["title"],
+            description=issue.get("description") or issue["title"],
+            repository=repository.id,
+            base_branch=repository.base_branch,
+        )
+        if store.latest_source_workflow(probe) is None and store.delivery_in_progress(
+            repository.id
+        ):
+            # Defer before claiming, so a waiting ticket stays visibly unassigned.
+            defer(issue["id"], issue["updatedAt"])
             continue
         if assignee.get("id") is None:
             try:
@@ -166,6 +189,10 @@ async def poll_once(settings: Settings, store: Store, linear: LinearClient) -> i
             if revision == previous:
                 continue
             if run["state"] == "NEEDS_CLARIFICATION":
+                if store.delivery_in_progress(repository.id, exclude=run["id"]):
+                    # Re-analysis takes a fresh snapshot; wait for the other delivery.
+                    defer(issue["id"], issue["updatedAt"])
+                    continue
                 payload = {
                     "expected_sequence": run["sequence"],
                     "spec_digest": run["spec_digest"],
@@ -191,7 +218,13 @@ async def poll_once(settings: Settings, store: Store, linear: LinearClient) -> i
             )
         except Conflict:
             held.append(item.id)
-    state = MonitorState(scope=scope, cursor=until, observed=len(issues), held=tuple(held))
+    state = MonitorState(
+        scope=scope,
+        cursor=min([until, *deferred.values()]),
+        observed=len(issues),
+        held=tuple(held),
+        deferred=tuple(sorted(deferred)),
+    )
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(".tmp")
     temporary.write_text(state.model_dump_json(indent=2), encoding="utf-8")

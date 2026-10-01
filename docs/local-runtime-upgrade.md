@@ -1,5 +1,11 @@
 # Local runtime upgrades
 
+**Upgrade source from 2026-10-01: `main`.** The installed checkout still tracks the frozen
+`feat/governed-delivery-platform` at `63f25f2` application code. At the next supervised
+upgrade, stop the service as below, run `git switch main` and fast-forward in the root
+checkout, then restart. After its squash merge, `main` has the same tree as that branch, so the
+switch itself changes nothing until newer `main` commits are pulled.
+
 ## Provider and cleanup diagnostics (2026-09-30)
 
 The service was upgraded from `4ae54e6` to `63f25f2` after
