@@ -1,4 +1,4 @@
-"""Report delivery progress back to Linear tickets (roadmap DO-4, ADR-037)."""
+"""Report delivery progress back to Linear tickets (roadmap DO-4, ADR-037; DO-3, ADR-038)."""
 
 from datetime import datetime
 from typing import Any, Literal, NamedTuple
@@ -27,7 +27,7 @@ BLOCKED = frozenset({"NEEDS_CLARIFICATION", "POLICY_BLOCKED", "FAILED", "CANCELL
 MERGED = frozenset({"MERGED", "MERGED_UNVERIFIED"})
 MAX_REASON = 500
 
-Status = Literal["in_progress", "done", "blocked"]
+Status = Literal["in_progress", "in_review", "done", "blocked"]
 
 
 class Report(NamedTuple):
@@ -38,7 +38,8 @@ class Report(NamedTuple):
 
 def desired_report(run: dict[str, Any], publication: str | None, reason: str) -> Report | None:
     """Map durable workflow and publication state to one ticket report, or none."""
-    if run["work_item"].get("source_system") != "linear":
+    source = run["work_item"].get("source_system")
+    if source not in {"linear", "product_ops"}:
         return None
     identity, state = run["id"], run["state"]
     if state in ACTIVE:
@@ -52,6 +53,12 @@ def desired_report(run: dict[str, Any], publication: str | None, reason: str) ->
         )
     if state == "HUMAN_REVIEW" and publication in MERGED:
         return Report("done", f"{identity}:done", "Delivery OS: done. The pull request was merged.")
+    if state == "HUMAN_REVIEW" and publication is None and source == "product_ops":
+        return Report(
+            "in_review",
+            f"{identity}:in_review",
+            "Delivery OS: in review. The change awaits human review.",
+        )
     if state == "HUMAN_REVIEW" and publication == "CLOSED":
         return Report(
             "blocked",
@@ -60,6 +67,15 @@ def desired_report(run: dict[str, Any], publication: str | None, reason: str) ->
         )
     # In review is reported by the handoff itself (status change and PR attachment).
     return None
+
+
+def linear_issue(store: Store, run: dict[str, Any]) -> str | None:
+    """Linear tickets are the work item itself, or the issue a Product Ops handoff published."""
+    if run["work_item"].get("source_system") == "linear":
+        return str(run["work_item"]["id"])
+    payload = store.inbox_payload(run["id"], "product_ops") or {}
+    issue = payload.get("linear_issue_id")
+    return issue if isinstance(issue, str) and issue else None
 
 
 def _reporting(repository: RepositoryConfig) -> bool:
@@ -90,7 +106,9 @@ async def report_progress(
             report = desired_report(run, publication, reason)
             if report is None or report.key in reported:
                 continue
-            issue_id = run["work_item"]["id"]
+            issue_id = linear_issue(store, run)
+            if issue_id is None:
+                continue
             view = await linear.progress_view(issue_id)
             if (view.get("team") or {}).get("id") != repository.linear_team_id or (
                 view.get("assignee") or {}

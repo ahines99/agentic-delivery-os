@@ -1,0 +1,231 @@
+{
+  "schema_version": "2",
+  "issuer": "product-ops-test",
+  "audience": "agentic-delivery-os",
+  "key_id": "key-1",
+  "issued_at": "2026-09-30T01:47:02.324686Z",
+  "expires_at": "2026-09-30T02:02:02.324686Z",
+  "mode": "mock_transport",
+  "specification": {
+    "schema_version": "1",
+    "specification_id": "271a0689-1015-4f5f-b081-5ff352f65d7c",
+    "revision": 1,
+    "source_digest": "c2554b43817ee2eb55de2fc51bb5b59cba33a89e018c12216dafbf3ba40ccf85",
+    "title": "Document existing monthly report filters",
+    "objective": "Document existing monthly report filters",
+    "source_statements": [
+      {
+        "id": "S0",
+        "text": "Add a documentation page explaining the existing monthly report filters. Include examples for month and currency filters, and have a maintainer check that the examples match the existing documented behavior. Do not change application behavior.\n"
+      }
+    ],
+    "requirements": [
+      {
+        "id": "R1",
+        "text": "Document existing monthly report filters without changing behavior.",
+        "kind": "functional",
+        "provenance": "explicit_source",
+        "source_refs": [
+          "S0"
+        ],
+        "confidence": "1",
+        "needs_human_decision": false
+      },
+      {
+        "id": "R2",
+        "text": "Include examples for month and currency filters.",
+        "kind": "functional",
+        "provenance": "explicit_source",
+        "source_refs": [
+          "S0"
+        ],
+        "confidence": "1",
+        "needs_human_decision": false
+      },
+      {
+        "id": "R3",
+        "text": "A maintainer checks examples against existing documented behavior.",
+        "kind": "functional",
+        "provenance": "explicit_source",
+        "source_refs": [
+          "S0"
+        ],
+        "confidence": "1",
+        "needs_human_decision": false
+      }
+    ],
+    "unresolved_questions": [],
+    "assumptions": [
+      {
+        "id": "A1",
+        "text": "Use sequential local identifiers for presentation only.",
+        "non_behavioral": true
+      }
+    ],
+    "repository_context": {
+      "repository_id": "sample-reporting",
+      "snapshot_id": "synthetic:one",
+      "snapshot_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+      "evidence": [],
+      "relevant_tests": [],
+      "unknown_edges": [],
+      "confidence": "1"
+    },
+    "risk": {
+      "tier": 1,
+      "reasons": [
+        "Bounded documentation change; conservative tier-1 floor."
+      ],
+      "policy_version": "m0-v1"
+    },
+    "dependencies": [],
+    "work_items": [
+      {
+        "local_id": "W1",
+        "title": "Document monthly report filters",
+        "description": "Document monthly report filters",
+        "type": "task",
+        "requirement_ids": [
+          "R1",
+          "R2",
+          "R3"
+        ],
+        "acceptance_criteria": [
+          {
+            "id": "AC1_R1",
+            "text": "Document existing monthly report filters without changing behavior.",
+            "requirement_ids": [
+              "R1"
+            ],
+            "provenance": "directly_stated",
+            "verification_kind": "documentation",
+            "evidence_required": "Attach a reproducible check result against the stated behavior.",
+            "blocking": true
+          },
+          {
+            "id": "AC1_R2",
+            "text": "Include examples for month and currency filters.",
+            "requirement_ids": [
+              "R2"
+            ],
+            "provenance": "directly_stated",
+            "verification_kind": "documentation",
+            "evidence_required": "Attach a reproducible check result against the stated behavior.",
+            "blocking": true
+          },
+          {
+            "id": "AC1_R3",
+            "text": "A maintainer checks examples against existing documented behavior.",
+            "requirement_ids": [
+              "R3"
+            ],
+            "provenance": "directly_stated",
+            "verification_kind": "documentation",
+            "evidence_required": "Attach a reproducible check result against the stated behavior.",
+            "blocking": true
+          }
+        ],
+        "dependencies": [],
+        "risk_tier": 1,
+        "repository_id": "sample-reporting",
+        "proposed_team_id": "product",
+        "proposed_project_id": null,
+        "proposed_labels": []
+      }
+    ],
+    "approval_policy": {
+      "policy_version": "m0-v1",
+      "workspace_id": "offline-workspace",
+      "max_age_seconds": 3600,
+      "required_role": "product_approver"
+    },
+    "provenance": {
+      "mode": "authored_fixture",
+      "created_at": "2026-09-30T01:47:01.214771Z",
+      "producer": "foundation-author",
+      "source_kind": "prompt",
+      "policy_refs": [],
+      "clarification_refs": []
+    },
+    "content_digest": "29ca64118247e6f52d9d9a9809660ab12059588b28741cb93ff7a86b168bd01f"
+  },
+  "approval": {
+    "approval_id": "cda0c01e-1996-4e13-b275-ead75dbe7e9a",
+    "specification_id": "271a0689-1015-4f5f-b081-5ff352f65d7c",
+    "revision": 1,
+    "content_digest": "29ca64118247e6f52d9d9a9809660ab12059588b28741cb93ff7a86b168bd01f",
+    "actor_id": "offline-reviewer",
+    "decision": "approve",
+    "scope": {
+      "workspace_id": "offline-workspace",
+      "team_ids": [
+        "product"
+      ],
+      "repository_ids": [
+        "sample-reporting"
+      ],
+      "plan_digest": "ca033ba68f1c34b03f192f99c77726e76e8fbb0e93635748e6b606ad5cd44ebe",
+      "operation_keys": [
+        "fd8b202a2bbbef94bc70d1a38d615cacc9d0bd5a741f6888f1f918f1ffd8c6cc"
+      ],
+      "allowed_mutation_count": 1
+    },
+    "issued_at": "2026-09-30T01:47:01.324686Z",
+    "expires_at": "2026-09-30T02:17:01.324686Z",
+    "policy_version": "m0-v1"
+  },
+  "plan": {
+    "schema_version": "2",
+    "specification_digest": "29ca64118247e6f52d9d9a9809660ab12059588b28741cb93ff7a86b168bd01f",
+    "workspace_id": "offline-workspace",
+    "scope": {
+      "organization_id": "cfb71d14-0e8e-4121-8f6f-61ce768ced92",
+      "actor_id": "b2cd9b9c-e7da-4bca-9c28-682c1d997895",
+      "teams": [
+        {
+          "local_id": "product",
+          "provider_id": "0ee2b015-c460-4273-93e2-ced3a8c7830e"
+        }
+      ],
+      "projects": [],
+      "labels": []
+    },
+    "publication_generation": 1,
+    "operations": [
+      {
+        "kind": "issue_create",
+        "operation_key": "fd8b202a2bbbef94bc70d1a38d615cacc9d0bd5a741f6888f1f918f1ffd8c6cc",
+        "target_id": "fd8b202a-2bbb-4f94-bc70-d1a38d615cac",
+        "work_item_id": "W1",
+        "team_id": "product",
+        "payload": "{\"description\":\"## Objective\\nDocument existing monthly report filters\\n\\n## Context\\nDocument monthly report filters\\n\\n## Requirements\\n- R1 Document existing monthly report filters without changing behavior\\\\.\\n- R2 Include examples for month and currency filters\\\\.\\n- R3 A maintainer checks examples against existing documented behavior\\\\.\\n\\n## Acceptance criteria\\n- [ ] AC1_R1 Document existing monthly report filters without changing behavior\\\\. [directly_stated]\\n  Evidence: Attach a reproducible check result against the stated behavior\\\\.\\n- [ ] AC1_R2 Include examples for month and currency filters\\\\. [directly_stated]\\n  Evidence: Attach a reproducible check result against the stated behavior\\\\.\\n- [ ] AC1_R3 A maintainer checks examples against existing documented behavior\\\\. [directly_stated]\\n  Evidence: Attach a reproducible check result against the stated behavior\\\\.\\n\\n## Dependencies\\nNone\\n\\n## Risks / constraints\\nBounded documentation change; conservative tier\\\\-1 floor\\\\.\\n\\n## Repository context\\n\\nUnknown edges: \\n\\n## Open questions\\nNone\\n\\nGenerated by Agentic Product Ops\\nSpecification: 271a0689-1015-4f5f-b081-5ff352f65d7c\\nRevision: 1\\nDigest: 29ca64118247e6f52d9d9a9809660ab12059588b28741cb93ff7a86b168bd01f\\nOperation: fd8b202a2bbbef94bc70d1a38d615cacc9d0bd5a741f6888f1f918f1ffd8c6cc\",\"id\":\"fd8b202a-2bbb-4f94-bc70-d1a38d615cac\",\"labelIds\":[],\"teamId\":\"0ee2b015-c460-4273-93e2-ced3a8c7830e\",\"title\":\"Document monthly report filters\",\"useDefaultTemplate\":false}",
+        "prerequisite_keys": [],
+        "request_digest": "019acbb1f3f8805f29164e29d01b2a79a75488c13c38e0ae3224f9228c9b9d43"
+      }
+    ],
+    "content_digest": "ca033ba68f1c34b03f192f99c77726e76e8fbb0e93635748e6b606ad5cd44ebe"
+  },
+  "publications": [
+    {
+      "operation_key": "fd8b202a2bbbef94bc70d1a38d615cacc9d0bd5a741f6888f1f918f1ffd8c6cc",
+      "request_digest": "019acbb1f3f8805f29164e29d01b2a79a75488c13c38e0ae3224f9228c9b9d43",
+      "attempt": 1,
+      "status": "SUCCEEDED",
+      "provider_id": "fd8b202a-2bbb-4f94-bc70-d1a38d615cac",
+      "provider_request_id": "request-3",
+      "observed_at": "2026-09-30T01:47:01.324686Z"
+    }
+  ],
+  "dispatches": [
+    {
+      "operation_key": "fd8b202a2bbbef94bc70d1a38d615cacc9d0bd5a741f6888f1f918f1ffd8c6cc",
+      "mode": "mock_transport",
+      "approval_id": "cda0c01e-1996-4e13-b275-ead75dbe7e9a",
+      "specification_digest": "29ca64118247e6f52d9d9a9809660ab12059588b28741cb93ff7a86b168bd01f",
+      "plan_digest": "ca033ba68f1c34b03f192f99c77726e76e8fbb0e93635748e6b606ad5cd44ebe",
+      "request_digest": "019acbb1f3f8805f29164e29d01b2a79a75488c13c38e0ae3224f9228c9b9d43",
+      "dispatch_at": "2026-09-30T01:47:01.324686Z"
+    }
+  ],
+  "clarifications": []
+}
