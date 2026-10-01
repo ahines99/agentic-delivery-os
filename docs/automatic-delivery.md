@@ -113,3 +113,11 @@ test commands or CI checks. Each additional target needs that onboarding.
 The implementation remains in [PR #1](https://github.com/ahines99/agentic-delivery-os/pull/1).
 Delivery to `main` requires its human merge and an explicit target-base configuration
 change. Existing attempts retain their original base and configuration.
+
+## Progress on the ticket
+
+When `linear_progress_start` is set, the monitor also reports progress on each Linear ticket
+([ADR-037](adr/ADR-037-linear-progress-reporting.md)). It posts one comment each for
+"in progress" and "done", and one for each block, with its reason. It can optionally move the
+ticket to configured In Progress and Done states. Comments carry a hidden marker, so they are
+never duplicated.

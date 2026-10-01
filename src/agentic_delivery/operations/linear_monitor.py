@@ -12,6 +12,7 @@ from pydantic import AwareDatetime
 from agentic_delivery.config import RepositoryConfig, Settings, load_settings
 from agentic_delivery.domain.models import Contract, WorkItem
 from agentic_delivery.integrations.linear import LinearClient, LinearUnavailable
+from agentic_delivery.operations.linear_progress import report_progress
 from agentic_delivery.orchestration.activities import Activities
 from agentic_delivery.security import AccessDenied
 from agentic_delivery.storage.database import create_database
@@ -281,6 +282,7 @@ def approve_plans(settings: Settings, store: Store) -> int:
 async def monitor(config: Path) -> None:
     initial = load_settings(config)
     store = Store(create_database(initial.database_url))
+    reported: set[str] = set()
     try:
         while True:
             settings = load_settings(config)
@@ -294,6 +296,10 @@ async def monitor(config: Path) -> None:
                 approve_plans(settings, store)
             except Exception as exc:
                 logger.error("Automatic plan approval failed; retrying (%s)", type(exc).__name__)
+            try:
+                await report_progress(settings, store, LinearClient(), reported)
+            except Exception as exc:
+                logger.error("Linear progress report failed; retrying (%s)", type(exc).__name__)
             await asyncio.sleep(settings.linear_poll_seconds)
     finally:
         store.engine.dispose()

@@ -128,6 +128,65 @@ class LinearClient:
             ):
                 raise ValueError("Issue specification changed; handoff denied")
 
+    async def progress_view(self, identity: str) -> dict[str, Any]:
+        """One bounded read of the fields progress reporting needs (DO-4)."""
+        result = await self.query(
+            "query DeliveryProgress($id: String!) { issue(id: $id) { id "
+            "state { id type } team { id } assignee { id } "
+            "comments(first: 100) { nodes { body } pageInfo { hasNextPage } } } }",
+            {"id": identity},
+        )
+        issue = result.get("issue")
+        if not isinstance(issue, dict) or issue.get("id") != identity:
+            raise ValueError("Linear issue not found")
+        connection = issue.get("comments")
+        if not isinstance(connection, dict) or not isinstance(connection.get("nodes"), list):
+            raise ValueError("Linear comments were not readable")
+        return dict(issue)
+
+    @staticmethod
+    def has_marker(issue: dict[str, Any], marker: str) -> bool:
+        return any(
+            isinstance(node, dict) and marker in str(node.get("body") or "")
+            for node in issue["comments"]["nodes"]
+        )
+
+    async def comment_once(self, identity: str, marker: str, body: str) -> bool:
+        """Post `body` unless a comment with `marker` exists; never repeat after a lost response."""
+        issue = await self.progress_view(identity)
+        if self.has_marker(issue, marker):
+            return False
+        if issue["comments"].get("pageInfo", {}).get("hasNextPage") is not False:
+            raise ValueError("Linear comment history is too long to check for duplicates")
+        try:
+            result = await self.query(
+                "mutation DeliveryProgressComment($input: CommentCreateInput!) { "
+                "commentCreate(input: $input) { success } }",
+                {"input": {"issueId": identity, "body": f"{body}\n\n{marker}"}},
+            )
+        except LinearUnavailable:
+            if self.has_marker(await self.progress_view(identity), marker):
+                return True
+            raise
+        if result.get("commentCreate", {}).get("success") is not True:
+            raise ValueError("Linear progress comment was not confirmed")
+        return True
+
+    async def move_state(self, identity: str, state_id: str) -> None:
+        """Set a workflow state, confirming a lost response with one read; never repeat it."""
+        try:
+            result = await self.query(
+                "mutation UpdateIssue($id: String!, $input: IssueUpdateInput!) { "
+                "issueUpdate(id: $id, input: $input) { success } }",
+                {"id": identity, "input": {"stateId": state_id}},
+            )
+        except LinearUnavailable:
+            if (await self.progress_view(identity)).get("state", {}).get("id") != state_id:
+                raise
+            return
+        if result.get("issueUpdate", {}).get("success") is not True:
+            raise ValueError("Linear status update was not confirmed")
+
     async def set_review_state(
         self,
         identity: str,
