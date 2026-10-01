@@ -1,7 +1,7 @@
 # 2026-10-01: Product Ops documentation lane behind pull intake
 
-Branch `feat/documentation-lane`, based on `feat/do-3-pull` (`b030d71`, draft PR #16). The lane
-code and tests are in `c12b8bf`; the routing test is in `9d719a8`.
+Branch `feat/documentation-lane`, based on `main` at `4023fe9` (DO-3, PR #16). It brings back the
+documentation lane from closed PR #9 behind pull intake, before DO-5.
 
 ## What changed
 
@@ -47,11 +47,14 @@ command is marked APPLIED. Every other start command still starts `DeliveryWorkf
 ## Verification
 
 Windows 11, Python 3.12.10, from the worktree virtual environment after
-`uv sync --locked --extra dev`, at `9d719a8` plus these documentation changes:
+`uv sync --locked --extra dev`, on the branch rebased onto `main` at `4023fe9`:
 
-- `ruff check .`: all checks passed. `ruff format --check .`: 474 files already formatted (this record included).
+- `ruff check .`: all checks passed. `ruff format --check .`: 475 files already formatted.
 - `mypy`: no issues in 139 source files.
-- `pytest -n 16 --dist worksteal -q -p no:cacheprovider -rf`: 3,524 passed, 170 skipped, 0 failed.
+- `pytest -n 16 --dist worksteal -q -p no:cacheprovider -rf`: 3,535 passed, 170 skipped, 1
+  failed. The failure was the known timing-sensitive
+  `test_phase_revocation_during_third_review_retains_the_fence[v2]`, which passed when rerun
+  alone.
 - `uv build` then `uv run --no-sync python scripts/product_ops_wheel_smoke.py`: passed. The clean
   wheel imports the signed handoff, packaged schema, executor and Markdown guard.
 - `tests/test_product_ops_documentation_pull.py` (new, 2 tests):
@@ -105,5 +108,5 @@ These are in addition to the DO-3 settings in `2026-10-01-product-ops-pull.md`.
 
 ## Not verified
 
-Hosted CI has not run for this branch. The lane has not run behind pull intake against live
+Hosted CI results are on the pull request. The lane has not run behind pull intake against live
 Product Ops or Linear, and the change is not installed in the local service.
