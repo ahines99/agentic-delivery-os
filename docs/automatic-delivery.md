@@ -91,6 +91,14 @@ Agentic Product Ops repository: a durable cursor and overlapping reads reconcile
 new tickets. This service adds delivery-specific assignment, authorization and
 workflow execution. See the [verified live result](live-automatic-delivery.md).
 
+## One delivery per repository
+
+[ADR-033](adr/ADR-033-one-delivery-per-repository.md) admits a ticket only while its
+repository has no active run and no unmerged delivery PR. Waiting tickets stay unassigned in
+Linear and are listed in the monitor state's `deferred` field. They are admitted, oldest
+first, after the earlier PR is merged or closed, so each plans against the latest base.
+This requires PR outcome observation (`github_poll_enabled` or signed callbacks).
+
 ## Installed local target
 
 The installed service enables both Linear intake and read-only GitHub outcome polling.

@@ -47,6 +47,17 @@ def digest_json(value: object) -> str:
     ).hexdigest()
 
 
+# Run states that cannot be changing the repository: paused for a ticket edit or ended.
+# A terminal run can still hold an unmerged PR; publications are checked separately.
+DELIVERY_IDLE_STATES = (
+    "NEEDS_CLARIFICATION",
+    "HUMAN_REVIEW",
+    "FAILED",
+    "CANCELLED",
+    "POLICY_BLOCKED",
+)
+
+
 class Conflict(ValueError):
     pass
 
@@ -718,6 +729,33 @@ class Store:
         with Session(self.engine) as session:
             ids = session.scalars(query.order_by(RunRecord.created_at.desc()).limit(limit)).all()
         return [self.workflow(identity) for identity in ids]
+
+    def delivery_in_progress(self, repository: str, *, exclude: str | None = None) -> bool:
+        """True while another run may still produce or hold an unmerged change (ADR-033).
+
+        Active runs (other than those paused for clarification) count, as does any
+        publication not yet observed as merged or closed, even after its run ended.
+        """
+        with Session(self.engine) as session:
+            active = (
+                select(RunRecord.id)
+                .join(WorkRecord)
+                .where(
+                    WorkRecord.repository == repository,
+                    RunRecord.state.not_in(DELIVERY_IDLE_STATES),
+                )
+            )
+            published = select(PublicationRecord.workflow_id).where(
+                PublicationRecord.repository == repository,
+                PublicationRecord.status.not_in(("MERGED", "MERGED_UNVERIFIED", "CLOSED")),
+            )
+            if exclude is not None:
+                active = active.where(RunRecord.id != exclude)
+                published = published.where(PublicationRecord.workflow_id != exclude)
+            return (
+                session.scalar(active.limit(1)) is not None
+                or session.scalar(published.limit(1)) is not None
+            )
 
     def latest_source_workflow(self, item: WorkItem) -> dict[str, Any] | None:
         source_key = digest_json([item.source_system, item.repository, item.id])

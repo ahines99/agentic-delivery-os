@@ -17,8 +17,8 @@ uv run --no-sync python -m mypy
 uv run --no-sync python -m pytest -n auto --dist worksteal
 ```
 
-Tests run in parallel with pytest-xdist. On machines with more than 32 logical CPUs, use
-`-n 32` instead of `-n auto`: heavier oversubscription starves the deliberate short waits
+Tests run in parallel with pytest-xdist. On machines with more than 16 logical CPUs, use
+`-n 16` instead of `-n auto`: heavier oversubscription starves the deliberate short waits
 and deadlines in concurrency tests. Plain `python -m pytest` still runs serially. Keep
 `-m integration` runs serial because those tests share one configured database and Temporal server.
 
@@ -35,6 +35,26 @@ Keep domain rules independent of provider SDKs and Temporal. Validate external i
 Format using `uv run --no-sync python -m ruff format .`, then rerun the four checks above. A green unit suite establishes tested behavior only. Real services, actual provider deliveries, sandbox controls and live publication require their own recorded verification.
 
 Dependency changes should update `pyproject.toml` and `uv.lock` together using `uv lock` followed by `uv sync --locked --extra dev`; review the lock diff and run the checks. `--locked` detects an outdated lockfile instead of silently changing it. See [uv locking and syncing](https://docs.astral.sh/uv/concepts/projects/sync/). Keep credentials, local `.env` files, execution artifacts, and historical reference answers out of Git and agent context.
+
+## Parallel workstreams
+
+Several agents and people work at once. Conflicts are prevented by process:
+
+- **One trunk.** `main` is the only integration branch. `feat/governed-delivery-platform`
+  is frozen after its squash merge into `main` and receives no new PRs.
+- **Short branches.** Branch from current `origin/main` in a separate worktree, make one change,
+  rebase onto `main` right before opening the PR, and merge PRs one at a time. A PR that
+  falls behind `main` is rebased by its owner before merging, never resolved through the web editor.
+- **No shared logs.** Verification evidence goes in a new file under [records](records/README.md).
+  The status documents are updated only by a dedicated consolidation PR.
+- **ADR numbers.** Use the next number after the highest one on `main` and in open PRs.
+- **Hot files.** Before editing `README.md`, `AGENTS.md`, `docs/plan.md` or `docs/backlog.md`, check
+  `gh pr list` for open PRs that touch the same file.
+- **The installed service.** It runs from the root checkout. Change that checkout only through
+  the supervised upgrade procedure in [the local upgrade record](local-runtime-upgrade.md).
+
+Automatic deliveries follow the same principle at runtime:
+[ADR-033](adr/ADR-033-one-delivery-per-repository.md) admits one delivery per repository at a time.
 
 Use [the task template](../.github/ISSUE_TEMPLATE/task.yml) for bounded backlog work. PRs include criterion-level evidence and limitations, and changes to material architectural decisions update an ADR. Every MVP merge is human; repository protection and product-provider onboarding require independent verification.
 

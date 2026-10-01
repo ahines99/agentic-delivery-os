@@ -19,7 +19,7 @@ from agentic_delivery.orchestration.activities import Activities
 from agentic_delivery.storage.artifacts import ArtifactStore
 from agentic_delivery.storage.database import create_database
 from agentic_delivery.storage.migrate import upgrade
-from agentic_delivery.storage.schema import CommandRecord
+from agentic_delivery.storage.schema import CommandRecord, PublicationRecord
 from agentic_delivery.storage.store import Store
 
 
@@ -79,7 +79,8 @@ class OwnedLinear(LinearClient):
         if "DeliveryClarification" in query:
             return {"organization": {"id": self.organization}, "issue": deepcopy(self.nodes[0])}
         if "DeliveryAssign" in query:
-            self.nodes[0]["assignee"] = {"id": variables["input"]["assigneeId"]}
+            node = next(node for node in self.nodes if node["id"] == variables["id"])
+            node["assignee"] = {"id": variables["input"]["assigneeId"]}
             return {"issueUpdate": {"success": True}}
         return {
             "organization": {"id": self.organization},
@@ -593,3 +594,119 @@ async def test_monitor_loop_survives_automatic_approval_failure(setup, monkeypat
     with pytest.raises(asyncio.CancelledError):
         await linear_monitor.monitor(tmp_path / "config.json")
     assert len(approvals) == 2
+
+
+def second_issue(**changes):
+    instant = (datetime.now(UTC) - timedelta(seconds=30)).isoformat()
+    node = {**issue(), "id": "owned-issue-2", "title": "Sort customers", "updatedAt": instant}
+    node.update(changes)
+    return node
+
+
+def publish(store, identity, status=None):
+    store.save_publication(
+        identity,
+        "owned/project",
+        {
+            "number": 41,
+            "head_sha": "c" * 40,
+            "base_sha": "b" * 40,
+            "manifest_digest": "d" * 64,
+            "head_ref": "agent/" + identity,
+            "base_ref": "main",
+            "repository_id": 7,
+            "repository_full_name": "owned/project",
+        },
+    )
+    if status:
+        with Session(store.engine) as session, session.begin():
+            session.get(PublicationRecord, identity).status = status
+
+
+def submitted(store):
+    return {run["work_item"]["id"]: run for run in store.list_workflows(("owned/project",))}
+
+
+async def test_second_ticket_waits_unclaimed_until_open_delivery_merges(setup):
+    settings, store = setup
+    later = second_issue(assignee=None)
+    linear = OwnedLinear([issue(), later])
+    await poll_once(settings, store, linear)
+    runs = submitted(store)
+    assert set(runs) == {"owned-issue"}
+    assert linear.nodes[1]["assignee"] is None
+    state = MonitorState.model_validate_json(settings.linear_monitor_state.read_text())
+    assert state.deferred == ("owned-issue-2",)
+    assert state.cursor == datetime.fromisoformat(later["updatedAt"])
+
+    first = runs["owned-issue"]["id"]
+    advance(store, first, "HUMAN_REVIEW", reason="Draft PR handed to human")
+    publish(store, first)
+    await poll_once(settings, store, linear)
+    assert set(submitted(store)) == {"owned-issue"}
+    assert linear.calls[-1][1]["filter"]["updatedAt"]["gte"] <= later["updatedAt"]
+
+    with Session(store.engine) as session, session.begin():
+        session.get(PublicationRecord, first).status = "MERGED"
+    await poll_once(settings, store, linear)
+    assert set(submitted(store)) == {"owned-issue", "owned-issue-2"}
+    assert linear.nodes[1]["assignee"] == {"id": "worker"}
+    state = MonitorState.model_validate_json(settings.linear_monitor_state.read_text())
+    assert state.deferred == ()
+
+
+async def test_clarification_edit_waits_for_another_delivery(setup):
+    settings, store = setup
+    linear = OwnedLinear()
+    await poll_once(settings, store, linear)
+    paused = submitted(store)["owned-issue"]["id"]
+    advance(store, paused, "NEEDS_CLARIFICATION", reason="Missing choice")
+    linear.nodes.append(second_issue())
+    await poll_once(settings, store, linear)
+    other = submitted(store)["owned-issue-2"]["id"]
+    linear.nodes[0]["description"] = "Use ascending customer IDs."
+    linear.nodes[0]["updatedAt"] = datetime.now(UTC).isoformat()
+    await poll_once(settings, store, linear)
+    with Session(store.engine) as session:
+        clarify = select(func.count()).where(CommandRecord.kind == "clarify")
+        assert session.scalar(clarify.select_from(CommandRecord)) == 0
+    state = MonitorState.model_validate_json(settings.linear_monitor_state.read_text())
+    assert state.deferred == ("owned-issue",)
+
+    advance(store, other, "CANCELLED", reason="Owner stopped the other delivery")
+    await poll_once(settings, store, linear)
+    with Session(store.engine) as session:
+        commands = session.scalars(
+            select(CommandRecord).where(CommandRecord.kind == "clarify")
+        ).all()
+        assert [command.workflow_id for command in commands] == [paused]
+
+
+@pytest.mark.parametrize(
+    "state,publication,busy",
+    [
+        ("NEW", None, True),
+        ("IMPLEMENTING", None, True),
+        ("NEEDS_CLARIFICATION", None, False),
+        ("FAILED", None, False),
+        ("HUMAN_REVIEW", "DRAFT_HANDOFF", True),
+        ("HUMAN_REVIEW", "STALE", True),
+        ("POLICY_BLOCKED", "DRAFT_HANDOFF", True),
+        ("HUMAN_REVIEW", "MERGED", False),
+        ("HUMAN_REVIEW", "MERGED_UNVERIFIED", False),
+        ("HUMAN_REVIEW", "CLOSED", False),
+    ],
+)
+async def test_delivery_in_progress_counts_active_runs_and_unmerged_publications(
+    setup, state, publication, busy
+):
+    settings, store = setup
+    await poll_once(settings, store, OwnedLinear())
+    identity = submitted(store)["owned-issue"]["id"]
+    if state != "NEW":
+        advance(store, identity, state, reason="fixture")
+    if publication:
+        publish(store, identity, None if publication == "DRAFT_HANDOFF" else publication)
+    assert store.delivery_in_progress("owned/project") is busy
+    assert store.delivery_in_progress("owned/project", exclude=identity) is False
+    assert store.delivery_in_progress("other/project") is False
