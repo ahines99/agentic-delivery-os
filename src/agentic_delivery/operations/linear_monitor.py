@@ -5,13 +5,15 @@ import logging
 import re
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import AwareDatetime
 
 from agentic_delivery.config import RepositoryConfig, Settings, load_settings
 from agentic_delivery.domain.models import Contract, WorkItem
 from agentic_delivery.integrations.linear import LinearClient, LinearUnavailable
+from agentic_delivery.integrations.product_ops import admit as admit_product_ops
+from agentic_delivery.integrations.product_ops_client import fetch_handoff, handoff_reference
 from agentic_delivery.operations.linear_progress import report_progress
 from agentic_delivery.orchestration.activities import Activities
 from agentic_delivery.security import AccessDenied
@@ -45,6 +47,82 @@ def carries_pickup_label(repository: RepositoryConfig, issue: dict[str, Any]) ->
         isinstance(label, dict) and label.get("name") == repository.linear_pickup_label
         for label in labels
     )
+
+
+async def claim(
+    linear: LinearClient,
+    issue: dict[str, Any],
+    repository: RepositoryConfig,
+    current: dict[str, Any],
+) -> dict[str, Any]:
+    """Assign an eligible ticket to the worker, confirming a lost response with one read."""
+    assignee = current.get("assignee") or {}
+    if assignee.get("id") is None:
+        try:
+            result = await linear.query(
+                "mutation DeliveryAssign($id: String!, $input: IssueUpdateInput!) { "
+                "issueUpdate(id: $id, input: $input) { success } }",
+                {"id": issue["id"], "input": {"assigneeId": repository.linear_assignee_id}},
+            )
+        except LinearUnavailable:
+            # Confirm one uncertain assignment by reading; never repeat the
+            # mutation in this scan or treat a lost response as success.
+            current = await linear.issue(issue["id"])
+            if (current.get("assignee") or {}).get("id") != repository.linear_assignee_id:
+                raise
+        else:
+            if result.get("issueUpdate", {}).get("success") is not True:
+                raise ValueError("Linear assignment requires reconciliation")
+            current = await linear.issue(issue["id"])
+    if current.get("id") != issue["id"]:
+        raise AccessDenied("Issue identity changed during assignment")
+    linear.validate_issue(
+        current,
+        team_id=issue["team"]["id"],
+        assignee_id=repository.linear_assignee_id or "",
+        expected_title=issue["title"],
+        expected_description=issue.get("description") or issue["title"],
+    )
+    return current
+
+
+async def pull_handoff(
+    settings: Settings,
+    store: Store,
+    linear: LinearClient,
+    repository: RepositoryConfig,
+    digest: str,
+) -> Literal["admitted", "hold", "stop"]:
+    """Fetch, verify and admit a referenced Product Ops handoff (ADR-038).
+
+    "hold" retries on a later scan without claiming; "stop" never claims this version.
+    """
+    trust = settings.product_ops
+    if not digest or trust is None or trust.handoff_base_url is None:
+        return "stop"
+    if store.inbox_workflow("product_ops", digest) is not None:
+        return "admitted"
+    if store.delivery_in_progress(repository.id):
+        return "hold"
+    fetched = await fetch_handoff(trust, digest)
+    if fetched.status == "unavailable":
+        return "hold"
+    if fetched.status == "stopped":
+        logger.info("Product Ops handoff stopped (%s); ticket not claimed", fetched.reason)
+        return "stop"
+    try:
+        await admit_product_ops(
+            fetched.raw,
+            expected_digest=digest,
+            actor=None,
+            settings=settings,
+            store=store,
+            linear=linear,
+        )
+    except (AccessDenied, ValueError, KeyError) as exc:
+        logger.warning("Product Ops handoff refused (%s); ticket not claimed", type(exc).__name__)
+        return "stop"
+    return "admitted"
 
 
 async def poll_once(settings: Settings, store: Store, linear: LinearClient) -> int:
@@ -145,6 +223,18 @@ async def poll_once(settings: Settings, store: Store, linear: LinearClient) -> i
             repository, current.get("description") or ""
         ) or not carries_pickup_label(repository, current):
             continue
+        reference = handoff_reference(current.get("description") or "")
+        if reference is not None:
+            # Product Ops work (DO-3): never normal intake; claim only after admission.
+            outcome = await pull_handoff(settings, store, linear, repository, reference)
+            if outcome == "hold":
+                defer(issue["id"], issue["updatedAt"])
+            elif outcome == "admitted" and (current.get("assignee") or {}).get("id") in {
+                None,
+                repository.linear_assignee_id,
+            }:
+                await claim(linear, issue, repository, current)
+            continue
         assignee = current.get("assignee") or {}
         if assignee.get("id") not in {None, repository.linear_assignee_id}:
             continue
@@ -162,32 +252,7 @@ async def poll_once(settings: Settings, store: Store, linear: LinearClient) -> i
             # Defer before claiming, so a waiting ticket stays visibly unassigned.
             defer(issue["id"], issue["updatedAt"])
             continue
-        if assignee.get("id") is None:
-            try:
-                result = await linear.query(
-                    "mutation DeliveryAssign($id: String!, $input: IssueUpdateInput!) { "
-                    "issueUpdate(id: $id, input: $input) { success } }",
-                    {"id": issue["id"], "input": {"assigneeId": repository.linear_assignee_id}},
-                )
-            except LinearUnavailable:
-                # Confirm one uncertain assignment by reading; never repeat the
-                # mutation in this scan or treat a lost response as success.
-                current = await linear.issue(issue["id"])
-                if (current.get("assignee") or {}).get("id") != repository.linear_assignee_id:
-                    raise
-            else:
-                if result.get("issueUpdate", {}).get("success") is not True:
-                    raise ValueError("Linear assignment requires reconciliation")
-                current = await linear.issue(issue["id"])
-        if current.get("id") != issue["id"]:
-            raise AccessDenied("Issue identity changed during assignment")
-        linear.validate_issue(
-            current,
-            team_id=issue["team"]["id"],
-            assignee_id=repository.linear_assignee_id or "",
-            expected_title=issue["title"],
-            expected_description=issue.get("description") or issue["title"],
-        )
+        current = await claim(linear, issue, repository, current)
         # Claiming an issue changes updatedAt. Recheck eligibility after the
         # mutation too, so a concurrent completion/cancellation cannot start work.
         if current.get("state", {}).get("type") not in {"backlog", "unstarted"}:

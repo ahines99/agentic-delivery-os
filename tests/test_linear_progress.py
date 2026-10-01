@@ -222,3 +222,34 @@ async def test_runs_before_reporting_start_are_not_backfilled(setup):
 def test_only_linear_tickets_receive_reports():
     run = {"id": "r", "state": "FAILED", "sequence": 3, "work_item": {"source_system": "local"}}
     assert desired_report(run, None, "Activity failed") is None
+
+
+async def test_product_ops_run_reports_on_its_published_ticket(setup):
+    settings, store = setup
+    item = WorkItem(
+        id="spec-1:item-1",
+        source_system="product_ops",
+        title="Owned page",
+        description="Owned work.",
+        repository="owned/project",
+    )
+    identity = store.submit(
+        item,
+        actor="product-ops:product-ops-local",
+        key=uuid4().hex,
+        budget=Budget(),
+        inbox={
+            "provider": "product_ops",
+            "integration_id": "product-ops-local",
+            "delivery_id": "d" * 64,
+            "semantic_key": "product-ops-local:spec-1:1",
+            "digest": "d" * 64,
+            "payload": {"linear_issue_id": "issue-po"},
+        },
+    )["workflow_id"]
+    advance(store, identity, "HUMAN_REVIEW", reason="Local change request awaits review")
+    linear = OwnedLinear()
+    linear.ticket("issue-po")
+    assert await report_progress(settings, store, linear, set()) == 1
+    [(kind, comment)] = linear.writes
+    assert comment["issueId"] == "issue-po" and "in review" in comment["body"]

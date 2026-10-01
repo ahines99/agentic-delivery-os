@@ -757,6 +757,24 @@ class Store:
                 or session.scalar(published.limit(1)) is not None
             )
 
+    def inbox_workflow(self, provider: str, digest: str) -> str | None:
+        """Workflow admitted from an inbox message with this payload digest, if any."""
+        with Session(self.engine) as session:
+            return session.scalar(
+                select(InboxRecord.workflow_id)
+                .where(InboxRecord.provider == provider, InboxRecord.digest == digest)
+                .limit(1)
+            )
+
+    def inbox_payload(self, workflow_id: str, provider: str) -> dict[str, Any] | None:
+        with Session(self.engine) as session:
+            payload = session.scalar(
+                select(InboxRecord.payload)
+                .where(InboxRecord.workflow_id == workflow_id, InboxRecord.provider == provider)
+                .limit(1)
+            )
+            return dict(payload) if payload is not None else None
+
     def latest_source_workflow(self, item: WorkItem) -> dict[str, Any] | None:
         source_key = digest_json([item.source_system, item.repository, item.id])
         with Session(self.engine) as session:

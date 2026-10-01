@@ -11,6 +11,7 @@ from pydantic import AwareDatetime, Field, model_validator
 
 from agentic_delivery.domain.models import Contract, NonEmpty
 from agentic_delivery.integrations.checks import RequiredCheck
+from agentic_delivery.integrations.product_ops_contract.documentation import DocumentationCapability
 from agentic_delivery.policy.engine import POLICY_VERSION
 
 
@@ -24,7 +25,8 @@ class Budget(Contract):
 
 
 AUTOMATION_ACTOR = "delivery-automation"
-SYSTEM_ACTORS = frozenset({AUTOMATION_ACTOR, "linear-monitor", "workflow"})
+PRODUCT_OPS_MONITOR = "product-ops-monitor"
+SYSTEM_ACTORS = frozenset({AUTOMATION_ACTOR, "linear-monitor", "workflow", PRODUCT_OPS_MONITOR})
 
 
 class Operator(Contract):
@@ -118,6 +120,36 @@ class ModelConfig(Contract):
     timeout_seconds: int = Field(default=90, gt=0, le=300, strict=True)
 
 
+class ProductOpsTrust(Contract):
+    issuer: str = Field(pattern=r"^[A-Za-z0-9_.:-]{1,100}$")
+    key_id: NonEmpty
+    public_key_hex: str = Field(pattern=r"^[0-9a-f]{64}$")
+    workspace: NonEmpty
+    teams: tuple[NonEmpty, ...] = Field(min_length=1)
+    policy_versions: tuple[NonEmpty, ...] = Field(min_length=1)
+    documentation_capability: DocumentationCapability | None = None
+    documentation_approvers: tuple[NonEmpty, ...] = ()
+    # Pull retrieval (DO-3, ADR-038): where to fetch signed handoffs and which environment
+    # variable holds the read-only token. Excluded from the execution digest.
+    handoff_base_url: str | None = Field(
+        default=None, pattern=r"^https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?$"
+    )
+    handoff_token_env: str = Field(
+        default="HANDOFF_READER_TOKEN", pattern=r"^[A-Z][A-Z0-9_]{0,63}$"
+    )
+
+    @model_validator(mode="after")
+    def local_plain_http_only(self) -> Self:
+        url = self.handoff_base_url
+        if (
+            url
+            and url.startswith("http://")
+            and not re.match(r"^http://(127\.0\.0\.1|localhost)(:|$)", url)
+        ):
+            raise ValueError("Plain HTTP handoff retrieval is only allowed on the local host")
+        return self
+
+
 class Settings(Contract):
     schema_version: Literal[1] = 1
     database_url: str = "sqlite+pysqlite:///.local/delivery.db"
@@ -149,6 +181,7 @@ class Settings(Contract):
     linear_monitor_state: Path = Path(".local/linear-monitor.json")
     github_poll_enabled: bool = False
     github_poll_seconds: int = Field(default=60, ge=30, le=300, strict=True)
+    product_ops: ProductOpsTrust | None = None
 
     @model_validator(mode="after")
     def unique_identities(self) -> Self:
@@ -191,6 +224,10 @@ class Settings(Contract):
             "github_installation_id": self.github_installation_id,
             "policy_version": POLICY_VERSION,
         }
+        if self.product_ops is not None:
+            material["product_ops"] = self.product_ops.model_dump(
+                mode="json", exclude={"handoff_base_url", "handoff_token_env"}
+            )
         return hashlib.sha256(json.dumps(material, sort_keys=True).encode()).hexdigest()
 
 
