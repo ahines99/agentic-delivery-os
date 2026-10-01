@@ -36,6 +36,15 @@
     whose ticket carries the contract lines. It shows one fetch, one admission and a claim,
     and no second admission on a re-poll.
 - `tests/test_product_ops.py`, `tests/test_product_ops_markdown.py` (from #9): pass.
+- **Contract update (2026-10-01).** `linear_markdown.py` is re-vendored from Product Ops `main`
+  `a154945` (SHA-256 `3c73101b…`, the PER-16 entity-decoding fix) and the pin in `UPSTREAM.md`
+  is updated. The other three files match that commit.
+  - New tests show that entity-decoded `<`, `>`, `&` and apostrophes still match, and that
+    changed text is still refused.
+  - Run against the old copy, the apostrophe case already matched. The `<`/`>` cases failed:
+    Linear's decoded `<tag>` parses as raw HTML. That is the regression this update fixes.
+- **Confirmed by Product Ops.** The `Repository:` and `Handoff:` lines are written at plan time,
+  inside the signed plan's description and digest. Nothing is added after signing.
 - `tests/test_linear_progress.py`: 13 passed, including a Product Ops run reported on its
   published ticket.
 
@@ -53,6 +62,11 @@ Under `product_ops`:
 - `public_key_hex`: `a3200b5735b1ecc03ce1ceff8e19a5f8573e1a5bd06a086a83dfb52e6d58e5fa`, the
   hex form of the shared base64 key `oyALVzWx7MA84c7/jhml+Fc+GlvQaghqg9+1Lm1Y5fo=`
 - `handoff_base_url`: `http://127.0.0.1:18013`
-- `workspace`, `teams`, `policy_versions`: as Product Ops publishes them
+- `workspace`: `product-ops-pilot`
+- `teams`: `["21daab21-ad28-4aa3-8e03-2aedc00f2e40"]` (the shared `product` team)
+- `policy_versions`: `["pilot-execution-v2"]`
+
+Product Ops hands off risk tiers 0 and 1 only. Product Ops checked the computed key hex
+against the base64 signing key and confirmed it.
 
 The service's environment must set `HANDOFF_READER_TOKEN` from the owner-held reader token.

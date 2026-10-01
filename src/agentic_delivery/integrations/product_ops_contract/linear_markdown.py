@@ -6,6 +6,7 @@ Unsupported constructs fail closed unless the original bytes match exactly.
 
 from __future__ import annotations
 
+import html
 from typing import Any
 
 from markdown_it import MarkdownIt
@@ -35,6 +36,29 @@ def _tokens(tokens: list[Token]) -> list[Any]:
     return result
 
 
+def _visible_text(tokens: list[Any]) -> list[Any]:
+    """Compare inline text by the characters a reader sees.
+
+    Linear decodes HTML entities it receives (for example ``&#x27;`` and ``&lt;``) and can store
+    the decoded characters as raw inline HTML. Text and inline-HTML runs are therefore joined and
+    entity-decoded before comparison; every other token, link and format must still match.
+    """
+    result: list[Any] = []
+    for token in tokens:
+        kind, children = token[0], token[7]
+        if kind in {"text", "html_inline"}:
+            text = html.unescape(token[6])
+            if result and result[-1][0] == "text":
+                result[-1] = (*result[-1][:6], result[-1][6] + text, None)
+            else:
+                result.append(("text", "", 0, None, False, "", text, None))
+            continue
+        if children is not None:
+            token = (*token[:7], _visible_text(children))
+        result.append(token)
+    return result
+
+
 def descriptions_match(expected: str, observed: object) -> bool:
     """Allow presentation aliases while preserving parsed content and structure."""
     if not isinstance(observed, str):
@@ -55,7 +79,7 @@ def descriptions_match(expected: str, observed: object) -> bool:
             # accept a changed body containing them, including unused definitions.
             if environment:
                 return False
-            parsed.append(_tokens(tokens))
+            parsed.append(_visible_text(_tokens(tokens)))
         return parsed[0] == parsed[1]
     except (ValueError, RecursionError):
         return False

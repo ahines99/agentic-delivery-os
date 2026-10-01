@@ -43,3 +43,36 @@ def test_changed_semantics_denied(expected: str, observed: str) -> None:
 def test_bounds_and_type() -> None:
     assert not descriptions_match("a" * 65_001, "a" * 65_001)
     assert not descriptions_match("a", None)
+
+
+@pytest.mark.parametrize(
+    ("expected", "observed"),
+    [
+        ("Don&#x27;t change the owner&#x27;s filter.", "Don't change the owner's filter."),
+        (
+            "Return &lt;table&gt; when x &lt; 3 &amp; y &gt; 1.",
+            "Return <table> when x < 3 & y > 1.",
+        ),
+        (
+            "Repository: agentic-delivery-engineer\nHandoff: sha256:" + "d" * 64 + "\n\n"
+            "- R1 Keep the user&#x27;s &lt;select&gt; value",
+            "Repository: agentic-delivery-engineer\nHandoff: sha256:" + "d" * 64 + "\n\n"
+            "- R1 Keep the user's <select> value",
+        ),
+    ],
+)
+def test_linear_entity_decoding_still_matches(expected: str, observed: str) -> None:
+    # Linear stores decoded entities (PER-16); visible text is unchanged.
+    assert descriptions_match(expected, observed)
+
+
+@pytest.mark.parametrize(
+    ("expected", "observed"),
+    [
+        ("Don&#x27;t change the filter.", "Do change the filter."),
+        ("Return &lt;table&gt;", "Return <div>"),
+        ("Keep x &lt; 3", "Keep x > 3"),
+    ],
+)
+def test_entity_decoding_does_not_hide_changed_text(expected: str, observed: str) -> None:
+    assert not descriptions_match(expected, observed)

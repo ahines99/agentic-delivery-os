@@ -46,9 +46,8 @@ The retrieval URL and token variable are excluded from the execution digest.
     approval. ADR-025 automatic approval applies only to `linear` work.
 - **DO-4 reports Product Ops runs too.** It finds the ticket through the admitted inbox record,
   and adds an "in review" comment when such a run reaches `HUMAN_REVIEW` without a hosted PR.
-- **Integration point Product Ops must confirm.** The ticket read-back compares the live ticket
-  with the description in the signed plan. The `Repository:` and `Handoff:` lines must
-  therefore be part of the signed, published description. A line added after signing makes
-  admission refuse the ticket as changed.
+- **The contract lines are signed.** The ticket read-back compares the live ticket with the
+  description in the signed plan. Product Ops confirmed that it writes the `Repository:` and
+  `Handoff:` lines at plan time, inside that signed text.
 - **Single item only.** Multi-item specifications are still refused by `admit`. DO-5 adds
   all-or-none admission.
