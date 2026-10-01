@@ -69,12 +69,39 @@ Windows 11, Python 3.12.10, from the worktree virtual environment after
 
 ## Findings
 
-- A lane run that has finished sits in HUMAN_REVIEW with no publication record. ADR-033 therefore
-  treats the repository as idle while the local review branch is still unmerged. This was already
-  true in PR #9 and #14; it is recorded in ADR-034's limits, not changed here.
-- A lane failure (for example an expired approval) is recorded as an outbox error and retried
-  like any other start command, up to the outbox attempt limit. The run stays in its last legal
-  state. This is unchanged from PR #14.
+- **Fixed:** a lane run that had finished sat in HUMAN_REVIEW with no publication record, so
+  ADR-033 treated the repository as idle while the local review branch was still unmerged. The
+  busy check now covers open review branches (ADR-034 update).
+- **Fixed:** a lane failure such as an expired approval was retried up to the outbox attempt
+  limit. Authority failures now end the run once; transient failures still retry.
+- **Fixed:** Product Ops' path-derived repository IDs (for example
+  `repo-a8a12ccb002929f9de78b80e29a3e1bb` for this checkout) were refused as "Repository is not
+  onboarded". The `product_ops_repository_ids` setting now maps them.
+- `tests/test_documentation_lane_guards.py`: 12 passed. The tests cover:
+  - alias admission into the configured repository, and refusal of an unmapped ID;
+  - an ID that maps to two repositories, and digest exclusion;
+  - `POLICY_BLOCKED` and `CANCELLED` endings with no retry;
+  - transient retry;
+  - no projection after the handoff;
+  - open, merged and deleted review branches in a real git repository, and failing closed.
+
+## Installation for the end-to-end test
+
+These are in addition to the DO-3 settings in `2026-10-01-product-ops-pull.md`.
+
+- **Repository entry:**
+  - `"product_ops_repository_ids": ["repo-a8a12ccb002929f9de78b80e29a3e1bb"]`
+  - `local_repository` pointing at this checkout.
+- **`product_ops` block:**
+  - `documentation_capability`: the exact object Product Ops writes at its runbook step 3.
+  - `policy_versions`: must include that capability's `doc-add-v1-…` version.
+  - `documentation_approvers`: `["alex-hines"]`.
+- **Approver as operator.** The lane also requires the approver to be a configured operator with
+  the `reviewer` role on the repository. `alex-hines` must therefore exist in `operators`.
+- **Base commit.** The capability's `base_sha` is the current `main` of this repository when the
+  lane is bound. Nothing may merge into the repository during the run.
+- **Live checkout is untouched.** The lane writes only git objects and a review-branch ref, with
+  no checkout, so the working tree the installed service runs from is unaffected.
 
 ## Not verified
 

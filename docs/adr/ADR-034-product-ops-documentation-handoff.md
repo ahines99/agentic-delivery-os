@@ -61,9 +61,24 @@ the inbox `linear_issue_id` and reports the run as in progress, then "in review"
 HUMAN_REVIEW without a hosted PR. The Product Ops integration does not import protected
 qualification corpora, reference answers or evaluation journals.
 
+Update, 2026-10-01: three changes make the lane safe for the first end-to-end run.
+
+- **Repository mapping.** Product Ops names a local repository in its signed specification by a
+  path-derived ID (`repo-` plus 32 hex characters), not by name. The repository setting
+  `product_ops_repository_ids` maps such IDs to the configured repository, for both the verifier
+  and admission. The lane also rechecks that the signed work item still maps to the run's
+  repository. An ID may map to only one repository, and the setting is excluded from the
+  execution digest.
+- **Final refusals.** An authority failure (expired or changed approval, revoked reviewer,
+  changed ticket or configuration) ends the run once as `POLICY_BLOCKED`, or as `CANCELLED` for
+  an authenticated cancellation. The start command is rejected and is not retried. Transient
+  failures, such as git or disk errors, still retry.
+- **Open reviews hold the repository.** A completed lane run leaves a local review branch, not a
+  hosted PR. The ADR-033 busy check now also treats the repository as busy while such a branch
+  exists and its head is not in the base branch. Deleting or merging the branch releases it, and
+  an unreadable review record fails closed.
+
 Known limits: local single-repository review only; no DAG execution, automatic revision replacement,
-cross-system cancellation push, hosted PR or merge in this path. A completed lane run sits in
-HUMAN_REVIEW with no publication record, so ADR-033 treats the repository as idle even though the
-local review branch is unmerged. Signed exports have bounded lifetimes; disconnected consumers
+cross-system cancellation push, hosted PR or merge in this path. Signed exports have bounded lifetimes; disconnected consumers
 cannot promise instantaneous producer-side revocation. Local configuration and generated-ticket
 currentness are checked at dispatch, and expired exports hold.

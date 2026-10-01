@@ -54,6 +54,7 @@ INTAKE_ROUTING_FIELDS = frozenset(
         "linear_repository_names",
         "linear_in_progress_state_id",
         "linear_done_state_id",
+        "product_ops_repository_ids",
     }
 )
 
@@ -89,6 +90,9 @@ class RepositoryConfig(Contract):
     # Progress reporting (DO-4): optional Linear states for claimed work and merged PRs.
     linear_in_progress_state_id: NonEmpty | None = None
     linear_done_state_id: NonEmpty | None = None
+    # Identifiers Product Ops uses for this repository in signed specifications, for example
+    # "repo-" plus 32 hex characters derived from its local path. Admission only.
+    product_ops_repository_ids: tuple[NonEmpty, ...] = ()
 
     @model_validator(mode="after")
     def validate_refs(self) -> Self:
@@ -192,6 +196,11 @@ class Settings(Contract):
         ):
             if len(values) != len(set(values)):
                 raise ValueError("Duplicate configuration identity")
+        names = [r.id for r in self.repositories] + [
+            alias for r in self.repositories for alias in r.product_ops_repository_ids
+        ]
+        if len(names) != len(set(names)):
+            raise ValueError("A Product Ops repository identifier must map to one repository")
         teams = [r.linear_team_id for r in self.repositories if r.linear_team_id]
         if len(teams) != len(set(teams)):
             raise ValueError("A Linear team must map to exactly one repository")
@@ -207,6 +216,20 @@ class Settings(Contract):
             if repository.id == identity:
                 return repository
         raise ValueError("Repository is not onboarded")
+
+    def product_ops_repository(self, identifier: str) -> RepositoryConfig:
+        """Resolve a signed specification's repository: its id or a configured alias."""
+        for repository in self.repositories:
+            if identifier == repository.id or identifier in repository.product_ops_repository_ids:
+                return repository
+        raise ValueError("Repository is not onboarded")
+
+    def product_ops_repository_identifiers(self) -> tuple[str, ...]:
+        return tuple(
+            name
+            for repository in self.repositories
+            for name in (repository.id, *repository.product_ops_repository_ids)
+        )
 
     def execution_digest(self, identity: str) -> str:
         """Pin material execution settings without serializing secret values or operators."""

@@ -22,6 +22,12 @@ from agentic_delivery.storage.schema import CommandRecord, InboxRecord
 from agentic_delivery.storage.store import Store
 
 ACTOR = "documentation-worker"
+
+
+class DocumentationCancelled(AccessDenied):
+    """An authenticated cancellation stopped the lane before or during execution."""
+
+
 # The lane walks only legal lifecycle edges (domain.lifecycle); Store.project rejects others.
 # There is no model planner, builder or GitHub PR here: each state names the deterministic
 # check or human approval that satisfied it. Fixed sequences make replay after a crash exact.
@@ -90,7 +96,7 @@ async def execute_documentation(
                 )
             )
             if cancellation:
-                raise AccessDenied("Documentation execution cancelled")
+                raise DocumentationCancelled("Documentation execution cancelled")
         payload = HandoffVerifier(
             keys={
                 (trust.issuer, trust.key_id): Ed25519PublicKey.from_public_bytes(
@@ -99,10 +105,13 @@ async def execute_documentation(
             },
             workspace=trust.workspace,
             teams=trust.teams,
-            repositories=tuple(r.id for r in settings.repositories),
+            repositories=settings.product_ops_repository_identifiers(),
             policy_versions=trust.policy_versions,
             documentation_capability=trust.documentation_capability,
         ).verify(raw, expected_digest=expected, now=datetime.now(UTC))
+        work = payload["specification"]["work_items"][0]
+        if settings.product_ops_repository(work["repository_id"]).id != current["repository"]:
+            raise AccessDenied("Signed work item no longer maps to this repository")
         approval = payload["approval"]
         if (
             payload["specification"]["risk"]["policy_version"]
