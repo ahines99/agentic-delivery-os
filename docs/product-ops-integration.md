@@ -1,6 +1,6 @@
 # Product Ops integration
 
-The [PER-7 validation record](per7-validation-record.md) contains the actual live result,
+The [PER-7 validation record](records/2026-09-30-product-ops-handoff.md) contains the actual live result,
 verification boundary, replay evidence and reproduction commands.
 
 Product Ops accepts a prompt and repository name, produces requirements and proposed Linear
@@ -24,8 +24,9 @@ The controlled documentation lane additionally installs a strict `documentation_
 and `documentation_approvers`. The capability's policy hash, semantic binding, pinned Git base,
 path and complete inert content must match. A configured current reviewer must match the signed
 human approval. The dispatcher produces only a local review branch and content-addressed local
-change request. HUMAN_REVIEW is its final state; merge remains human. See
-[ADR-022](adr/ADR-022-product-ops-documentation-handoff.md).
+change request. HUMAN_REVIEW is its final state, reached through legal lifecycle edges only;
+merge remains human. See
+[ADR-034](adr/ADR-034-product-ops-documentation-handoff.md).
 
 The initial consumer accepts one work item and refuses multi-item dependencies or replacement
 revisions. Generic software work retains the existing planning and human approval gates. A general

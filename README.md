@@ -39,6 +39,11 @@ and owner-configured low-risk plan approval ([ADR-025](docs/adr/ADR-025-automati
 Other work retains authenticated human plan approval. Explicit manual criteria wait for an
 authenticated human decision ([manual acceptance](docs/manual-acceptance.md)).
 
+The unreleased [Product Ops integration](docs/product-ops-integration.md) admits one signed,
+approved work item and runs a constrained local documentation lane that stops at a human-only
+local change request ([ADR-034](docs/adr/ADR-034-product-ops-documentation-handoff.md),
+[record](docs/records/2026-09-30-product-ops-handoff.md)).
+
 ## Architecture
 
 ```text

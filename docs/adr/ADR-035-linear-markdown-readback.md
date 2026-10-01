@@ -1,4 +1,4 @@
-# ADR-023: Preserve semantics across Linear Markdown serialization
+# ADR-035: Preserve semantics across Linear Markdown serialization
 
 Status: accepted and exercised with PER-8.
 

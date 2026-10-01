@@ -1,4 +1,4 @@
-# ADR-022: Product Ops handoff and constrained documentation execution
+# ADR-034: Product Ops handoff and constrained documentation execution
 
 Status: implemented; exact human approval and live PER-8 admission/execution observed.
 
@@ -30,7 +30,12 @@ ref transaction verifies the pinned base before adding a dedicated review ref. E
 and the one-addition tree diff must match the installed capability.
 
 Delivery persists an immutable OPEN/UNMERGED local change request artifact with human-only merge
-and `auto_merge=false`, and projects HUMAN_REVIEW in its database. A local change request is
+and `auto_merge=false`, and projects HUMAN_REVIEW in its database. The lane records only legal
+`domain.lifecycle` edges, because the store rejects any other projection: INGESTED, ANALYZING,
+READY, PLANNING and IMPLEMENTING after the authority check; VALIDATING once the review commit
+exists; then PR_OPEN (the local change request, not a GitHub PR), REVIEWING and
+ACCEPTANCE_CHECK for the deterministic exact-bytes and one-addition checks; then HUMAN_REVIEW.
+Each step has a fixed sequence and reason, so an interrupted run resumes by exact replay. A local change request is
 not a GitHub PR. Hosted PR publication remains the existing GitHub App capability and is outside
 this narrow executor. The executor spends no model budget.
 
