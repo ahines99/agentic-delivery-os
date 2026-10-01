@@ -2,8 +2,10 @@
 
 Status: **accepted by both sides, 2026-10-01** (Product Ops records it as its ADR-028). This is
 Delivery OS's side of roadmap Phase 2 and 3: what DO-3, DO-5 and DO-6 need from Product Ops
-(PO-4, PO-5). PO-4 is live on the Product Ops side. Delivery OS's DO-3, DO-5 and DO-6 are not
-yet implemented. The decisions Product Ops made are recorded at the end.
+(PO-4, PO-5). PO-4 is live on the Product Ops side. Delivery OS's DO-3 is merged
+([PR #16](https://github.com/ahines99/agentic-delivery-os/pull/16),
+[ADR-038](adr/ADR-038-product-ops-pull-intake.md)); DO-5 and DO-6 are not yet implemented. The
+decisions Product Ops made are recorded at the end.
 
 ## Starting point
 
@@ -20,8 +22,8 @@ CommonMark-equivalent description to match the signed plan.
 
 The roadmap's DO-3 instead has Delivery OS *pull* the envelope when it sees a labelled ticket.
 This contract keeps PR #9's verifier unchanged and adds only the retrieval path. PR #9 is
-closed. DO-3 lands as its own slim PR that carries just the verifier and the pull intake,
-without PR #9's documentation execution lane.
+closed. DO-3 landed as its own slim PR (#16) that carries just the verifier and the pull
+intake, without PR #9's documentation execution lane.
 
 ## 1. Ticket reference (PO-4 writes, DO-3 reads)
 
