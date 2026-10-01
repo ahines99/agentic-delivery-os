@@ -9,7 +9,7 @@ from typing import Any
 
 from pydantic import AwareDatetime
 
-from agentic_delivery.config import Settings, load_settings
+from agentic_delivery.config import RepositoryConfig, Settings, load_settings
 from agentic_delivery.domain.models import Contract, WorkItem
 from agentic_delivery.integrations.linear import LinearClient, LinearUnavailable
 from agentic_delivery.orchestration.activities import Activities
@@ -26,6 +26,24 @@ class MonitorState(Contract):
     observed: int = 0
     held: tuple[str, ...] = ()
     deferred: tuple[str, ...] = ()
+
+
+def names_repository(repository: RepositoryConfig, description: str) -> bool:
+    """Pickup contract v1: a `Repository:` line is required and must name this repository."""
+    declared = re.findall(r"(?im)^Repository:\s*([^\r\n]+)", description)
+    accepted = {repository.id, repository.github_name, *repository.linear_repository_names}
+    return bool(declared) and all(name.strip() in accepted for name in declared)
+
+
+def carries_pickup_label(repository: RepositoryConfig, issue: dict[str, Any]) -> bool:
+    """Pickup contract v1: the opt-in label is a routing signal, never authority."""
+    if repository.linear_pickup_label is None:
+        return True
+    labels = (issue.get("labels") or {}).get("nodes")
+    return isinstance(labels, list) and any(
+        isinstance(label, dict) and label.get("name") == repository.linear_pickup_label
+        for label in labels
+    )
 
 
 async def poll_once(settings: Settings, store: Store, linear: LinearClient) -> int:
@@ -109,10 +127,7 @@ async def poll_once(settings: Settings, store: Store, linear: LinearClient) -> i
         repository = repositories[issue["team"]["id"]]
         if issue["state"]["type"] not in {"backlog", "unstarted"}:
             continue
-        declared = re.findall(r"(?im)^Repository:\s*([^\r\n]+)", issue.get("description") or "")
-        if declared and any(
-            name.strip() not in {repository.id, repository.github_name} for name in declared
-        ):
+        if not names_repository(repository, issue.get("description") or ""):
             continue
         current = await linear.issue(issue["id"])
         if (
@@ -124,6 +139,10 @@ async def poll_once(settings: Settings, store: Store, linear: LinearClient) -> i
             # The next overlapping scan will read the new version.
             continue
         if current.get("state", {}).get("type") not in {"backlog", "unstarted"}:
+            continue
+        if not names_repository(
+            repository, current.get("description") or ""
+        ) or not carries_pickup_label(repository, current):
             continue
         assignee = current.get("assignee") or {}
         if assignee.get("id") not in {None, repository.linear_assignee_id}:

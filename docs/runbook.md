@@ -9,7 +9,7 @@ The Windows task `AgenticDeliveryOS` supervises the local service. Keep this mac
 awake and Docker Desktop running. Its configured target is `agentic-delivery-os`,
 base branch `delivery-workbench-v2`, with changes scoped to `demos/sample_repo`.
 Create a new Backlog ticket in the Personal Project Portfolio Linear team, leave it
-unassigned, include `Repository: agentic-delivery-os`, and describe the required
+unassigned, include `Repository: agentic-delivery-os`, add the `delivery-ready` label, and describe the required
 behavior and acceptance criteria within that scope. Detection runs every 30 seconds.
 Ambiguity pauses the workflow; edit the ticket to answer the clarification. A
 successful run attaches a tested draft PR and moves the ticket to In Review.

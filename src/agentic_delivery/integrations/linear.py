@@ -52,7 +52,7 @@ class LinearClient:
     async def issue(self, identity: str) -> dict[str, Any]:
         result = await self.query(
             "query Issue($id: String!) { issue(id: $id) { id title description updatedAt "
-            "state { id type } team { id } assignee { id } } }",
+            "state { id type } team { id } assignee { id } labels { nodes { name } } } }",
             {"id": identity},
         )
         if not isinstance(result.get("issue"), dict):
