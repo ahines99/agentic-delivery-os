@@ -1,0 +1,11 @@
+{
+  "id": "DEMO-3",
+  "title": "Change account authorization",
+  "description": "Alter which administrators may access customer records.",
+  "repository": "demo/customer-service",
+  "risk_tier": 3,
+  "risk_tags": ["authorization"],
+  "acceptance_criteria": [
+    {"id": "AC-1", "description": "Only explicitly authorized administrators can access records", "verification_type": "integration_test"}
+  ]
+}

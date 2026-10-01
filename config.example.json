@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "database_url": "postgresql+psycopg://delivery:REPLACE_LOCAL_PASSWORD@127.0.0.1:25432/delivery",
+  "temporal_address": "127.0.0.1:27233",
+  "task_queue": "agentic-delivery",
+  "artifact_root": ".local/artifacts",
+  "operators": [],
+  "repositories": [
+    {
+      "id": "ahines99/agentic-delivery-os",
+      "github_owner": "ahines99",
+      "github_name": "agentic-delivery-os",
+      "base_branch": "main",
+      "github_repository_id": 1391630044,
+      "required_checks": [
+        {"name": "Python 3.12", "app_id": 15368},
+        {"name": "Python 3.13", "app_id": 15368},
+        {"name": "PostgreSQL, Temporal, Docker", "app_id": 15368},
+        {"name": "Secret scan", "app_id": 15368}
+      ],
+      "snapshot_prefix": "demos/sample_repo",
+      "model_data_authorized": false,
+      "commands": [
+        {"id": "pytest", "argv": ["python", "-m", "pytest", "-q", "-p", "no:cacheprovider"], "expected_tests": 1},
+        {"id": "ruff-check", "argv": ["python", "-I", "-m", "ruff", "check", "--isolated", "--no-cache", "--target-version", "py312", "--line-length", "100", "--select", "E,F,I,UP,B,SIM", "."]},
+        {"id": "ruff-format", "argv": ["python", "-I", "-m", "ruff", "format", "--check", "--isolated", "--no-cache", "--target-version", "py312", "--line-length", "100", "."]}
+      ]
+    }
+  ],
+  "publication_enabled": false,
+  "approval_validity_seconds": 86400,
+  "ci_wait_seconds": 900,
+  "ci_poll_seconds": 15,
+  "admissions_enabled": true
+}

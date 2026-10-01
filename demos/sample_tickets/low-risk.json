@@ -1,0 +1,11 @@
+{
+  "id": "DEMO-1",
+  "title": "Add customer status filter",
+  "description": "Filter an in-memory customer list by an optional status. Preserve order and return all customers when status is omitted.",
+  "repository": "demo/customer-service",
+  "risk_tier": 1,
+  "acceptance_criteria": [
+    {"id": "AC-1", "description": "A supplied status returns only matching customers in original order", "verification_type": "unit_test"},
+    {"id": "AC-2", "description": "Omitting status preserves the complete result", "verification_type": "unit_test"}
+  ]
+}

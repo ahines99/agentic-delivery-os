@@ -1,0 +1,67 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "agentic-delivery-os"
+version = "0.1.0"
+description = "Governed agent-assisted delivery with independent verification and evidence"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.12,<3.15"
+dependencies = [
+  "fastapi>=0.115,<1",
+  "pydantic>=2.10,<3",
+  "uvicorn>=0.34,<1",
+  "sqlalchemy>=2.0,<3",
+  "alembic>=1.15,<2",
+  "psycopg[binary]>=3.2,<4",
+  "temporalio>=1.10,<2",
+  "httpx>=0.28,<1",
+  "pyjwt[crypto]>=2.10,<3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3,<10",
+    "pytest-asyncio>=1,<2",
+    "ruff>=0.11,<1",
+    "mypy>=1.15,<2",
+    "coverage>=7.15,<8",
+    "pytest-xdist>=3.8,<4",
+]
+
+[project.scripts]
+delivery = "agentic_delivery.cli:main"
+delivery-service = "agentic_delivery.service_cli:main"
+delivery-eval = "agentic_delivery.evaluation.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/agentic_delivery"]
+
+[tool.hatch.build.targets.sdist]
+only-include = [
+    "src", "tests", "docs", "demos", "evals", "infra", "scripts",
+    "README.md", "LICENSE", "SECURITY.md", "AGENTS.md", "config.example.json",
+    "compose.yaml", "uv.lock", ".env.example",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+asyncio_mode = "auto"
+markers = ["integration: requires actual PostgreSQL, Temporal, or Docker services"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src"]
+plugins = ["pydantic.mypy"]

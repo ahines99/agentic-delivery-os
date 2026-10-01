@@ -1,0 +1,39 @@
+{
+  "classification": "SYNTHETIC_PROTOCOL_REGRESSION_FIXTURES",
+  "customer_data": false,
+  "external_provider_calls": 0,
+  "fixtures": [
+    {
+      "event_count": 86,
+      "file": "2107743-plan-stale-approval-cancel.json",
+      "scenario": "plan-stale-approval-cancel",
+      "sha256": "55582af96d81856341c90a77c47d324ad20a7d8e3bc325728ab2d01b7fc20b6a",
+      "terminal_state": "CANCELLED",
+      "workflow_id": "synthetic-replay-2107743-plan-stale-approval-cancel-d38f8dcb73014652a837a151f3d2e53c"
+    },
+    {
+      "event_count": 138,
+      "file": "2107743-ci-linear-handoff.json",
+      "scenario": "ci-linear-handoff",
+      "sha256": "0762e960699420fea22cfe494ba842e5eacc6dbacc7721cf024aa5077a83a22f",
+      "terminal_state": "HUMAN_REVIEW",
+      "workflow_id": "synthetic-replay-2107743-ci-linear-handoff-b252de3854e947028a3a8a0727beeefd"
+    },
+    {
+      "event_count": 138,
+      "file": "2107743-ci-active-cancel.json",
+      "scenario": "ci-active-cancel",
+      "sha256": "d36054eaffbd7cf9f809ac6200e5d0fec82a512b5bd28678040ce1d39841ecbd",
+      "terminal_state": "CANCELLED",
+      "workflow_id": "synthetic-replay-2107743-ci-active-cancel-0cb88be9775c49d4b7a0502be7a3fa50"
+    }
+  ],
+  "generator": "tests/fixtures/replay/generate.py",
+  "limitation": "Prior-commit regression corpus; no deployment or activity compatibility claim.",
+  "schema_version": 1,
+  "source_commit": "21077431f5839fd17d1ac2581dd16f13c04b567a",
+  "source_path": "src/agentic_delivery/orchestration/workflow.py",
+  "source_sha256": "3933cb070b2becdb522bafaca06e166157f236b988fc5c95c39ce0890a514816",
+  "temporal_sdk_version": "1.33.0",
+  "temporal_server_version": "1.32.0"
+}
