@@ -19,8 +19,9 @@ It also re-reads the published ticket and requires its title, team and
 CommonMark-equivalent description to match the signed plan.
 
 The roadmap's DO-3 instead has Delivery OS *pull* the envelope when it sees a labelled ticket.
-The proposal below keeps PR #9's verifier unchanged and adds only the retrieval path. **PR #9
-has to be rebased and merged first**, because DO-3 depends on it.
+This contract keeps PR #9's verifier unchanged and adds only the retrieval path. PR #9 is
+closed. DO-3 lands as its own slim PR that carries just the verifier and the pull intake,
+without PR #9's documentation execution lane.
 
 ## 1. Ticket reference (PO-4 writes, DO-3 reads)
 
@@ -60,9 +61,11 @@ For a ticket that passes pickup contract v1 (ADR-036) and carries `Handoff:`, De
 
 1. Fetch and verify the envelope as above. The expected digest is the ticket's reference.
 2. Re-read the ticket and require it to match the signed plan (PR #9's existing check).
-3. Claim and admit through PR #9's `admit` path, keeping its inbox/outbox replay protection.
+3. Admit through PR #9's `admit` path, keeping its inbox/outbox replay protection, then claim
+   the ticket.
 
-If any step fails, the ticket stays unclaimed and is retried each poll.
+If any step fails, the ticket stays unclaimed: a `404` or a fetch error is retried each poll,
+and a `410` stops it for good.
 
 **Open question for Product Ops:** should a held ticket get a visible reason? DO-4 only
 writes to tickets Delivery OS has claimed, so this would need a claim-then-hold state.
