@@ -4,6 +4,13 @@ This record replaces PR #9's edits to the status documents and its `docs/per7-va
 It keeps the original PER-7/PER-8 evidence below unchanged, then records the port of that work onto
 the current stack (main + PRs #10, #11 and #12) on branch `feat/product-ops-handoff-v2`.
 
+> **Note (2026-10-01).** The PER-8 run below was admitted through PR #9's authenticated push
+> endpoint, `POST /handoffs/product-ops`. That endpoint was not carried forward: on
+> `feat/documentation-lane` the only admission path is the Linear monitor's pull intake
+> ([ADR-038](../adr/ADR-038-product-ops-pull-intake.md)). Statements below about "the
+> authenticated Delivery API" and HTTP 202 replays describe that historical run only. See the
+> [documentation lane record](2026-10-01-documentation-lane.md).
+
 ## Summary
 
 The [signed intake and constrained documentation lane](../product-ops-integration.md) use
