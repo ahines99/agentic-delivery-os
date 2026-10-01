@@ -16,6 +16,7 @@ from agentic_delivery.integrations.product_ops import admit as admit_product_ops
 from agentic_delivery.integrations.product_ops_client import fetch_handoff, handoff_reference
 from agentic_delivery.operations.linear_progress import report_progress
 from agentic_delivery.orchestration.activities import Activities
+from agentic_delivery.repository.snapshot import git
 from agentic_delivery.security import AccessDenied
 from agentic_delivery.storage.database import create_database
 from agentic_delivery.storage.store import Conflict, Store, digest_json
@@ -86,6 +87,55 @@ async def claim(
     return current
 
 
+REVIEW_BRANCH = re.compile(r"[A-Za-z0-9._][A-Za-z0-9._/-]{0,199}")
+
+
+async def documentation_review_open(
+    store: Store, repository: RepositoryConfig, *, exclude: str | None = None
+) -> bool:
+    """A finished documentation run holds the repository until its review branch closes.
+
+    The lane leaves a local review branch, not a hosted PR, so ADR-033's publication check
+    cannot see it. The review is closed once its head is in the base branch or the branch is
+    deleted. Anything unreadable fails closed.
+    """
+    if repository.local_repository is None:
+        return False
+    for run in store.list_workflows((repository.id,), limit=100, state="HUMAN_REVIEW"):
+        if run["id"] == exclude or run["work_item"].get("work_type") != "documentation_addition":
+            continue
+        result = run.get("result") or {}
+        branch, head = result.get("branch"), result.get("head_sha")
+        if (
+            not isinstance(branch, str)
+            or not REVIEW_BRANCH.fullmatch(branch)
+            or not isinstance(head, str)
+            or not re.fullmatch(r"[0-9a-f]{40}", head)
+        ):
+            return True
+        cwd = repository.local_repository
+        try:
+            await git("rev-parse", "--verify", "--quiet", f"refs/heads/{branch}", cwd=cwd)
+        except ValueError:
+            continue  # Branch deleted: the review is closed.
+        try:
+            await git(
+                "merge-base", "--is-ancestor", head, f"refs/heads/{repository.base_branch}", cwd=cwd
+            )
+        except ValueError:
+            return True  # Not merged yet, or unreadable.
+    return False
+
+
+async def repository_busy(
+    store: Store, repository: RepositoryConfig, *, exclude: str | None = None
+) -> bool:
+    """ADR-033: an active run, an unmerged PR, or an open documentation review branch."""
+    return store.delivery_in_progress(
+        repository.id, exclude=exclude
+    ) or await documentation_review_open(store, repository, exclude=exclude)
+
+
 async def pull_handoff(
     settings: Settings,
     store: Store,
@@ -102,7 +152,7 @@ async def pull_handoff(
         return "stop"
     if store.inbox_workflow("product_ops", digest) is not None:
         return "admitted"
-    if store.delivery_in_progress(repository.id):
+    if await repository_busy(store, repository):
         return "hold"
     fetched = await fetch_handoff(trust, digest)
     if fetched.status == "unavailable":
@@ -246,9 +296,7 @@ async def poll_once(settings: Settings, store: Store, linear: LinearClient) -> i
             repository=repository.id,
             base_branch=repository.base_branch,
         )
-        if store.latest_source_workflow(probe) is None and store.delivery_in_progress(
-            repository.id
-        ):
+        if store.latest_source_workflow(probe) is None and await repository_busy(store, repository):
             # Defer before claiming, so a waiting ticket stays visibly unassigned.
             defer(issue["id"], issue["updatedAt"])
             continue
@@ -274,7 +322,7 @@ async def poll_once(settings: Settings, store: Store, linear: LinearClient) -> i
             if revision == previous:
                 continue
             if run["state"] == "NEEDS_CLARIFICATION":
-                if store.delivery_in_progress(repository.id, exclude=run["id"]):
+                if await repository_busy(store, repository, exclude=run["id"]):
                     # Re-analysis takes a fresh snapshot; wait for the other delivery.
                     defer(issue["id"], issue["updatedAt"])
                     continue

@@ -31,8 +31,8 @@ Product Ops work. It never enters normal Linear intake. Each poll, the Linear mo
    refused ticket is never claimed and gets no visible reason.
 
 The pull path admits with `actor=None` and records `admitted_by: product-ops-monitor`, a reserved
-system identity. Here the pinned signature is the authority. The existing push path still
-requires an authenticated operator.
+system identity. Here the pinned signature is the authority. PR #9's push endpoint is not on
+this stack; `admit` still authorizes an actor as operator when a caller supplies one.
 
 The retrieval URL and token variable are excluded from the execution digest.
 
@@ -44,6 +44,9 @@ The retrieval URL and token variable are excluded from the execution digest.
     policy blocks it, and DO-4 reports the reason on the ticket.
   - Admitted software work goes through planning and waits for authenticated human plan
     approval. ADR-025 automatic approval applies only to `linear` work.
+  - Update (2026-10-01, `feat/documentation-lane`): the documentation lane is restored on top
+    of this intake. The dispatcher now sends admitted `documentation_addition` work to it
+    instead of the standard workflow ([ADR-034](ADR-034-product-ops-documentation-handoff.md)).
 - **DO-4 reports Product Ops runs too.** It finds the ticket through the admitted inbox record,
   and adds an "in review" comment when such a run reaches `HUMAN_REVIEW` without a hosted PR.
 - **The contract lines are signed.** The ticket read-back compares the live ticket with the

@@ -46,7 +46,7 @@ async def admit(
         },
         workspace=trust.workspace,
         teams=trust.teams,
-        repositories=tuple(r.id for r in settings.repositories),
+        repositories=settings.product_ops_repository_identifiers(),
         policy_versions=trust.policy_versions,
         documentation_capability=trust.documentation_capability,
     )
@@ -55,7 +55,7 @@ async def admit(
     if len(spec["work_items"]) != 1 or spec["dependencies"]:
         raise AccessDenied("Product Ops dependency scheduling is not enabled")
     work = spec["work_items"][0]
-    repository = settings.repository(work["repository_id"])
+    repository = settings.product_ops_repository(work["repository_id"])
     if actor is not None:
         authorize(actor, repository.id, "operator")
     operation = next(o for o in payload["plan"]["operations"] if o["kind"] == "issue_create")

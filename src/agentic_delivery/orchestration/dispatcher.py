@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from contextlib import suppress
 from datetime import timedelta
 from uuid import uuid4
@@ -8,8 +9,32 @@ from temporalio.exceptions import WorkflowAlreadyStartedError
 from temporalio.service import RPCError, RPCStatusCode
 
 from agentic_delivery.config import Settings
+from agentic_delivery.domain.lifecycle import allowed_transitions
+from agentic_delivery.domain.models import WorkState
+from agentic_delivery.integrations.product_ops_documentation import (
+    ACTOR as DOCUMENTATION_ACTOR,
+)
+from agentic_delivery.integrations.product_ops_documentation import (
+    DocumentationCancelled,
+    execute_documentation,
+)
 from agentic_delivery.orchestration.workflow import DeliveryWorkflow
+from agentic_delivery.security import AccessDenied
 from agentic_delivery.storage.store import Store
+
+
+def stop_documentation(store: Store, identity: str, exc: AccessDenied) -> None:
+    """Record a final documentation-lane refusal once, as a legal terminal transition."""
+    run = store.workflow(identity)
+    target = (
+        WorkState.CANCELLED
+        if isinstance(exc, DocumentationCancelled)
+        else (WorkState.POLICY_BLOCKED)
+    )
+    if target in allowed_transitions(WorkState(run["state"])):
+        store.project(
+            identity, run["sequence"] + 1, target.value, actor=DOCUMENTATION_ACTOR, reason=str(exc)
+        )
 
 
 async def dispatch_once(
@@ -18,6 +43,7 @@ async def dispatch_once(
     client: Client,
     *,
     workflow_id: str | None = None,
+    settings_provider: Callable[[], Settings] | None = None,
 ) -> int:
     owner = str(uuid4())
     delivered = 0
@@ -26,6 +52,23 @@ async def dispatch_once(
             identity = command["workflow_id"]
             if command["kind"] == "start":
                 run = store.workflow(identity)
+                if run["work_item"]["work_type"] == "documentation_addition":
+                    try:
+                        await execute_documentation(
+                            identity, store, settings_provider or (lambda: settings)
+                        )
+                    except AccessDenied as exc:
+                        # Authority failures are final; retrying cannot make them valid.
+                        stop_documentation(store, identity, exc)
+                        store.command_status(command["command_id"], "REJECTED", str(exc))
+                        store.finish_outbox(command["outbox_id"], owner)
+                        continue
+                    store.command_status(
+                        command["command_id"], "APPLIED", "Local documentation review branch ready"
+                    )
+                    store.finish_outbox(command["outbox_id"], owner)
+                    delivered += 1
+                    continue
                 if run["configuration_digest"] and run[
                     "configuration_digest"
                 ] != settings.execution_digest(run["repository"]):
